@@ -96,7 +96,7 @@ void flight_recorder_test(int argc, char **argv)
     INFO("Launching %d recorder thread%s", count, count>1?"s":"");
     Main("Starting speed test for %us with %u threads", howLong, count);
     pthread_t tid;
-    for (unsigned i = 0; i < count; i++)
+    for (int i = 0; i < count; i++)
         pthread_create(&tid, NULL, recorder_thread,
                        (void *) (intptr_t) i);
 

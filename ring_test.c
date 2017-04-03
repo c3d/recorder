@@ -357,7 +357,7 @@ int ringbuffer_test(int argc, char **argv)
     }
 
     INFO("Launching %d writer thread%s", count, count>1?"s":"");
-    for (unsigned i = 0; i < count; i++)
+    for (int i = 0; i < count; i++)
         pthread_create(&tid, NULL, writer_thread, NULL);
 
 
