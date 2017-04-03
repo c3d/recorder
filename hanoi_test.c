@@ -43,20 +43,14 @@ void hanoi_print(int n, post left, post right, post middle)
 
 void hanoi_record(int n, post left, post right, post middle)
 {
-    RECORD(CALLS, "n=%d, left=%-6s, right=%-6s, middle=%-6s",
-           n, postName[left], postName[right], postName[middle]);
-
     if (n == 1)
     {
         RECORD(MOVE,"Move disk from %s to %s", postName[left], postName[right]);
     }
     else
     {
-        RECORD(RECURSE,"Recurse #1 n=%d", n);
         hanoi_record(n-1, left, middle, right);
-        RECORD(RECURSE,"Recurse #2 n=%d", n);
         hanoi_record(1, left, right, middle);
-        RECORD(RECURSE,"Recurse #3 n=%d", n);
         hanoi_record(n-1, middle, right, left);
     }
 }
