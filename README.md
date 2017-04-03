@@ -25,6 +25,32 @@ size and different refresh rates, but a very fast recorder will not
 push away data from a slower one. This ensure you can record
 important, but slow, events, as well as much more frequent ones.
 
+Here is what a recorder dump can look like:
+
+    0 [0.000000:0x10d463170] Main: Launching 16 recorder threads
+    1 [0.000019:0x10d4631bb] Main: Starting speed test for 10s with 16 threads
+    2179 [0.000235:0x10d46320c] Main: Recorder testing in progress, please wait about 10s
+    104892175 [10.001407:0x10d463277] Main: Recorder testing completed, 104892165 iterations
+    104892207 [10.001410:0x10d4630bc] SpeedTest: Recording 104892205
+    104892208 [10.001411:0x10d4630bc] SpeedTest: Recording 104892206
+    104892233 [10.001413:0x10d4632ff] Pauses: Waiting for recorder threads to stop, 16 remaining
+    104892234 [10.001432:0x10d463368] Pauses: Pausing 2401.618us
+    104892235 [10.001437:0x10d4630bc] SpeedTest: Recording 104892231
+    104892238 [10.004529:0x10d463393] Main: All threads have stopped.
+    104892239 [10.004573:0x10d463422] Main: Recorder test complete, 16 threads.
+    104892240 [10.004573:0x10d46346c] Main:   Iterations           =  104892232
+    104892241 [10.004574:0x10d4634c3] Main:   Iterations / ms      =      10489
+    104892242 [10.004574:0x10d463527] Main:   Duration per record  =         95ns
+
+
+The first column is the *order* of records, a sequence number that
+helps relate records made from different threads. The second column is
+the time stamp in seconds from the first record. On 32-bit machines,
+it is precise to the ms. On 64-bit machines, it is precise to the
+microsecond. The third column is the location in the program where the
+record was taken, which you can use in a debugger to identify the code
+that was recording. The last part of the record is what was recorded.
+
 See
 [this blog article](https://grenouillebouillie.wordpress.com/2016/12/09/a-real-time-lock-free-multi-cpu-flight-recorder)
 for a more extensive description of the design and rationale.
@@ -139,3 +165,34 @@ In C++, you would use:
 
     Recorder<256> MyRecorder;
 
+
+## Caveats and limitations
+
+Each record can store up to 4 arguments. Therefore, unlike `printf`,
+you can only pass 4 values to `RECORD`.
+
+You can pass integer values, floating-point values (limited to `float`
+on 32-bit machines for size reasons), pointers or strings as `RECORD` argument.
+
+However, unlike `printf`, the rendering of the final message is done
+*at the time of the dump*. This is not a problem for integer, pointer or
+floating-point values, but for strings (the `%s` format of `printf`),
+you must make sure that the string is still valid at the time of the
+dump. A good practice is to only record string constants.
+
+    // OK if 0 <= i and i < 5
+    const char *array[5] = { "ONE", "TWO", "THREE", "FOUR", "FIVE" };
+    RECORD(Main, "Looking at %s", array[i]);
+    
+    // Not OK because the value of the string has been freed at dump time
+    char *tempStr = strdup("Hello");
+    RECORD(Main, "You will see garbage here: %s", tempStr);
+    free(tempStr); // At dump time, the string no longer exists
+
+In C, conversion of floating-point values must be done manually using
+the `F2I` or `D2I` functions. For example:
+
+    printf("The value of pi is close to %f", 3.1415);
+    RECORD(Main, "The value of pi is close to %f", F2I(3.1415));
+
+In C++, this is done automatically for you.
