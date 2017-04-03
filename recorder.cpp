@@ -108,9 +108,9 @@ std::ostream &Recorder::Entry::Dump(ostream &out, const char *label)
         // Time stamp in us, show in seconds
         snprintf(buffer, sizeof(buffer),
                  "%lu [%lu.%06lu:%p] %s: ",
-                 order,
-                 timestamp / 1000000,
-                 timestamp % 1000000,
+                 (unsigned long) order,
+                 (unsigned long) timestamp / 1000000,
+                 (unsigned long) timestamp % 1000000,
                  caller,
                  label);
         out << buffer;
@@ -244,7 +244,7 @@ std::ostream &Recorder::Dump(ostream &out, const char *pattern)
 
     for(;;)
     {
-        uintptr_t  lowestOrder = ~0ULL;
+        uintptr_t  lowestOrder = (uintptr_t) ~0ULL;
         Recorder  *lowest      = NULL;
         
         for (Recorder *rec = Head(); rec; rec = rec->Next())
