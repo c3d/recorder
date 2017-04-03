@@ -118,3 +118,24 @@ When running BSD or macOS, you can have your program dump the current
 state of the recorder by adding a signal handler for `SIGINFO`. You
 can then dump the recorder at any time by pressing a key (typically
 Control-T) in the terminal.
+
+
+## Adding new recorders in your code
+
+If you want to add recorders to your code, the recommended method is
+to list them in `recorders.tbl`. This makes it easy to locate all your
+recorders in one place.
+
+You can also define a recorder named `MyRecorder` with 256 entries
+that can be called from C using:
+
+    RECORDER_DEFINE(MyRecorder, 256)
+
+However, note that since the actual implementation of recorders is
+written in C++, the definition of recorders with `RECORDER_DEFINE`
+must be compiled in C++, not in C.
+
+In C++, you would use:
+
+    Recorder<256> MyRecorder;
+

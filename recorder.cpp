@@ -350,28 +350,5 @@ void recorder_dump_on_signal(int sig)
 // 
 // ****************************************************************************
 
-#define RECORDER_DEFINE(Name, Size)                                     \
-/*!----------------------------------------------------------------*/   \
-/*! Define a recorder type with Size elements                      */   \
-/*!----------------------------------------------------------------*/   \
-/*! \param Name is the C name fo the recorder.                          \
- *! \param Size is the number of entries in the circular buffer. */     \
-                                                                        \
-void Name##_record(const char *format, unsigned count, ...)             \
-/* ----------------------------------------------------------------*/   \
-/*  Enter a record in a ring buffer with given set of args         */   \
-/* ----------------------------------------------------------------*/   \
-{                                                                       \
-    intptr_t args[4] = { 0 };                                           \
-    va_list ap;                                                         \
-    va_start(ap, count);                                                \
-    const unsigned max = sizeof(args) / sizeof(args[0]);                \
-    for (unsigned i = 0; i < count && i < max; i++)                     \
-        args[i] = va_arg(ap, intptr_t);                                 \
-    Name.Record(format, __builtin_return_address(0),                    \
-                args[0], args[1], args[2], args[3]);                    \
-}
-
-
 #define RECORDER(Name, Size)    RECORDER_DEFINE(Name, Size)
 #include "recorder.tbl"
