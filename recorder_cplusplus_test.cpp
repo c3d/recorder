@@ -156,7 +156,9 @@ void flight_recorder_test(int argc, char **argv)
 
 int main(int argc, char **argv)
 {
+#ifdef SIGINFO
     Recorder::DumpOnSignal(SIGINFO);
+#endif // SIGINFO
     Recorder::DumpOnSignal(SIGUSR1);
     flight_recorder_test(argc, argv);
     return failed;
