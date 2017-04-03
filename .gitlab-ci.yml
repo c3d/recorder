@@ -1,19 +1,19 @@
 before_script:
   - git submodule update --init --recursive
 
-make:
-  script:
-  - make
-  - make opt
-  - make release
-  - make debug
-
 test:
   script:
   - make test
   - make debug-test
   - make opt-test
   - make release-test
+
+make_only:
+  script:
+  - make
+  - make opt
+  - make release
+  - make debug
 
 statistics:
   script:
