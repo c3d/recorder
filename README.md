@@ -6,7 +6,7 @@ A lock-free, real-time flight recorder for your C or C++ programs
 
 The flight recorder is designed to help you debug complex, real-time,
 multi-CPU programs. It lets you instrument their execution with
-very inexpensive, non-intrusive  printf-like *record statements*, that
+very inexpensive, non-intrusive  `printf`-like *record statements*, that
 capture what is happening in your program. These record statements are
 very inexpensive (about 80-100ns on a modern x86), so you can leave
 them in your code all the time, even for optimized code.
