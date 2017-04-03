@@ -262,9 +262,7 @@ void *reader_thread(void *data)
         // Read initial byte, the capital at beginning of message
         unsigned reader = buffer.reader;
         unsigned writer = buffer.writer;
-        unsigned commit = buffer.commit;
         unsigned overflow = buffer.overflow;
-        unsigned writable = buffer_writable();
         unsigned readable = buffer_readable();
 
         if (overflow)
@@ -313,8 +311,6 @@ void *reader_thread(void *data)
 
         reader = buffer.reader;
         writer = buffer.writer;
-        commit = buffer.commit;
-        writable = buffer_writable();
         if (testLen != size)
         {
             FAIL("Length for '%c' is %u, should be %u",
