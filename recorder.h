@@ -140,17 +140,17 @@ struct RecorderRing : private Recorder,
 {
     typedef Recorder            Rec;
     typedef Rec::Entry          Entry;
-    typedef Ring<Entry, RecSize>Ring;
+    typedef Ring<Entry, RecSize>Buf;
 
-    RecorderRing(const char *name): Recorder(), Ring(name) {}
+    RecorderRing(const char *name): Recorder(), Buf(name) {}
 
-    virtual const char *        Name()              { return Ring::Name(); }
-    virtual unsigned            Size()              { return Ring::size; }
-    virtual unsigned            Readable()          { return Ring::Readable(); }
-    virtual unsigned            Writeable()         { return Ring::Writable(); }
-    virtual unsigned            Peek(Entry &e)      { return Ring::Peek(e); }
-    virtual bool                Read(Entry &e)      { return Ring::Read(e); }
-    virtual unsigned            Write(const Entry&e){ return Ring::Write(e); }
+    virtual const char *        Name()              { return Buf::Name(); }
+    virtual unsigned            Size()              { return Buf::size; }
+    virtual unsigned            Readable()          { return Buf::Readable(); }
+    virtual unsigned            Writeable()         { return Buf::Writable(); }
+    virtual unsigned            Peek(Entry &e)      { return Buf::Peek(e); }
+    virtual bool                Read(Entry &e)      { return Buf::Read(e); }
+    virtual unsigned            Write(const Entry&e){ return Buf::Write(e); }
 
 public:
     struct Arg
@@ -193,7 +193,7 @@ public:
             what, Rec::Order(), Rec::Now(), caller,
             { a1, a2, a3, a4 }
         };
-        unsigned writeIndex = Ring::Write(e);
+        unsigned writeIndex = Buf::Write(e);
         if (!writeIndex)
             Rec::Link();
     }
