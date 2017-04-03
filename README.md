@@ -75,7 +75,7 @@ three source files:
 * The `recorder.h` file is the header, which is designed to work for
   either C or C++ programs.
   
-* The `recorder.cpp` file is the implemetation file, which provides
+* The `recorder.cpp` file is the implementation file, which provides
   support for both C and C++ programs.
   
 * The `recorder.tbl` file lists the recorders your application will
