@@ -260,8 +260,6 @@ void *reader_thread(void *data)
     while (threads_to_stop != 1)
     {
         // Read initial byte, the capital at beginning of message
-        unsigned reader = buffer.reader;
-        unsigned writer = buffer.writer;
         unsigned overflow = buffer.overflow;
         unsigned readable = buffer_readable();
 
@@ -309,8 +307,6 @@ void *reader_thread(void *data)
                                   reader_block, reader_overflow);
         ring_fetch_add(count_read, 1);
 
-        reader = buffer.reader;
-        writer = buffer.writer;
         if (testLen != size)
         {
             FAIL("Length for '%c' is %u, should be %u",
