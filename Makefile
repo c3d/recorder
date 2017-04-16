@@ -35,6 +35,8 @@ TEST_ARGS_hanoi_test=10 | wc
 
 include $(BUILD)rules.mk
 
+# For the recorder, we need C++11
+CXX=$(CXX11)
 
 $(BUILD)rules.mk:
 	cd .. && git submodule update --init --recursive
