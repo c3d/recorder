@@ -41,10 +41,7 @@ int failed = 0;
 //
 // ============================================================================
 
-#define RING(Type, Name, Size)                  \
-    RING_DECLARE(Type, Name, Size)              \
-    RING_DEFINE (Type, Name, Size)
-RING(char, buffer, 1024);
+#include "ring_test.h"
 
 
 // Generate N writer threads. Each writer attempts to read if there is

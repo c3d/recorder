@@ -525,7 +525,7 @@ extern unsigned Ring##_write(Ring *rb,                                  \
                              Ring##_block_fn commit_block);             \
                                                                         \
                                                                         \
-inline unsigned Ring##_readable(Ring *rb)                               \
+static inline unsigned Ring##_readable(Ring *rb)                        \
 /* ----------------------------------------------------------------*/   \
 /*  The number of readable elements                                */   \
 /* ----------------------------------------------------------------*/   \
@@ -534,7 +534,7 @@ inline unsigned Ring##_readable(Ring *rb)                               \
 }                                                                       \
                                                                         \
                                                                         \
-inline unsigned Ring##_writable(Ring *rb)                               \
+static inline unsigned Ring##_writable(Ring *rb)                        \
 /* ----------------------------------------------------------------*/   \
 /*  The number of writable elements                                */   \
 /* ----------------------------------------------------------------*/   \
@@ -555,8 +555,8 @@ inline unsigned Ring##_writable(Ring *rb)                               \
 /*  Define a ring buffer type with Size elements of given Type     */   \
 /* ----------------------------------------------------------------*/   \
                                                                         \
-extern inline unsigned Ring##_readable(Ring *rb);                       \
-extern inline unsigned Ring##_writable(Ring *rb);                       \
+static inline unsigned Ring##_readable(Ring *rb);                       \
+static inline unsigned Ring##_writable(Ring *rb);                       \
                                                                         \
                                                                         \
 unsigned Ring##_peek(Ring *rb,                                          \
@@ -685,7 +685,7 @@ unsigned Ring##_write(Ring *rb,                                         \
 extern Ring Name;                                                       \
                                                                         \
                                                                         \
-extern inline unsigned Name##_readable()                                \
+static inline unsigned Name##_readable()                                \
 /* ----------------------------------------------------------------*/   \
 /*  The number of elements that can be read from buffer            */   \
 /* ----------------------------------------------------------------*/   \
@@ -694,7 +694,7 @@ extern inline unsigned Name##_readable()                                \
 }                                                                       \
                                                                         \
                                                                         \
-extern inline unsigned Name##_writable()                                \
+static inline unsigned Name##_writable()                                \
 /* ----------------------------------------------------------------*/   \
 /*  The number of elements that can be written without overwrite   */   \
 /* ----------------------------------------------------------------*/   \
@@ -703,7 +703,7 @@ extern inline unsigned Name##_writable()                                \
 }                                                                       \
                                                                         \
                                                                         \
-extern inline unsigned Name##_peek(Ring##_data *ptr)                    \
+static inline unsigned Name##_peek(Ring##_data *ptr)                    \
 /* ----------------------------------------------------------------*/   \
 /*  Peek the first element without moving read index, return rdidx */   \
 /* ----------------------------------------------------------------*/   \
@@ -712,7 +712,7 @@ extern inline unsigned Name##_peek(Ring##_data *ptr)                    \
 }                                                                       \
                                                                         \
                                                                         \
-extern inline unsigned Name##_read(Ring##_data *ptr,                    \
+static inline unsigned Name##_read(Ring##_data *ptr,                    \
                                    unsigned count)                      \
 /* ----------------------------------------------------------------*/   \
 /*  Read up to 'count' elements from buffer, non-blocking          */   \
@@ -722,7 +722,7 @@ extern inline unsigned Name##_read(Ring##_data *ptr,                    \
 }                                                                       \
                                                                         \
                                                                         \
-extern inline unsigned Name##_write(const Ring##_data *ptr,             \
+static inline unsigned Name##_write(const Ring##_data *ptr,             \
                                     unsigned count)                     \
 /* ----------------------------------------------------------------*/   \
 /*  Write 'count' elements in buffer, non-blocking                 */   \
@@ -733,7 +733,7 @@ extern inline unsigned Name##_write(const Ring##_data *ptr,             \
 }                                                                       \
                                                                         \
                                                                         \
-extern inline unsigned Name##_block_read(Ring##_data *ptr,              \
+static inline unsigned Name##_block_read(Ring##_data *ptr,              \
                                          unsigned count,                \
                                          Ring##_block_fn block,         \
                                          Ring##_block_fn overflow)      \
@@ -745,7 +745,7 @@ extern inline unsigned Name##_block_read(Ring##_data *ptr,              \
 }                                                                       \
                                                                         \
                                                                         \
-extern inline unsigned Name##_block_write(const Ring##_data *ptr,       \
+static inline unsigned Name##_block_write(const Ring##_data *ptr,       \
                                           unsigned count,               \
                                           Ring##_block_fn write_block,  \
                                           Ring##_block_fn commit_block) \
