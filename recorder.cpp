@@ -203,7 +203,7 @@ std::ostream &Recorder::Entry::Dump(ostream &out, const char *label)
                 {
                     union { float f; intptr_t i; } u;
                     u.i = args[argIndex++];
-                    floatArg = u.f;
+                    floatArg = (double) u.f;
                 }
                 else
                 {
