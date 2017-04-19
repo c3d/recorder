@@ -57,7 +57,8 @@ void hanoi_record(int n, post left, post right, post middle)
 
 int main(int argc, char **argv)
 {
-    for (int i = 1; i < argc; i++)
+    int i;
+    for (i = 1; i < argc; i++)
     {
         int count = atoi(argv[i]);
         RECORD(TIMING,"Begin printing Hanoi with %d", count);

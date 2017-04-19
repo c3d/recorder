@@ -86,7 +86,7 @@ void *recorder_thread(void *unused)
 
 void flight_recorder_test(int argc, char **argv)
 {
-    int count = argc >= 2 ? atoi(argv[1]) : 16;
+    int i, count = argc >= 2 ? atoi(argv[1]) : 16;
     if (count < 0)
         count = -count;
     unsigned howLong = argc >= 3 ? atoi(argv[2]) : 10;
@@ -94,7 +94,7 @@ void flight_recorder_test(int argc, char **argv)
     INFO("Launching %d recorder thread%s", count, count>1?"s":"");
     RECORD(Main, "Starting speed test for %us with %u threads", howLong, count);
     pthread_t tid;
-    for (int i = 0; i < count; i++)
+    for (i = 0; i < count; i++)
         pthread_create(&tid, NULL, recorder_thread, NULL);
 
     INFO("Recorder testing in progress, please wait about %ds", howLong);
