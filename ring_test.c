@@ -341,7 +341,7 @@ int ringbuffer_test(int argc, char **argv)
     INFO("Launching reader thread");
     pthread_create(&tid, NULL, reader_thread, NULL);
 
-    int count = argc >= 2 ? atoi(argv[1]) : 16;
+    int i, count = argc >= 2 ? atoi(argv[1]) : 16;
     if (count < 0)
     {
         debug = 1;
@@ -349,7 +349,7 @@ int ringbuffer_test(int argc, char **argv)
     }
 
     INFO("Launching %d writer thread%s", count, count>1?"s":"");
-    for (int i = 0; i < count; i++)
+    for (i = 0; i < count; i++)
         pthread_create(&tid, NULL, writer_thread, NULL);
 
 
