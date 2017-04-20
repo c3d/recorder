@@ -393,9 +393,9 @@ void recorder_dump_on_common_signals(unsigned add, unsigned remove)
         ;
     signals &= ~remove;
 
-    for (uint sig = 0; signals; sig++)
+    for (unsigned sig = 0; signals; sig++)
     {
-        uint mask = 1U << sig;
+        unsigned mask = 1U << sig;
         if (signals & mask)
             recorder_dump_on_signal(sig);
         signals &= ~mask;
