@@ -67,6 +67,10 @@ unsigned recorder_count = 0;
 unsigned thread_id = 0;
 unsigned threads_to_stop = 0;
 
+#ifdef CONFIG_MINGW
+#define lrand48() rand()
+#endif // CONFIG_MINGW
+
 void dawdle(unsigned minimumMs)
 {
     struct timespec tm;
@@ -156,7 +160,9 @@ int main(int argc, char **argv)
 #ifdef SIGINFO
     recorder_dump_on_signal(SIGINFO);
 #endif
+#ifdef SIGUSR1
     recorder_dump_on_signal(SIGUSR1);
+#endif // SIGUSR1
     flight_recorder_test(argc, argv);
     return failed;
 }

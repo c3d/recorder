@@ -127,6 +127,10 @@ unsigned count_read_overflow = 0;
 unsigned thread_id = 0;
 unsigned threads_to_stop = 0;
 
+#ifdef CONFIG_MINGW
+#define lrand48() rand()
+#endif // CONFIG_MINGW
+
 void dawdle(unsigned minimumMs)
 {
     struct timespec tm;
@@ -409,8 +413,10 @@ int main(int argc, char **argv)
 {
 #ifdef SIGINFO
     recorder_dump_on_signal(SIGINFO);
-#endif
+#endif // SIGINFO
+#ifdef SIGUSR1
     recorder_dump_on_signal(SIGUSR1);
+#endif // SIGUSR1
     ringbuffer_test(argc, argv);
     if (failed)
         recorder_dump();        // Try to figure out what failed
