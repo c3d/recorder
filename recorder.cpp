@@ -298,7 +298,9 @@ static void signal_handler(int sig)
 //    Dump the recorder when receiving a signal
 // ----------------------------------------------------------------------------
 {
-    std::cerr << "Received signal " << sig << "\n";
+    RECORD(MAIN, "Received signal %d", sig);
+    std::cerr << "Received signal " << sig << ", dumping recorder\n";
+    signal(sig, SIG_DFL);
     recorder_dump();
 }
 
