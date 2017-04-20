@@ -145,6 +145,32 @@ state of the recorder by adding a signal handler for `SIGINFO`. You
 can then dump the recorder at any time by pressing a key (typically
 Control-T) in the terminal.
 
+In order to dump the recorder on common signals, the call
+`recorder_dump_on_common_signals (0,0)` will install handlers for the
+following signals if they exist on the platform:
+
+* `SIGQUIT`
+* `SIGILL`
+* `SIGABRT`
+* `SIGBUS`
+* `SIGSEGV`
+* `SIGSYS`
+* `SIGXCPU`
+* `SIGXFSZ`
+* `SIGINFO`
+* `SIGUSR1`
+* `SIGUSR2`
+* `SIGSTKFLT`
+* `SIGPWR`
+
+The two arguments are bitmask that you can use to add or remove
+signals. For instance, if you want to get a recorder dump on `SIGINT`
+but none on `SIGSEGV` or `SIGBUS`, you can use:
+
+    unsigned enable = 1U << SIGINT;
+    unsigned disable = (1U << SIGSEGV) | (1U << SIGBUS);
+    recorder_dump_on_common_signals(enable, disable);
+
 
 ## Adding new recorders in your code
 
