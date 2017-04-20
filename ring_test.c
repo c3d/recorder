@@ -194,7 +194,7 @@ void *writer_thread(void *data)
 {
     const unsigned numberOfTests = sizeof(testStrings) / sizeof(*testStrings);
     unsigned tid = ring_fetch_add(thread_id, 1);
-    RECORD(Main, "Entering writer thread %u", tid);
+    RECORD(MAIN, "Entering writer thread %u", tid);
 
     while (!threads_to_stop)
     {
@@ -212,7 +212,7 @@ void *writer_thread(void *data)
                 tid, str, wr, wr + len - 1, len);
     }
     unsigned toStop = ring_fetch_add(threads_to_stop, -1U);
-    RECORD(Main, "Exiting thread %u, stopping %u more", tid, toStop);
+    RECORD(MAIN, "Exiting thread %u, stopping %u more", tid, toStop);
     return NULL;
 }
 
@@ -256,7 +256,7 @@ void *reader_thread(void *data)
     char buf[256];
     unsigned tid = ring_fetch_add(thread_id, 1);
 
-    RECORD(Main, "Entering reader thread tid %u", tid);
+    RECORD(MAIN, "Entering reader thread tid %u", tid);
 
     while (threads_to_stop != 1)
     {
@@ -328,7 +328,7 @@ void *reader_thread(void *data)
     }
 
     unsigned toStop = ring_fetch_add(threads_to_stop, -1);
-    RECORD(Main, "Exiting reader thread tid %u, %u more to stop", tid, toStop);
+    RECORD(MAIN, "Exiting reader thread tid %u, %u more to stop", tid, toStop);
 
     return NULL;
 }
@@ -338,7 +338,7 @@ int ringbuffer_test(int argc, char **argv)
 {
     pthread_t tid;
 
-    RECORD(Main, "Entering ringbuffer test argc=%d", argc);
+    RECORD(MAIN, "Entering ringbuffer test argc=%d", argc);
     INFO("Launching reader thread");
     pthread_create(&tid, NULL, reader_thread, NULL);
 
@@ -359,7 +359,7 @@ int ringbuffer_test(int argc, char **argv)
     unsigned sleepTime = howLong;
     do { sleepTime =  sleep(sleepTime); } while (sleepTime);
     INFO("Testing completed successfully:");
-    RECORD(Main, "Stopping threads");
+    RECORD(MAIN, "Stopping threads");
     threads_to_stop = count + 1;
 
     while(threads_to_stop)
@@ -411,12 +411,7 @@ int ringbuffer_test(int argc, char **argv)
 
 int main(int argc, char **argv)
 {
-#ifdef SIGINFO
-    recorder_dump_on_signal(SIGINFO);
-#endif // SIGINFO
-#ifdef SIGUSR1
-    recorder_dump_on_signal(SIGUSR1);
-#endif // SIGUSR1
+    recorder_dump_on_common_signals(0, 0);
     ringbuffer_test(argc, argv);
     if (failed)
         recorder_dump();        // Try to figure out what failed

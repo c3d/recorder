@@ -19,7 +19,7 @@
 // See file COPYING for details.
 // ****************************************************************************
 
-RECORDER(Main,      64);
+RECORDER(MAIN,      64);
 RECORDER(Writes,  1024);
 RECORDER(Reads,    512);
 RECORDER(Pauses,   256);

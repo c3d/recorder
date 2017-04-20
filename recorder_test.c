@@ -45,7 +45,7 @@ unsigned recorder_count = 0;
 #define INFO(...)                                                       \
     do                                                                  \
     {                                                                   \
-        RECORD(Main, __VA_ARGS__);                                      \
+        RECORD(MAIN, __VA_ARGS__);                                      \
         char buf[256];                                                  \
         snprintf(buf, sizeof(buf), __VA_ARGS__);                        \
         puts(buf);                                                      \
@@ -56,8 +56,8 @@ unsigned recorder_count = 0;
 #define FAIL(...)                                                       \
     do                                                                  \
     {                                                                   \
-        RECORD(Main, "FAILURE");                                        \
-        RECORD(Main, __VA_ARGS__);                                      \
+        RECORD(MAIN, "FAILURE");                                        \
+        RECORD(MAIN, __VA_ARGS__);                                      \
         char buf[256];                                                  \
         snprintf(buf, sizeof(buf), __VA_ARGS__);                        \
         puts(buf);                                                      \
@@ -96,7 +96,7 @@ void flight_recorder_test(int argc, char **argv)
     unsigned howLong = argc >= 3 ? atoi(argv[2]) : 10;
 
     INFO("Launching %d recorder thread%s", count, count>1?"s":"");
-    RECORD(Main, "Starting speed test for %us with %u threads", howLong, count);
+    RECORD(MAIN, "Starting speed test for %us with %u threads", howLong, count);
     pthread_t tid;
     for (i = 0; i < count; i++)
         pthread_create(&tid, NULL, recorder_thread, NULL);
@@ -157,12 +157,7 @@ void flight_recorder_test(int argc, char **argv)
 
 int main(int argc, char **argv)
 {
-#ifdef SIGINFO
-    recorder_dump_on_signal(SIGINFO);
-#endif
-#ifdef SIGUSR1
-    recorder_dump_on_signal(SIGUSR1);
-#endif // SIGUSR1
+    recorder_dump_on_common_signals(0, 0);
     flight_recorder_test(argc, argv);
     return failed;
 }
