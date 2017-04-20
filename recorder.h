@@ -47,6 +47,13 @@ extern void recorder_dump_for(const char *select);
 
 // Dump recorder entries on signal
 extern void recorder_dump_on_signal(int signal);
+
+// Dump recorder entries on common signals (exact signals depend on platform)
+// By default, when called with (0,0), this dumps for:
+//    SIGQUIT, SIGILL, SIGABRT, SIGBUS, SIGSEGV, SIGSYS,
+//    SIGXCPU, SIGXFSZ, SIGINFO, SIGUSR1, SIGUSR2, SIGSTKFLT, SIGPWR
+// You can add add or remove signals by setting the bitmasks 'add' and 'remove'
+extern void recorder_dump_on_common_signals(unsigned add, unsigned remove);
   
 
 #ifdef __cplusplus
@@ -351,7 +358,7 @@ static inline intptr_t F2I(float f)
     else
     {
         union { double d; intptr_t i; } u;
-        u.d = f;
+        u.d = (double) f;
         return u.i;
     }
 }

@@ -343,6 +343,64 @@ void recorder_dump_on_signal(int sig)
 }
 
 
+void recorder_dump_on_common_signals(unsigned add, unsigned remove)
+// ----------------------------------------------------------------------------
+//    Easy interface to dump on the most common signals
+// ----------------------------------------------------------------------------
+{
+    unsigned signals = add
+#ifdef SIGQUIT
+        | (1U << SIGQUIT)
+#endif // SIGQUIT
+#ifdef SIGILL
+        | (1U << SIGILL)
+#endif // SIGILL
+#ifdef SIGABRT
+        | (1U << SIGABRT)
+#endif // SIGABRT
+#ifdef SIGBUS
+        | (1U << SIGBUS)
+#endif // SIGBUS
+#ifdef SIGSEGV
+        | (1U << SIGSEGV)
+#endif // SIGSEGV
+#ifdef SIGSYS
+        | (1U << SIGSYS)
+#endif // SIGSYS
+#ifdef SIGXCPU
+        | (1U << SIGXCPU)
+#endif // SIGXCPU
+#ifdef SIGXFSZ
+        | (1U << SIGXFSZ)
+#endif // SIGXFSZ
+#ifdef SIGINFO
+        | (1U << SIGINFO)
+#endif // SIGINFO
+#ifdef SIGUSR1
+        | (1U << SIGUSR1)
+#endif // SIGUSR1
+#ifdef SIGUSR2
+        | (1U << SIGUSR2)
+#endif // SIGUSR2
+#ifdef SIGSTKFLT
+        | (1U << SIGSTKFLT)
+#endif // SIGSTKFLT
+#ifdef SIGPWR
+        | (1U << SIGPWR)
+#endif // SIGPWR
+        ;
+    signals &= ~remove;
+
+    for (uint sig = 0; signals; sig++)
+    {
+        uint mask = 1U << sig;
+        if (signals & mask)
+            recorder_dump_on_signal(sig);
+        signals &= ~mask;
+    }
+}
+
+
 
 // ****************************************************************************
 // 
