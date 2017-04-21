@@ -136,6 +136,7 @@ std::ostream &Recorder::Entry::Dump(ostream &out, const char *label)
     // differently on many architectures such as x86 or ARM
     // (passed in different registers), and so we need to cast here.
     const char *end = buffer + sizeof buffer;
+    bool finishedInNewline = false;
     while (dst < end)
     {
         char c = *fmt++;
@@ -219,8 +220,12 @@ std::ostream &Recorder::Entry::Dump(ostream &out, const char *label)
                 dst += snprintf(dst, end-dst, format_buffer, intArg);
             }
         }
+        finishedInNewline = c == '\n';
     }
-    out << buffer << "\n";
+
+    out << buffer;
+    if (!finishedInNewline)
+        out << '\n';
 
     return out;
 }
