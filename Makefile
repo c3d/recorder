@@ -19,7 +19,7 @@
 
 BUILD=build/
 
-SOURCES=recorder.cpp
+SOURCES=recorder.cpp recorder.c
 PRODUCTS=librecorder.lib
 
 # Need -lpthreads in some build environments

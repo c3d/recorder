@@ -194,6 +194,7 @@ std::ostream &Recorder::Entry::Dump(ostream &out, const char *label)
                     break;
                 }
             }
+            int isString = (c == 's' || c == 'S');
             if (!c)
                 break;
             *fmtCopy++ = 0;
@@ -216,8 +217,10 @@ std::ostream &Recorder::Entry::Dump(ostream &out, const char *label)
             }
             else
             {
-                intptr_t intArg = args[argIndex++];
-                dst += snprintf(dst, end-dst, format_buffer, intArg);
+                intptr_t arg = args[argIndex++];
+                if (isString && arg == 0)
+                    arg = (intptr_t) "<NULL>";
+                dst += snprintf(dst, end-dst, format_buffer, arg);
             }
         }
         finishedInNewline = c == '\n';

@@ -22,22 +22,30 @@
 // ****************************************************************************
 
 #include "ring.h"
+#include <stdarg.h>
+#include <stdint.h>
+
+#ifdef __cplusplus
+// If a C++ program includes 'recorder.h', switch to the C++ version
+#include "recorder.hpp"
 
 
-// ****************************************************************************
+#else // ! __cplusplus
+
+// ============================================================================
 // 
 //   Global recorder dump functions, for use within a debugger
 //
-// ****************************************************************************
+// ============================================================================
 //
 //  Within gdb, you can use: 'p recorder_dump()' to get a dump of what
 //  happened in your program until this point
 //
 
-
-#ifdef __cplusplus
-extern "C" {
-#endif // __cplusplus
+// Configuration of the function used to dump the recorder
+typedef unsigned (*recorder_show_fn) (const char *ptr, unsigned length);
+extern recorder_show_fn recorder_show;
+extern unsigned recorder_show_to_stderr(const char *ptr, unsigned length);
 
 // Dump all recorder entries for all recorders, sorted between recorders
 extern void recorder_dump(void);
@@ -56,206 +64,6 @@ extern void recorder_dump_on_signal(int signal);
 extern void recorder_dump_on_common_signals(unsigned add, unsigned remove);
   
 
-#ifdef __cplusplus
-} // extern "C"
-
-// ****************************************************************************
-// 
-//    C++ implementation
-// 
-// ****************************************************************************
-
-#include <vector>
-#include <iostream>
-
-
-// ============================================================================
-//
-//    Higher-evel interface
-//
-// ============================================================================
-
-struct Recorder
-// ----------------------------------------------------------------------------
-//    A base for all flight recorders, to store them in a linked list
-// ----------------------------------------------------------------------------
-{
-    typedef std::ostream        ostream;
-
-    // The following struct is where we keep the data.
-    // Should be a power-of-two size on all regular architectures
-    struct Entry
-    {
-        const char *format;     // printf-style format for record
-        uintptr_t   order;      // Global order of events across recorders
-        uintptr_t   timestamp;  // Time at which record occured
-        void *      caller;     // Caller of the record (PC)
-        intptr_t    args[4];    // Four additional arguments, total 8 fields
-
-        ostream &Dump(ostream &out, const char *label);
-    };
-
-public:
-    Recorder(): next(NULL) {}
-
-    virtual const char *        Name()                      = 0;
-    virtual unsigned            Size()                      = 0;
-    virtual unsigned            Readable()                  = 0;
-    virtual unsigned            Writeable()                 = 0;
-    virtual unsigned            Peek(Entry &entry)          = 0;
-    virtual bool                Read(Entry &entry)          = 0;
-    virtual unsigned            Write(const Entry &entry)   = 0;
-    void                        Link();
-    Recorder *                  Next()  { return next; }
-
-public:
-    static Recorder *           Head()  { return head; }
-    static ostream &            Dump(ostream &out, const char *pattern = "");
-    static uintptr_t            Order();
-    static uintptr_t            Now();
-
-    static void                 Block()     { blocked++; }
-    static void                 Unblock()   { blocked--; }
-    static bool                 Blocked()   { return blocked > 0; }
-
-    static void                 DumpOnSignal(int signal, bool install=true);
-private:
-    static std::atomic<Recorder *>  head;
-    static std::atomic<uintptr_t>   order;
-    static std::atomic<unsigned>    blocked;
-
-private:
-    Recorder *                      next;
-};
-
-
-inline std::ostream &operator<< (std::ostream &out, Recorder &fr)
-// ----------------------------------------------------------------------------
-//   Dump a single flight recorder entry on the given ostream
-// ----------------------------------------------------------------------------
-{
-    return fr.Dump(out);
-}
-
-
-template <unsigned RecSize>
-struct RecorderRing : private Recorder,
-                      private Ring<Recorder::Entry, RecSize>
-// ----------------------------------------------------------------------------
-//    Record events in a circular buffer, up to Size events recorded
-// ----------------------------------------------------------------------------
-{
-    typedef Recorder            Rec;
-    typedef Rec::Entry          Entry;
-    typedef Ring<Entry, RecSize>Buf;
-
-    RecorderRing(const char *name): Recorder(), Buf(name) {}
-
-    virtual const char *        Name()              { return Buf::Name(); }
-    virtual unsigned            Size()              { return Buf::size; }
-    virtual unsigned            Readable()          { return Buf::Readable(); }
-    virtual unsigned            Writeable()         { return Buf::Writable(); }
-    virtual unsigned            Peek(Entry &e)      { return Buf::Peek(e); }
-    virtual bool                Read(Entry &e)      { return Buf::Read(e); }
-    virtual unsigned            Write(const Entry&e){ return Buf::Write(e); }
-
-public:
-    struct Arg
-    {
-        Arg(float f):           value(f2i(f))               {}
-        Arg(double d):          value(f2i(d))               {}
-        template<class T>
-        Arg(T t):               value(intptr_t(t))          {}
-
-        operator intptr_t()     { return value; }
-
-    private:
-        template <typename float_type>
-        static intptr_t f2i(float_type f)
-        {
-            if (sizeof(float) == sizeof(intptr_t))
-            {
-                union { float f; intptr_t i; } u;
-                u.f = f;
-                return u.i;
-            }
-            else
-            {
-                union { double d; intptr_t i; } u;
-                u.d = f;
-                return u.i;
-            }
-        }
-
-    private:
-        intptr_t                value;
-    };
-
-    void Record(const char *what, void *caller,
-                Arg a1=0, Arg a2=0, Arg a3=0, Arg a4=0)
-    {
-        if (Rec::Blocked())
-            return;
-        Entry e = {
-            what, Rec::Order(), Rec::Now(), caller,
-            { a1, a2, a3, a4 }
-        };
-        unsigned writeIndex = Buf::Write(e);
-        if (!writeIndex)
-            Rec::Link();
-    }
-    
-    void operator()(const char *what, Arg a1=0, Arg a2=0, Arg a3=0, Arg a4=0)
-    {
-        Record(what, __builtin_return_address(0), a1,a2,a3,a4);
-    }
-};
-
-
-
-// ============================================================================
-//
-//   Inline functions for Recorder
-//
-// ============================================================================
-
-inline uintptr_t Recorder::Order()
-// ----------------------------------------------------------------------------
-//   Generate a unique sequence number for ordering entries in recorders
-// ----------------------------------------------------------------------------
-{
-    return order++;
-}
-
-
-// ============================================================================
-//
-//    Available recorders
-//
-// ============================================================================
-
-#define RECORDER(Name, Size)    extern RecorderRing<Size> Name;
-#include "recorder.tbl"
-
-#define externc extern "C"
-
-
-#else // !__cplusplus
-
-#define externc extern
-
-#endif // __cplusplus
-
-// ****************************************************************************
-// 
-//     C interface
-// 
-// ****************************************************************************
-
-#include <stdarg.h>
-#include <stdint.h>
-
-
 
 // ============================================================================
 // 
@@ -268,9 +76,10 @@ inline uintptr_t Recorder::Order()
 /*  Declare a recorder type with Size elements                     */   \
 /* ----------------------------------------------------------------*/   \
                                                                         \
-externc void Name##_record(const char *format, unsigned count, ...);
+extern void Name##_record(const char *format, unsigned count, ...);
 
 // Some ugly macro drudgery to make things easy to use
+// You see an error with this macro if you pass too many arguments
 #define RECORDER_COUNT_ARGS(...) RECORDER_COUNT_(,##__VA_ARGS__,4,3,2,1,0)
 #define RECORDER_COUNT_(z,_1,_2,_3,_4, cnt, ...) cnt
 
@@ -293,31 +102,85 @@ externc void Name##_record(const char *format, unsigned count, ...);
 //  Recorders in recorders.tbl are defined automatically, but you can
 //  add your own by using e.g. RECORDER_DEFINE(MyRecorder, 256)
 
-#ifdef __cplusplus
+typedef struct recorder_entry_s
+/// ---------------------------------------------------------------------------
+///   Entry in the flight recorder.
+///----------------------------------------------------------------------------
+///  Notice that the arguments are stored as "intptr_t" because that type
+///  is guaranteed to be the same size as a pointer. This allows us to
+///  properly align recorder entries to powers of 2 for efficiency.
+///  Also read explanations of \ref D2I and \ref F2I below regarding
+///  how to use floating-point with the recorder.
+{
+    const char *format;         ///< Printf-style format for record
+    uintptr_t   order;          ///< Global order of events (across recorders)
+    uintptr_t   timestamp;      ///< Time at which record took place
+    uintptr_t   where;          ///< Location (e.g. program counter)
+    intptr_t    args[4];        ///< Five arguments, for a total of 8 fields
+} recorder_entry;
 
-#define RECORDER_DEFINE(Name, Size)                                     \
-/*!----------------------------------------------------------------*/   \
-/*! Define a recorder type with Size elements                      */   \
-/*!----------------------------------------------------------------*/   \
-/*! \param Name is the C name fo the recorder.                          \
- *! \param Size is the number of entries in the circular buffer. */     \
-                                                                        \
-void Name##_record(const char *format, unsigned count, ...)             \
-/* ----------------------------------------------------------------*/   \
-/*  Enter a record in a ring buffer with given set of args         */   \
-/* ----------------------------------------------------------------*/   \
-{                                                                       \
-    intptr_t args[4] = { 0 };                                           \
-    va_list ap;                                                         \
-    va_start(ap, count);                                                \
-    const unsigned max = sizeof(args) / sizeof(args[0]);                \
-    for (unsigned i = 0; i < count && i < max; i++)                     \
-        args[i] = va_arg(ap, intptr_t);                                 \
-    Name.Record(format, __builtin_return_address(0),                    \
-                args[0], args[1], args[2], args[3]);                    \
-}
 
-#endif // __cplusplus
+/// A global counter indicating the order of entries across recorders.
+/// This is incremented atomically for each RECORD() call.
+/// It must be exposed because all XYZ_record() implementations need to
+/// touch the same shared variable in order to provide a global order.
+extern unsigned recorder_order;
+
+/// A counter of how many clients are currently blocking the recorder.
+/// Code that needs to block the recorder for any reason can atomically
+/// increase this on entry, and atomically decrease this on exit.
+/// Typically, functions like \ref recorder_dump block the recorder
+/// while dumping in order to maximize the amount of "relevant" data
+/// they can show. This variable needs to be public because all
+/// recording functions need to test it.
+extern unsigned recorder_blocked;
+
+/// Generic recorder type, used for common code, e.g. \ref recorder_dump
+RING_TYPE_DECLARE(recorder, recorder_entry, 4);
+
+/// A function pointer type used by generic code to read each recorder.
+/// \param entries will be filled with the entries read from the recorder.
+/// \param count is the maximum number of entries that can be read.
+/// \return the number of recorder entries read.
+typedef unsigned (*recorder_read_fn)(recorder_entry *entries, unsigned count);
+
+/// A function pointer type used by generic code to peek into each recorder.
+/// \param entries will be filled with the first readable entry.
+/// \return the read index of the entry that was read.
+typedef unsigned (*recorder_peek_fn)(recorder_entry *entry);
+
+/// A function pointer type used by generic code to count readable items.
+/// \return the number of recorder entries that can safely be read.
+typedef unsigned (*recorder_readable_fn)();
+
+
+typedef struct recorder_list_s
+///----------------------------------------------------------------------------
+///   A linked list of the activated recorders.
+///----------------------------------------------------------------------------
+///   The first time you write into a recorder, it is 'activated' by placing
+///   it on a linked list that will be then traversed by functions like
+///   \see recorder_dump. The content of this structure is automatically
+///   generated by the \ref RECORDER_DEFINE macro.
+{
+    const char *            name;       ///< Name of this recorder (generated)
+    recorder_read_fn        read;       ///< Read entries
+    recorder_peek_fn        peek;       ///< Peek first readable entry
+    recorder_readable_fn    readable;   ///< Count readable entries
+    unsigned                size;       ///< Size (maximum number of entries)
+    struct recorder_list_s  *next;      ///< Pointer to next in list
+} recorder_list;
+
+
+/// Activate a recorder, e.g. because something was written in it.
+/// An active recorder is processed during \ref recorder_dump.
+extern void recorder_activate(recorder_list *recorder);
+
+/// Dump a single recorder.
+/// This is more of an internal function used by \ref recorder_dump,
+/// but it may be useful to dump a specific recorder in some cases.
+extern void recorder_dump_one(recorder_list *recorder,
+                              recorder_show_fn show);
 
 
 
@@ -382,5 +245,7 @@ static inline intptr_t D2I(double d)
         return u.i;
     }
 }
+
+#endif // __cplusplus
 
 #endif // RECORDER_H
