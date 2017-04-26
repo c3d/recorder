@@ -25,7 +25,7 @@
 #include <stdarg.h>
 #include <stdint.h>
 
-#ifdef __cplusplus
+#if defined(__cplusplus) && !defined(RECORDER_HPP)
 // If a C++ program includes 'recorder.h', switch to the C++ version
 #include "recorder.hpp"
 
@@ -43,15 +43,13 @@
 //
 
 // Configuration of the function used to dump the recorder
-typedef unsigned (*recorder_show_fn) (const char *ptr, unsigned length);
-extern recorder_show_fn recorder_show;
-extern unsigned recorder_show_to_stderr(const char *ptr, unsigned length);
+typedef unsigned (*recorder_show_fn) (const char *ptr, unsigned len, void *arg);
 
 // Dump all recorder entries for all recorders, sorted between recorders
 extern void recorder_dump(void);
 
-// Dump all recorder entries for all recorders with names matchin 'select'    
-extern void recorder_dump_for(const char *select);
+// Sort all recorder entries for all recorders with names matching 'what'    
+extern void recorder_sort(const char *what, recorder_show_fn show, void *arg);
 
 // Dump recorder entries on signal
 extern void recorder_dump_on_signal(int signal);
@@ -76,19 +74,25 @@ extern void recorder_dump_on_common_signals(unsigned add, unsigned remove);
 /*  Declare a recorder type with Size elements                     */   \
 /* ----------------------------------------------------------------*/   \
                                                                         \
-extern void Name##_record(const char *format, unsigned count, ...);
+extern void Name##_record(uintptr_t where,                          \
+                          const char *format,                           \
+                          uintptr_t a0,                                 \
+                          uintptr_t a1,                                 \
+                          uintptr_t a2,                                 \
+                          uintptr_t a3);
 
-// Some ugly macro drudgery to make things easy to use
-// You see an error with this macro if you pass too many arguments
-#define RECORDER_COUNT_ARGS(...) RECORDER_COUNT_(,##__VA_ARGS__,4,3,2,1,0)
-#define RECORDER_COUNT_(z,_1,_2,_3,_4, cnt, ...) cnt
 
+// Some ugly macro drudgery to make things easy to use. Pad with zeroes.
+#define RECORDER_ARG(_1,_2,_3,_4, arg,...)    arg
 #define RECORD(Name, Format, ...)                                       \
-    Name##_record(Format,                                               \
-                  RECORDER_COUNT_ARGS(__VA_ARGS__),                     \
-                  ## __VA_ARGS__)
+    Name##_record(0,                                                    \
+                  Format,                                               \
+                  RECORDER_ARG(0, 0, 0, 0, ## __VA_ARGS__, 0),          \
+                  RECORDER_ARG(0, 0, 0, ## __VA_ARGS__, 0, 0),          \
+                  RECORDER_ARG(0, 0, ## __VA_ARGS__, 0, 0, 0),          \
+                  RECORDER_ARG(0, ## __VA_ARGS__, 0, 0, 0, 0))
 
-
+// Declare available recorders
 #define RECORDER(Name, Size)        RECORDER_DECLARE(Name, Size)
 #include "recorder.tbl"
 
@@ -102,7 +106,7 @@ extern void Name##_record(const char *format, unsigned count, ...);
 //  Recorders in recorders.tbl are defined automatically, but you can
 //  add your own by using e.g. RECORDER_DEFINE(MyRecorder, 256)
 
-typedef struct recorder_entry_s
+typedef struct recorder_entry
 /// ---------------------------------------------------------------------------
 ///   Entry in the flight recorder.
 ///----------------------------------------------------------------------------
@@ -116,7 +120,7 @@ typedef struct recorder_entry_s
     uintptr_t   order;          ///< Global order of events (across recorders)
     uintptr_t   timestamp;      ///< Time at which record took place
     uintptr_t   where;          ///< Location (e.g. program counter)
-    intptr_t    args[4];        ///< Five arguments, for a total of 8 fields
+    uintptr_t   args[4];        ///< Four arguments, for a total of 8 fields
 } recorder_entry;
 
 
@@ -153,8 +157,16 @@ typedef unsigned (*recorder_peek_fn)(recorder_entry *entry);
 /// \return the number of recorder entries that can safely be read.
 typedef unsigned (*recorder_readable_fn)();
 
+/// The function type for recorder functions
+typedef void recorder_record_fn(uintptr_t caller,
+                                const char *format,
+                                uintptr_t a0,
+                                uintptr_t a1,
+                                uintptr_t a2,
+                                uintptr_t a3);
 
-typedef struct recorder_list_s
+
+typedef struct recorder_list
 ///----------------------------------------------------------------------------
 ///   A linked list of the activated recorders.
 ///----------------------------------------------------------------------------
@@ -168,19 +180,13 @@ typedef struct recorder_list_s
     recorder_peek_fn        peek;       ///< Peek first readable entry
     recorder_readable_fn    readable;   ///< Count readable entries
     unsigned                size;       ///< Size (maximum number of entries)
-    struct recorder_list_s  *next;      ///< Pointer to next in list
+    struct recorder_list   *next;      ///< Pointer to next in list
 } recorder_list;
 
 
 /// Activate a recorder, e.g. because something was written in it.
 /// An active recorder is processed during \ref recorder_dump.
 extern void recorder_activate(recorder_list *recorder);
-
-/// Dump a single recorder.
-/// This is more of an internal function used by \ref recorder_dump,
-/// but it may be useful to dump a specific recorder in some cases.
-extern void recorder_dump_one(recorder_list *recorder,
-                              recorder_show_fn show);
 
 
 
@@ -207,44 +213,63 @@ extern void recorder_dump_one(recorder_list *recorder,
 //   If we want to pass a floating-point value, we need to first convert it
 //   to integral format to make sure that it is passed in Rn and not Dn.
 
-static inline intptr_t F2I(float f)
+static inline uintptr_t F2I(float f)
 // ----------------------------------------------------------------------------
 //   Convert floating point number to intptr_t representation for recorder
 // ----------------------------------------------------------------------------
 {
     if (sizeof(float) == sizeof(intptr_t))
     {
-        union { float f; intptr_t i; } u;
+        union { float f; uintptr_t i; } u;
         u.f = f;
         return u.i;
     }
     else
     {
-        union { double d; intptr_t i; } u;
+        union { double d; uintptr_t i; } u;
         u.d = (double) f;
         return u.i;
     }
 }
 
 
-static inline intptr_t D2I(double d)
+static inline uintptr_t D2I(double d)
 // ----------------------------------------------------------------------------
 //   Convert double-precision floating point number to intptr_t representation
 // ----------------------------------------------------------------------------
 {
     if (sizeof(double) == sizeof(intptr_t))
     {
-        union { double d; intptr_t i; } u;
+        union { double d; uintptr_t i; } u;
         u.d = d;
         return u.i;
     }
     else
     {
-        union { float f; intptr_t i; } u;
+        union { float f; uintptr_t i; } u;
         u.f = d;
         return u.i;
     }
 }
+
+
+
+// ============================================================================
+// 
+//   Portability helpers
+// 
+// ============================================================================
+
+// Return ticks (some kind of time unit) since first called
+extern uintptr_t recorder_tick();
+
+// Compute the return address (may be different on different compilers)
+#ifdef __GNUC__
+#define recorder_return_address()       ((uintptr_t)__builtin_return_address(0))
+#else
+#warning "No return address on this compiler, implement recorder_return_address"
+#define recorder_return_address()       0
+#endif
 
 #endif // __cplusplus
 

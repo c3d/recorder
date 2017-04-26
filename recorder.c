@@ -47,28 +47,35 @@ RING_DECLARE(Name##_recorder_entry, Name##_recorder, Size);             \
 RING_DEFINE(Name##_recorder_entry, Name##_recorder, Size);              \
                                                                         \
                                                                         \
+/* The entry in linked list for this type */                            \
+recorder_list Name##_recorder_list =                                    \
+{                                                                       \
+    #Name,                                                              \
+    (recorder_read_fn) Name##_recorder_read,                            \
+    (recorder_peek_fn) Name##_recorder_peek,                            \
+    (recorder_readable_fn) Name##_recorder_readable,                    \
+    Size,                                                               \
+    NULL                                                                \
+};                                                                      \
+                                                                        \
+                                                                        \
 void Name##_activate_recorder()                                         \
 /* ----------------------------------------------------------------*/   \
 /*  Enter a record in a ring buffer with given set of args         */   \
 /* ----------------------------------------------------------------*/   \
 {                                                                       \
-    /* The entry in linked list for this type */                        \
-    static recorder_list thisRecorder =                                 \
-        {                                                               \
-            #Name,                                                      \
-            (recorder_read_fn) Name##_recorder_read,                    \
-            (recorder_peek_fn) Name##_recorder_peek,                    \
-            (recorder_readable_fn) Name##_recorder_readable,            \
-            Size,                                                       \
-            NULL                                                        \
-        };                                                              \
-    recorder_activate(&thisRecorder);                                   \
+     recorder_activate(&Name##_recorder_list);                          \
 }                                                                       \
                                                                         \
                                                                         \
-void Name##_record(const char *format, unsigned count, ...)             \
+void Name##_record(uintptr_t caller,                                    \
+                   const char *format,                                  \
+                   uintptr_t a0,                                        \
+                   uintptr_t a1,                                        \
+                   uintptr_t a2,                                        \
+                   uintptr_t a3)                                        \
 /* ----------------------------------------------------------------*/   \
-/*  Enter a record in a ring buffer with given set of args         */   \
+/*  Enter a record entry in ring buffer with given set of args     */   \
 /* ----------------------------------------------------------------*/   \
 {                                                                       \
     recorder_entry entry;                                               \
@@ -77,11 +84,11 @@ void Name##_record(const char *format, unsigned count, ...)             \
     entry.format = format;                                              \
     entry.order = ring_fetch_add(recorder_order, 1);                    \
     entry.timestamp = recorder_tick();                                  \
-    entry.where = (intptr_t) recorder_return_address();                 \
-    va_list ap;                                                         \
-    va_start(ap, count);                                                \
-    for (unsigned i = 0; i < count; i++)                                \
-        entry.args[i] = va_arg(ap, intptr_t);                           \
+    entry.where = caller ? caller : recorder_return_address();          \
+    entry.args[0] = a0;                                                 \
+    entry.args[1] = a1;                                                 \
+    entry.args[2] = a2;                                                 \
+    entry.args[3] = a3;                                                 \
     unsigned writeIndex = Name##_recorder_write(&entry, 1);             \
                                                                         \
     /* Check if this is the first time we record here */                \
@@ -90,8 +97,7 @@ void Name##_record(const char *format, unsigned count, ...)             \
 }
 
 
-
-static uintptr_t recorder_tick()
+uintptr_t recorder_tick()
 // ----------------------------------------------------------------------------
 //   Return the "ticks" as stored in the recorder
 // ----------------------------------------------------------------------------
@@ -108,15 +114,6 @@ static uintptr_t recorder_tick()
         initialTick = tick;
     return tick - initialTick;
 }
-
-
-// Compute the return address (may be different on different compilers)
-#ifdef __GNUC__
-#define recorder_return_address()       __builtin_return_address(0)
-#else
-#warning "No return address on this compiler, implement recorder_return_address"
-#define recorder_return_address()       0
-#endif
 
 
 #define RECORDER(Name, Size)        RECORDER_DEFINE(Name, Size)
@@ -139,16 +136,14 @@ unsigned        recorder_blocked = 0;
 /// List of the currently active flight recorders (ring buffers)
 recorder_list * recorders        = NULL;
 
-/// The function used to show recorder entries (can be overriden)
-recorder_show_fn recorder_show = recorder_show_to_stderr;
 
-
-unsigned recorder_show_to_stderr(const char *ptr, unsigned length)
+static unsigned recorder_print_to_stderr(const char *ptr, unsigned len,
+                                         void *arg)
 // ----------------------------------------------------------------------------
-//   The default printing function
+//   The default printing function - prints to stderr
 // ----------------------------------------------------------------------------
 {
-    return (unsigned) write(2, ptr, length);
+    return (unsigned) write(2, ptr, len);
 }
 
 
@@ -161,8 +156,10 @@ unsigned recorder_show_to_stderr(const char *ptr, unsigned length)
 #  define snprintf  _snprintf
 #endif
 
-static void recorder_dump_entry(const char *label,
-                                recorder_entry *entry)
+static void recorder_dump_entry(const char       *label,
+                                recorder_entry   *entry,
+                                recorder_show_fn  show,
+                                void             *arg)
 // ----------------------------------------------------------------------------
 //  Dump a recorder entry in a buffer between dst and dst_end, return last pos
 // ----------------------------------------------------------------------------
@@ -302,20 +299,11 @@ static void recorder_dump_entry(const char *label,
     }
     if (!finishedInNewline && dst < dst_end)
         *dst++ = '\n';
-    recorder_show (buffer, dst - buffer);
+    show(buffer, dst - buffer, arg);
 }
 
 
-void recorder_dump(void)
-// ----------------------------------------------------------------------------
-//   Dump all entries, sorted by their global 'order' field
-// ----------------------------------------------------------------------------
-{
-    recorder_dump_for("");
-}
-
-
-void recorder_dump_for(const char *select)
+void recorder_sort(const char *what, recorder_show_fn show, void *arg)
 // ----------------------------------------------------------------------------
 //   Dump all entries, sorted by their global 'order' field
 // ----------------------------------------------------------------------------
@@ -333,7 +321,7 @@ void recorder_dump_for(const char *select)
         for (recorder_list *rec = recorders; rec; rec = rec->next)
         {
             // Skip recorders that don't match the pattern
-            if (!strstr(rec->name, select))
+            if (!strstr(rec->name, what))
                 continue;
 
             // Loop while this recorder is readable and we can find next order
@@ -354,7 +342,7 @@ void recorder_dump_for(const char *select)
                 if (!rec->read(&entry, 1))
                     continue;
                 
-                recorder_dump_entry(rec->name, &entry);
+                recorder_dump_entry(rec->name, &entry, show, arg);
                 nextOrder++;
             }
         }
@@ -366,11 +354,20 @@ void recorder_dump_for(const char *select)
         if (!lowest->read(&entry, 1))
             continue;
         
-        recorder_dump_entry(lowest->name, &entry);
+        recorder_dump_entry(lowest->name, &entry, show, arg);
         nextOrder = entry.order + 1;
     }
     
     ring_fetch_add(recorder_blocked, -1);
+}
+
+
+void recorder_dump(void)
+// ----------------------------------------------------------------------------
+//   Dump all entries, sorted by their global 'order' field
+// ----------------------------------------------------------------------------
+{
+    recorder_sort("", recorder_print_to_stderr, NULL);
 }
 
 
@@ -395,13 +392,8 @@ static void signal_handler(int sig)
 //    Dump the recorder when receiving a signal
 // ----------------------------------------------------------------------------
 {
-    RECORD(MAIN, "Received signal %d", sig);
-
-    static char buffer[256];
-    int len = snprintf(buffer, sizeof buffer,
-                       "Received signal %d, dumping recorder\n", sig);
-    recorder_show(buffer, len);
-
+    RECORD(MAIN, "Received signal %d, dumping recorder", sig);
+    fprintf(stderr, "Received signal %d, dumping recorder\n", sig);
     signal(sig, SIG_DFL);       // Default behavior should we crash in dump
     recorder_dump();
 }
