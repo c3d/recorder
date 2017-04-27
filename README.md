@@ -57,8 +57,10 @@ for a more extensive description of the design and rationale.
 
 ## Building the recorder library
 
-The recorder is normally designed to be included in your applications,
-but you can build and test the library to see how it works. To build
+The recorder is normally designed to be included directly in your applications,
+not as a separate library, because it uses a per-application configuration
+file called `recorder.tbl` specifying the recorders and their size.
+However, you can still build and test the library to see how it works. To build
 and test the library on your system, type:
 
 `make test`
@@ -69,24 +71,32 @@ perform some operations and record what is happening while they do so.
 
 ## Adding recorders to your own project
 
-In order to add recorders to your own project, you need to integrate
+In order to add recorders to your own C project, you need to integrate
 three source files:
 
 * The `recorder.h` file is the header, which is designed to work for
-  either C or C++ programs.
-  
-* The `recorder.cpp` file is the implementation file, which provides
-  support for both C and C++ programs.
-  
+  either C programs.
+
+* The `recorder.c` file is the implementation file, which provides
+  support for C programs.
+
 * The `recorder.tbl` file lists the recorders your application will
   use, and their size.
+
+For C++ projects, you should add
+
+* The `recorder.hpp` header which contains a C++ wrapper for the
+  recorder features. You can still Use `#include "recorder.h"` for C++
+  programs if that fits your programming style better.
+
+* The `recorder.cpp` implementation file adds support for C++ code.
 
 You can look at the `hanoi_test.c` file for an example of use.
 To use a recorder called `MOVES` with 256 entries, you declare
 it as follows in the `recorder.tbl` file:
 
     RECORDER(MOVES, 256)
-    
+
 
 ## Recording events
 
@@ -111,7 +121,7 @@ To dump recorded events, you use the `recorder_dump` function. This
 dumps all the recorders:
 
     recorder_dump();
-    
+
 In C++, you can use the `Recorder::Dump` function and pass an
 `ostream` object.
 
@@ -139,7 +149,7 @@ this, call the function `record_dump_on_signal` or the C++ functoin
 
     recorder_dump_on_signal(SIGBUS);
     Recorder::DumpOnSignal(SIGSEGV);
-    
+
 When running BSD or macOS, you can have your program dump the current
 state of the recorder by adding a signal handler for `SIGINFO`. You
 can then dump the recorder at any time by pressing a key (typically
@@ -209,7 +219,7 @@ dump. A good practice is to only record string constants.
     // OK if 0 <= i and i < 5
     const char *array[5] = { "ONE", "TWO", "THREE", "FOUR", "FIVE" };
     RECORD(Main, "Looking at %s", array[i]);
-    
+
     // Not OK because the value of the string has been freed at dump time
     char *tempStr = strdup("Hello");
     RECORD(Main, "You will see garbage here: %s", tempStr);
