@@ -48,6 +48,9 @@ typedef unsigned (*recorder_show_fn) (const char *ptr, unsigned len, void *arg);
 // Dump all recorder entries for all recorders, sorted between recorders
 extern void recorder_dump(void);
 
+// Dump all recorder entries matching recorders with 'what' in the name
+extern void recorder_dump_for(const char *name);
+
 // Sort all recorder entries for all recorders with names matching 'what'    
 extern void recorder_sort(const char *what, recorder_show_fn show, void *arg);
 
@@ -83,7 +86,7 @@ extern void Name##_record(uintptr_t where,                          \
 
 
 // Some ugly macro drudgery to make things easy to use. Pad with zeroes.
-#define RECORDER_ARG(_1,_2,_3,_4, arg,...)    arg
+#define RECORDER_ARG(_1,_2,_3,_4, arg,...)    ((uintptr_t) (arg))
 #define RECORD(Name, Format, ...)                                       \
     Name##_record(0,                                                    \
                   Format,                                               \

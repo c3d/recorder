@@ -371,6 +371,15 @@ void recorder_dump(void)
 }
 
 
+void recorder_dump_for(const char *what)
+// ----------------------------------------------------------------------------
+//   Dump all entries for recorder with names matching 'what'
+// ----------------------------------------------------------------------------
+{
+    recorder_sort(what, recorder_print_to_stderr, NULL);
+}
+
+
 void recorder_activate (recorder_list *recorder)
 // ----------------------------------------------------------------------------
 //   Activate the given recorder by putting it in linked list
