@@ -180,8 +180,6 @@ private:
 //    Operations to perform when blocking or overflowing
 // 
 // ============================================================================
-//
-
 
 template <class Ring>
 struct AbortReadIfBlocking
@@ -430,6 +428,4 @@ unsigned Ring<Type, Size>::Write(Iterator begin, Iterator end)
 
 #endif // __cplusplus
 
-
-
-#endif // RING_HPP
+#endif // RING_H
