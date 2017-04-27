@@ -317,8 +317,9 @@ void recorder_sort(const char *what, recorder_show_fn show, void *arg)
     {
         uintptr_t      lowestOrder = ~0UL;
         recorder_list *lowest      = NULL;
+        recorder_list *rec;
         
-        for (recorder_list *rec = recorders; rec; rec = rec->next)
+        for (rec = recorders; rec; rec = rec->next)
         {
             // Skip recorders that don't match the pattern
             if (!strstr(rec->name, what))
@@ -422,6 +423,7 @@ void recorder_dump_on_common_signals(unsigned add, unsigned remove)
 //    Easy interface to dump on the most common signals
 // ----------------------------------------------------------------------------
 {
+    unsigned sig;
     unsigned signals = add
 #ifdef SIGQUIT
         | (1U << SIGQUIT)
@@ -465,7 +467,7 @@ void recorder_dump_on_common_signals(unsigned add, unsigned remove)
         ;
     signals &= ~remove;
 
-    for (unsigned sig = 0; signals; sig++)
+    for (sig = 0; signals; sig++)
     {
         unsigned mask = 1U << sig;
         if (signals & mask)
