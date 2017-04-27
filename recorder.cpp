@@ -1,5 +1,5 @@
 // ****************************************************************************
-//  flight_recorder.cpp                                       Recorder project
+//  recorder.cpp                                             Recorder project
 // ****************************************************************************
 //
 //   File Description:
@@ -49,7 +49,7 @@
 
 // Define all the recorders we need
 #define RECORDER(Name, Size)                                    \
-extern Recorder<Name##_record, Name##_recorder_list> Name;
+Recorder<Name##_record, Name##_recorder_list> Name;
 #include "recorder.tbl"
 
 
