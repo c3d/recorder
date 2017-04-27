@@ -397,14 +397,21 @@ void recorder_activate (recorder_list *recorder)
 }
 
 
-static void signal_handler(int sig)
+// Saved old actions
+static struct sigaction old_action[NSIG] = { };
+
+static void signal_handler(int sig, siginfo_t *info, void *ucontext)
 // ----------------------------------------------------------------------------
 //    Dump the recorder when receiving a signal
 // ----------------------------------------------------------------------------
 {
-    RECORD(MAIN, "Received signal %d, dumping recorder", sig);
-    fprintf(stderr, "Received signal %d, dumping recorder\n", sig);
-    signal(sig, SIG_DFL);       // Default behavior should we crash in dump
+    RECORD(MAIN, "Received signal %s (%d) si_addr=%p, dumping recorder",
+           strsignal(sig), sig, info->si_addr);
+    fprintf(stderr, "Received signal %s (%d), dumping recorder\n",
+            strsignal(sig), sig);
+
+    // Restore previous handler
+    sigaction(sig, &old_action[sig], NULL);
     recorder_dump();
 }
 
@@ -414,7 +421,14 @@ void recorder_dump_on_signal(int sig)
 //    C interface for Recorder::DumpOnSignal
 // ----------------------------------------------------------------------------
 {
-    signal(sig, signal_handler);
+    if (sig < 0 || sig >= NSIG)
+        return;
+
+    struct sigaction action;
+    action.sa_sigaction = signal_handler;
+    sigemptyset(&action.sa_mask);
+    action.sa_flags = SA_SIGINFO;         
+    sigaction(sig, &action, &old_action[sig]);
 }
 
 
