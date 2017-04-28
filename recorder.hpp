@@ -91,9 +91,10 @@ inline std::ostream &operator<< (std::ostream &out, Recorder<R,L> &recorder)
 //
 // ============================================================================
 
-#define RECORDER(Name, Size)                                    \
-extern recorder_list Name##_recorder_list;                      \
-extern Recorder<Name##_record, Name##_recorder_list> Name;
+#define RECORDER(Name, Size)                                            \
+    extern recorder_list recorder_##Name##_list_entry;                  \
+    extern Recorder<recorder_##Name##_record,                           \
+                    recorder_##Name##_list_entry> Name;
 #include "recorder.tbl"
 
 #endif // RECORDER_HPP

@@ -49,7 +49,7 @@
 
 // Define all the recorders we need
 #define RECORDER(Name, Size)                                    \
-Recorder<Name##_record, Name##_recorder_list> Name;
+Recorder<recorder_##Name##_record, recorder_##Name##_list_entry> Name;
 #include "recorder.tbl"
 
 

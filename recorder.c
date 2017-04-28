@@ -42,38 +42,38 @@
 /*! \param Name is the C name fo the recorder.                          \
  *! \param Size is the number of entries in the circular buffer. */     \
                                                                         \
-typedef recorder_entry Name##_recorder_entry;                           \
-RING_DECLARE(Name##_recorder_entry, Name##_recorder, Size);             \
-RING_DEFINE(Name##_recorder_entry, Name##_recorder, Size);              \
+typedef recorder_entry recorder_##Name##_entry;                         \
+RING_DECLARE(recorder_##Name##_entry,recorder_##Name, Size);            \
+RING_DEFINE(recorder_Name##_entry, recorder_##Name, Size);              \
                                                                         \
                                                                         \
 /* The entry in linked list for this type */                            \
-recorder_list Name##_recorder_list =                                    \
+recorder_list recorder_##Name##_list_entry =                            \
 {                                                                       \
     #Name,                                                              \
-    (recorder_read_fn) Name##_recorder_read,                            \
-    (recorder_peek_fn) Name##_recorder_peek,                            \
-    (recorder_readable_fn) Name##_recorder_readable,                    \
+    (recorder_read_fn) recorder_##Name##_read,                          \
+    (recorder_peek_fn) recorder_##Name##_peek,                          \
+    (recorder_readable_fn) recorder_##Name##_readable,                  \
     Size,                                                               \
     NULL                                                                \
 };                                                                      \
                                                                         \
                                                                         \
-void Name##_activate_recorder()                                         \
+void recorder_##Name##_activate()                                       \
 /* ----------------------------------------------------------------*/   \
 /*  Enter a record in a ring buffer with given set of args         */   \
 /* ----------------------------------------------------------------*/   \
 {                                                                       \
-     recorder_activate(&Name##_recorder_list);                          \
+    recorder_activate(&recorder_##Name##_list_entry);                   \
 }                                                                       \
                                                                         \
                                                                         \
-void Name##_record(uintptr_t caller,                                    \
-                   const char *format,                                  \
-                   uintptr_t a0,                                        \
-                   uintptr_t a1,                                        \
-                   uintptr_t a2,                                        \
-                   uintptr_t a3)                                        \
+void recorder_##Name##_record(uintptr_t caller,                         \
+                              const char *format,                       \
+                              uintptr_t a0,                             \
+                              uintptr_t a1,                             \
+                              uintptr_t a2,                             \
+                              uintptr_t a3)                             \
 /* ----------------------------------------------------------------*/   \
 /*  Enter a record entry in ring buffer with given set of args     */   \
 /* ----------------------------------------------------------------*/   \
@@ -89,11 +89,11 @@ void Name##_record(uintptr_t caller,                                    \
     entry.args[1] = a1;                                                 \
     entry.args[2] = a2;                                                 \
     entry.args[3] = a3;                                                 \
-    unsigned writeIndex = Name##_recorder_write(&entry, 1);             \
+    unsigned writeIndex = recorder_##Name##_write(&entry, 1);           \
                                                                         \
     /* Check if this is the first time we record here */                \
     if (writeIndex == 0)                                                \
-        Name##_activate_recorder();                                     \
+        recorder_##Name##_activate();                                   \
 }
 
 

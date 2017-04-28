@@ -77,23 +77,23 @@ extern void recorder_dump_on_common_signals(unsigned add, unsigned remove);
 /*  Declare a recorder type with Size elements                     */   \
 /* ----------------------------------------------------------------*/   \
                                                                         \
-extern void Name##_record(uintptr_t where,                          \
-                          const char *format,                           \
-                          uintptr_t a0,                                 \
-                          uintptr_t a1,                                 \
-                          uintptr_t a2,                                 \
-                          uintptr_t a3);
+extern void recorder_##Name##_record(uintptr_t where,                   \
+                                     const char *format,                \
+                                     uintptr_t a0,                      \
+                                     uintptr_t a1,                      \
+                                     uintptr_t a2,                      \
+                                     uintptr_t a3);
 
 
 // Some ugly macro drudgery to make things easy to use. Pad with zeroes.
 #define RECORDER_ARG(_1,_2,_3,_4, arg,...)    ((uintptr_t) (arg))
 #define RECORD(Name, Format, ...)                                       \
-    Name##_record(0,                                                    \
-                  Format,                                               \
-                  RECORDER_ARG(0, 0, 0, 0, ## __VA_ARGS__, 0),          \
-                  RECORDER_ARG(0, 0, 0, ## __VA_ARGS__, 0, 0),          \
-                  RECORDER_ARG(0, 0, ## __VA_ARGS__, 0, 0, 0),          \
-                  RECORDER_ARG(0, ## __VA_ARGS__, 0, 0, 0, 0))
+    recorder_##Name##_record(0,                                         \
+                             Format,                                    \
+                             RECORDER_ARG(0,0,0,0, ## __VA_ARGS__,0),   \
+                             RECORDER_ARG(0,0,0,## __VA_ARGS__,0,0),    \
+                             RECORDER_ARG(0,0,## __VA_ARGS__,0,0,0),    \
+                             RECORDER_ARG(0,## __VA_ARGS__,0,0,0,0))
 
 // Declare available recorders
 #define RECORDER(Name, Size)        RECORDER_DECLARE(Name, Size)
