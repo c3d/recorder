@@ -14,7 +14,6 @@
 #
 #******************************************************************************
 # (C) 2015 Christophe de Dinechin <christophe@taodyne.com>
-# (C) 2015 Taodyne SAS
 #******************************************************************************
 
 BUILD=build/
@@ -31,7 +30,6 @@ TESTS=  hanoi_test.c hanoi_test.cpp 			\
 	recorder_cplusplus_test.cpp recorder_test.c 	\
 	ring_test.c crash_test.c
 TEST_ARGS_hanoi_test=10 | wc
-
 
 include $(BUILD)rules.mk
 
