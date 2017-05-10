@@ -53,8 +53,12 @@ int main(int argc, char **argv)
     RECORD(MAIN, "Starting crash test program");
 
     RECORD(MAIN, "Installing signal handler %p", signal_handler);
+#ifdef SIGBUS
     signal(SIGBUS, signal_handler);
+#endif // SIGBUS
+#ifdef SIGSEGV
     signal(SIGSEGV, signal_handler);
+#endif // SIGSEGV
 
     RECORD(MAIN, "Installing recorder default signal handlers");
     recorder_dump_on_common_signals(0, 0);

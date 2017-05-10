@@ -436,17 +436,16 @@ void recorder_dump_on_signal(int sig)
 #else // !HAVE_STRUCT_SIGACTION
 
 /* For MinGW, there is no struct sigaction */
-static sig_t old_handler[NSIG] = { };
+typedef void (*sig_fn)(int);
+static sig_fn old_handler[NSIG] = { };
 
 static void signal_handler(int sig)
 // ----------------------------------------------------------------------------
 //   Dump the recorder when receiving the given signal
 // ----------------------------------------------------------------------------
 {
-    RECORD(MAIN, "Received signal %s (%d) si_addr=%p, dumping recorder",
-           strsignal(sig), sig, info->si_addr);
-    fprintf(stderr, "Received signal %s (%d), dumping recorder\n",
-            strsignal(sig), sig);
+    RECORD(MAIN, "Received signal %d, dumping recorder", sig);
+    fprintf(stderr, "Received signal %d, dumping recorder\n", sig);
 
     // Restore previous handler
     signal(sig, old_handler[sig]);
