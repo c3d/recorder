@@ -20,6 +20,7 @@
 // ****************************************************************************
 
 #include "recorder.h"
+#include "config.h"
 #include <string.h>
 #include <stdio.h>
 #include <stdbool.h>
@@ -398,6 +399,7 @@ void recorder_activate (recorder_list *recorder)
 
 
 // Saved old actions
+#if HAVE_STRUCT_SIGACTION
 static struct sigaction old_action[NSIG] = { };
 
 static void signal_handler(int sig, siginfo_t *info, void *ucontext)
@@ -430,6 +432,39 @@ void recorder_dump_on_signal(int sig)
     action.sa_flags = SA_SIGINFO;         
     sigaction(sig, &action, &old_action[sig]);
 }
+
+#else // !HAVE_STRUCT_SIGACTION
+
+/* For MinGW, there is no struct sigaction */
+static sig_t old_handler[NSIG] = { };
+
+static void signal_handler(int sig)
+// ----------------------------------------------------------------------------
+//   Dump the recorder when receiving the given signal
+// ----------------------------------------------------------------------------
+{
+    RECORD(MAIN, "Received signal %s (%d) si_addr=%p, dumping recorder",
+           strsignal(sig), sig, info->si_addr);
+    fprintf(stderr, "Received signal %s (%d), dumping recorder\n",
+            strsignal(sig), sig);
+
+    // Restore previous handler
+    signal(sig, old_handler[sig]);
+    recorder_dump();
+}
+
+
+void recorder_dump_on_signal(int sig)
+// ----------------------------------------------------------------------------
+//    C interface for Recorder::DumpOnSignal
+// ----------------------------------------------------------------------------
+{
+    if (sig < 0 || sig >= NSIG)
+        return;
+    old_handler[sig] = signal(sig, signal_handler);
+}
+
+#endif // HAVE_STRUCT_SIGACTION
 
 
 void recorder_dump_on_common_signals(unsigned add, unsigned remove)

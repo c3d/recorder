@@ -20,6 +20,7 @@ BUILD=build/
 
 SOURCES= recorder.c recorder.cpp
 PRODUCTS=librecorder.lib
+CONFIG=HAVE_struct_sigaction
 
 # Need -lpthreads in some build environments
 LDFLAGS_linux  = -lpthread
