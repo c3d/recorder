@@ -275,7 +275,7 @@ static void recorder_dump_entry(const char       *label,
                 {
                     union { float f; intptr_t i; } u;
                     u.i = entry->args[argIndex++];
-                    floatArg = u.f;
+                    floatArg = (double) u.f;
                 }
                 else
                 {
