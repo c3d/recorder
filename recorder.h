@@ -33,7 +33,7 @@
 #else // ! __cplusplus
 
 // ============================================================================
-// 
+//
 //   Global recorder dump functions, for use within a debugger
 //
 // ============================================================================
@@ -51,7 +51,7 @@ extern void recorder_dump(void);
 // Dump all recorder entries matching recorders with 'what' in the name
 extern void recorder_dump_for(const char *name);
 
-// Sort all recorder entries for all recorders with names matching 'what'    
+// Sort all recorder entries for all recorders with names matching 'what'
 extern void recorder_sort(const char *what, recorder_show_fn show, void *arg);
 
 // Dump recorder entries on signal
@@ -63,13 +63,13 @@ extern void recorder_dump_on_signal(int signal);
 //    SIGXCPU, SIGXFSZ, SIGINFO, SIGUSR1, SIGUSR2, SIGSTKFLT, SIGPWR
 // You can add add or remove signals by setting the bitmasks 'add' and 'remove'
 extern void recorder_dump_on_common_signals(unsigned add, unsigned remove);
-  
+
 
 
 // ============================================================================
-// 
+//
 //    Declaration of recorders
-// 
+//
 // ============================================================================
 
 #define RECORDER_DECLARE(Name, Size)                                    \
@@ -102,9 +102,9 @@ extern void recorder_##Name##_record(uintptr_t where,                   \
 
 
 // ============================================================================
-// 
+//
 //    Definition for recorders
-// 
+//
 // ============================================================================
 //  Recorders in recorders.tbl are defined automatically, but you can
 //  add your own by using e.g. RECORDER_DEFINE(MyRecorder, 256)
@@ -258,9 +258,9 @@ static inline uintptr_t D2I(double d)
 
 
 // ============================================================================
-// 
+//
 //   Portability helpers
-// 
+//
 // ============================================================================
 
 // Return ticks (some kind of time unit) since first called
