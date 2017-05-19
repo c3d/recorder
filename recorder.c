@@ -60,7 +60,7 @@ recorder_list recorder_##Name##_list_entry =                            \
 };                                                                      \
                                                                         \
                                                                         \
-void recorder_##Name##_activate()                                       \
+static void recorder_##Name##_activate()                                \
 /* ----------------------------------------------------------------*/   \
 /*  Enter a record in a ring buffer with given set of args         */   \
 /* ----------------------------------------------------------------*/   \
@@ -123,9 +123,9 @@ uintptr_t recorder_tick()
 
 
 // ============================================================================
-// 
+//
 //    Recorder dump utility
-// 
+//
 // ============================================================================
 
 /// Global counter indicating the order of entries across recorders.
@@ -319,7 +319,7 @@ void recorder_sort(const char *what, recorder_show_fn show, void *arg)
         uintptr_t      lowestOrder = ~0UL;
         recorder_list *lowest      = NULL;
         recorder_list *rec;
-        
+
         for (rec = recorders; rec; rec = rec->next)
         {
             // Skip recorders that don't match the pattern
@@ -343,7 +343,7 @@ void recorder_sort(const char *what, recorder_show_fn show, void *arg)
                 // We may have one read that fails due to overflow/catchup
                 if (!rec->read(&entry, 1))
                     continue;
-                
+
                 recorder_dump_entry(rec->name, &entry, show, arg);
                 nextOrder++;
             }
@@ -355,11 +355,11 @@ void recorder_sort(const char *what, recorder_show_fn show, void *arg)
         // The first read may fail due to 'catch up', if so continue
         if (!lowest->read(&entry, 1))
             continue;
-        
+
         recorder_dump_entry(lowest->name, &entry, show, arg);
         nextOrder = entry.order + 1;
     }
-    
+
     ring_fetch_add(recorder_blocked, -1);
 }
 
@@ -386,7 +386,7 @@ void recorder_activate (recorder_list *recorder)
 // ----------------------------------------------------------------------------
 //   Activate the given recorder by putting it in linked list
 // ----------------------------------------------------------------------------
-{   
+{
     /* This was the first write in this recorder, put it in list */
     recorder_list **link = &recorders;
     recorder_list  *head = *link;
@@ -429,7 +429,7 @@ void recorder_dump_on_signal(int sig)
     struct sigaction action;
     action.sa_sigaction = signal_handler;
     sigemptyset(&action.sa_mask);
-    action.sa_flags = SA_SIGINFO;         
+    action.sa_flags = SA_SIGINFO;
     sigaction(sig, &action, &old_action[sig]);
 }
 
