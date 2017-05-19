@@ -264,7 +264,7 @@ static inline uintptr_t D2I(double d)
 // ============================================================================
 
 // Return ticks (some kind of time unit) since first called
-extern uintptr_t recorder_tick();
+extern uintptr_t recorder_tick(void);
 
 // Compute the return address (may be different on different compilers)
 #ifdef __GNUC__
