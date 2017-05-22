@@ -195,6 +195,7 @@ static void recorder_dump_entry(const char       *label,
     }
     const char *fmt = entry->format;
     unsigned argIndex = 0;
+    const unsigned maxArgIndex = sizeof(entry->args) / sizeof(entry->args[0]);
 
     // Apply formatting. This complicated loop is because
     // we need to detect floating-point values, which are passed
@@ -204,7 +205,7 @@ static void recorder_dump_entry(const char       *label,
     // and call the variadic snprintf passing a double value that will
     // naturally go in the right register.
     bool finishedInNewline = false;
-    while (dst < dst_end)
+    while (dst < dst_end && argIndex < maxArgIndex)
     {
         char c = *fmt++;
         if (c != '%')
@@ -219,6 +220,7 @@ static void recorder_dump_entry(const char       *label,
             char *fmtCopy = format_buffer;
             int floatingPoint = 0;
             int done = 0;
+            int unsupported = 0;
             *fmtCopy++ = c;
             char *fmt_end = format_buffer + sizeof format_buffer - 1;
             while (!done && fmt < fmt_end)
@@ -244,10 +246,10 @@ static void recorder_dump_entry(const char       *label,
                 case 'X':
                 case 'p':
                 case '%':
-                case 'n':           // Does not make sense here, but hey
                 case 0:             // End of string
                     done = 1;
                     break;
+
                     // GCC: case '0' ... '9', not supported on IAR
                 case '0': case '1': case '2': case '3': case '4':
                 case '5': case '6': case '7': case '8': case '9':
@@ -262,11 +264,16 @@ static void recorder_dump_entry(const char       *label,
                 case 'q':
                 case 'v':
                     break;
+                case 'n':           // Expect two args
+                case '*':
+                default:
+                    unsupported = 1;
+                    break;
                 }
             }
-            int isString = (c == 's' || c == 'S');
-            if (!c)
+            if (!c || unsupported)
                 break;
+            int isString = (c == 's' || c == 'S');
             *fmtCopy++ = 0;
             if (floatingPoint)
             {
