@@ -1,18 +1,18 @@
 // ****************************************************************************
-//  recorder_test.c                                           Recorder project 
+//  recorder_test.c                                           Recorder project
 // ****************************************************************************
-// 
+//
 //   File Description:
-// 
+//
 //     Test ring buffer with multiple concurrent writers, one reader,
 //     and variable-size writes. This corresponds to the use of the ring
 //     buffer as a circular print buffer, where we want messages to be
 //     in order, and not mixed one with another.
-// 
+//
 //     The test writes messages with different length. However, the length
 //     can be determined from the first letter. It then checks that messages
 //     are not garbled by other threads.
-// 
+//
 // ****************************************************************************
 //  (C) 2017 Christophe de Dinechin <christophe@dinechin.org>
 //   This software is licensed under the GNU General Public License v3
@@ -89,8 +89,10 @@ const char *testStrings[] =
     do                                                                  \
     {                                                                   \
         char buf[256];                                                  \
-        int len = snprintf(buf, sizeof(buf), "R%5u W%5u C%5u L%5u: ",   \
-                           buffer.reader, buffer.writer, buffer.commit, \
+        int len = snprintf(buf, sizeof(buf),                            \
+                           "R%5zu W%5zu C%5zu L%5zu: ",                 \
+                           buffer.ring.reader, buffer.ring.writer,      \
+                           buffer.ring.commit,                          \
                            buffer_writable());                          \
         len += snprintf(buf + len, sizeof(buf) - len, __VA_ARGS__);     \
         puts(buf);                                                      \
@@ -102,9 +104,12 @@ const char *testStrings[] =
     do                                                                  \
     {                                                                   \
         char buf[256];                                                  \
-        int len = snprintf(buf, sizeof(buf), "R%5u W%5u C%5u L%5u: "    \
+        int len = snprintf(buf, sizeof(buf),                            \
+                           "R%5zu W%5zu C%5zu L%5zu: "                  \
                            "FAILED: ",                                  \
-                           buffer.reader, buffer.writer, buffer.commit, \
+                           buffer.ring.reader,                          \
+                           buffer.ring.writer,                          \
+                           buffer.ring.commit,                          \
                            buffer_writable());                          \
         len += snprintf(buf + len, sizeof(buf) - len, __VA_ARGS__);     \
         puts(buf);                                                      \
@@ -141,33 +146,33 @@ void dawdle(unsigned minimumMs)
 }
 
 
-int writer_block(buffer_ring *rb, unsigned oldW, unsigned lastW)
+bool writer_block(ring_t *rb, ringidx_t oldW, ringidx_t lastW)
 {
     RECORD(Writes, "Blocking write old=%u last=%u", oldW, lastW);
 
     ring_fetch_add(count_write_blocked, 1);
 
     /* Wait until reader is beyond the last item we are going to write */
-    while (lastW - rb->reader >= buffer_ring_size - 1)
+    while (lastW - rb->reader >= rb->size - 1)
     {
         ring_fetch_add(count_write_spins, 1);
-        VERBOSE("Blocking write ahead %d %u-%u",
-                (int) (lastW - rb->reader - buffer_ring_size),
+        VERBOSE("Blocking write ahead %d %zu-%zu",
+                (int) (lastW - rb->reader - rb->size),
                 oldW, lastW);
         dawdle(5);
     }
-    VERBOSE("Unblocked write ahead %d %u-%u",
-            (int) (lastW - rb->reader - buffer_ring_size),
+    VERBOSE("Unblocked write ahead %d %zu-%zu",
+            (int) (lastW - rb->reader - rb->size),
             oldW, lastW);
     RECORD(Writes, "Unblocking old=%u last=%u",
            oldW, lastW);
 
     /* It's now safe to keep writing */
-    return 1;
+    return true;
 }
 
 
-int commit_block(buffer_ring *rb, unsigned commit, unsigned oldW)
+bool commit_block(ring_t *rb, ringidx_t commit, ringidx_t oldW)
 {
     RECORD(Writes, "Blocking commit current=%u need=%u", commit, oldW);
 
@@ -177,16 +182,16 @@ int commit_block(buffer_ring *rb, unsigned commit, unsigned oldW)
     while (rb->commit != oldW)
     {
         ring_fetch_add(count_commit_spins, 1);
-        VERBOSE("Blocking commit, at %u, need %u", rb->commit, oldW);
+        VERBOSE("Blocking commit, at %zu, need %zu", rb->commit, oldW);
         dawdle(1);
     }
-    VERBOSE("Unblocked commit was %u, needed %u, now %u",
+    VERBOSE("Unblocked commit was %zu, needed %zu, now %zu",
             commit, oldW, rb->commit);
-    RECORD(Writes, "Unblocking commit, was %u, needed %u, now %u",
-            commit, oldW, rb->commit);
+    RECORD(Writes, "Unblocking commit, was %zu, needed %zu, now %zu",
+           commit, oldW, rb->commit);
 
     /* It's now safe to keep writing */
-    return 1;
+    return true;
 }
 
 
@@ -217,31 +222,31 @@ void *writer_thread(void *data)
 }
 
 
-int reader_block(buffer_ring *rb, unsigned curR, unsigned lastR)
+bool reader_block(ring_t *rb, ringidx_t curR, ringidx_t lastR)
 {
-    RECORD(Reads, "Blocked curR=%u lastR=%u", curR, lastR);
+    RECORD(Reads, "Blocked curR=%zu lastR=%zu", curR, lastR);
     ring_fetch_add(count_read_blocked, 1);
     while ((int) (rb->commit - lastR) < 0)
     {
         ring_fetch_add(count_read_spins, 1);
-        VERBOSE("Blocking read commit=%u lastR=%u", rb->commit, lastR);
+        VERBOSE("Blocking read commit=%zu lastR=%zu", rb->commit, lastR);
         dawdle(1);
     }
-    RECORD(Reads, "Unblocking commit=%u lastR=%u", rb->commit, lastR);
-    return 1; // We waited until commit caught up, so we can keep reading
+    RECORD(Reads, "Unblocking commit=%zu lastR=%zu", rb->commit, lastR);
+    return true; // We waited until commit caught up, so we can keep reading
 }
 
 
 unsigned overflow_handler_called = 0;
 
-int reader_overflow(buffer_ring *rb, unsigned curR, unsigned minR)
+bool reader_overflow(ring_t *rb, ringidx_t curR, ringidx_t minR)
 {
-    unsigned skip = minR - curR;
+    size_t  skip = minR - curR;
     RECORD(Reads, "Overflow currentR=%u minR=%u skip=%u", curR, minR, skip);
 
     ring_fetch_add(count_read_overflow, 1);
-    VERBOSE("Reader overflow %u reader %u -> %u, skip %u",
-         rb->overflow, rb->reader, minR, skip);
+    VERBOSE("Reader overflow %zu reader %zu -> %zu, skip %zu",
+            rb->overflow, rb->reader, minR, skip);
     ring_fetch_add(overflow_handler_called, 1);
 
     RECORD(Reads, "End overflow minReader=%u skip=%u", minR, skip);
@@ -261,14 +266,14 @@ void *reader_thread(void *data)
     while (threads_to_stop != 1)
     {
         // Read initial byte, the capital at beginning of message
-        unsigned overflow = buffer.overflow;
+        unsigned overflow = buffer.ring.overflow;
         unsigned readable = buffer_readable();
 
         if (overflow)
         {
             VERBOSE("Reader overflow #%02d is %u",
-                   tid, overflow);
-            buffer.overflow = 0;
+                    tid, overflow);
+            buffer.ring.overflow = 0;
         }
 
         char *ptr = buf;

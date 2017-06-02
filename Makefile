@@ -18,7 +18,7 @@
 
 BUILD=build/
 
-SOURCES= recorder.c recorder.cpp
+SOURCES= ring.c recorder.c recorder.cpp
 PRODUCTS=librecorder.lib
 CONFIG=struct_sigaction
 

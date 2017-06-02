@@ -64,7 +64,7 @@
  *   2. There is readable data iff R < C. If so:
  *   2a. Read A[R % N] (possibly blocking)
  *   2b. Atomically increase R
- *   
+ *
  *   Writing E entries in the buffer consists in the following steps:
  *   1. Atomically increase W, fetching the old W (fetch_and_add)
  *   2. Copy the entries in A[oldW % N] (possibly blocking)
@@ -80,30 +80,33 @@
  *
  *   In theory, if you use the buffer long enough, all indexes will ultimately
  *   wrap around. This is why all comparisons are done with something like
- *       (int) (writer - reader) >= size 
+ *       (int) (writer - reader) >= size
  *   instead of a solution that would fail when writer wraps around
  *       writer >= reader + size
  *   It is therefore assumed that you will never create a buffer of a
  *   size larger than 2^31 on a 32-bit machine. Probably OK.
- *   
+ *
  */
 
 // ****************************************************************************
-// 
+//
 //   If .h included from a C++ program, select the C++ version
-// 
+//
 // ****************************************************************************
 
 #ifdef __cplusplus
 #include "ring.hpp"
 #endif // __cplusplus
 
+#include <stdint.h>
+#include <stdbool.h>
+
 
 
 // ****************************************************************************
-// 
+//
 //    Pure C implementation
-// 
+//
 // ****************************************************************************
 
 #include <stddef.h>
@@ -111,9 +114,9 @@
 
 
 // ============================================================================
-// 
+//
 //    Atomic built-ins
-// 
+//
 // ============================================================================
 
 #ifdef __GNUC__
@@ -143,316 +146,194 @@
 //
 // ============================================================================
 
-#define RING_TYPE_DECLARE(Ring, Type, Size)                             \
+typedef struct ring *ring_p;
+typedef uintptr_t ringidx_t;
+
+typedef struct ring
+// ----------------------------------------------------------------------------
+//   Header for ring buffers
+// ----------------------------------------------------------------------------
+{
+    const char *name;           // Name for debugging purpose
+    size_t      size;           // Number of elements in data array
+    size_t      item_size;      // Size of the elements
+    ringidx_t   reader;         // Reader index
+    ringidx_t   writer;         // Writer index
+    ringidx_t   commit;         // Last commited write
+    ringidx_t   overflow;       // Overflowed writes
+    ring_p      next;           // Next in linked list
+} ring_t;
+
+/* Deal with blocking situations on given ring
+   - Return true if situation is handled and operation can proceed
+   - Return false will abort read or write operation.
+   - May be NULL to implement default non-blocking mode
+   The functions take from/to as argument bys design, because the
+   corresponding values may have been changed in the ring
+   by the time the block-handling function get to read them. */
+typedef bool (*ring_block_fn)(ring_p, ringidx_t from, ringidx_t to);
+
+extern ring_p    ring_new(const char *name, size_t size, size_t item_size);
+extern void      ring_delete(ring_p ring);
+extern ring_p    ring_find(const char *name, ring_p after);
+extern size_t    ring_readable(ring_p ring);
+extern size_t    ring_writable(ring_p ring);
+extern size_t    ring_read(ring_p ring, void *data, size_t count,
+                           ring_block_fn read_block,
+                           ring_block_fn read_overflow);
+extern ringidx_t ring_peek(ring_p ring, void *data);
+extern ringidx_t ring_write(ring_p ring, const void *data, size_t count,
+                           ring_block_fn write_block,
+                           ring_block_fn commit_block);
+
+
+
+#define RING_TYPE_DECLARE(Ring, Type)                                   \
 /* ----------------------------------------------------------------*/   \
 /*  Declare a ring buffer type with Size elements of given Type    */   \
 /* ----------------------------------------------------------------*/   \
                                                                         \
-typedef struct Ring##_s                                                 \
-/* ----------------------------------------------------------------*/   \
-/*  The ring buffer type itself                                    */   \
-/* ----------------------------------------------------------------*/   \
-{                                                                       \
-    const char *    name;          /* Name for debugging purpose */     \
-    unsigned        reader;        /* Reader index */                   \
-    unsigned        writer;        /* Writer index */                   \
-    unsigned        commit;        /* Last commited write */            \
-    unsigned        overflow;      /* Overflowed writes */              \
-    Type            data[Size];    /* Circular buffer itself */         \
-} Ring;                                                                 \
+    typedef struct Ring                                                 \
+    {                                                                   \
+        ring_t ring;                                                    \
+        Type   data[0];                                                 \
+    } Ring;                                                             \
                                                                         \
+    typedef bool (*Ring##_block_fn)(Ring *,ringidx_t, ringidx_t);       \
                                                                         \
-typedef Type Ring##_data;                                               \
-enum { Ring##_size = Size };                                            \
+    static inline                                                       \
+    Ring *Ring##_new(const char *name, size_t size)                     \
+    {                                                                   \
+        return (Ring *) ring_new(name, size, sizeof(Type));             \
+    }                                                                   \
                                                                         \
-/* Deal with blocking situations on given ring                          \
-   - Return true if situation is handled and operation can proceed      \
-   - Return false will abort read or write operation.                   \
-   - May be NULL to implement default non-blocking mode                 \
-   The functions take from/to as argument bys design, because the       \
-   corresponding values may have been changed in the ring               \
-   by the time the block-handling function get to read them. */         \
-typedef int (*Ring##_block_fn)(Ring *, unsigned from, unsigned to);     \
+    static inline                                                       \
+    void Ring##_delete(Ring *rb)                                        \
+    {                                                                   \
+        ring_delete(&rb->ring);                                         \
+    }                                                                   \
                                                                         \
+    static inline                                                       \
+    ringidx_t Ring##_peek(Ring *rb, Type *ptr)                          \
+    {                                                                   \
+        return ring_peek(&rb->ring, ptr);                               \
+    }                                                                   \
                                                                         \
-extern unsigned Ring##_read(Ring *rb,                                   \
-                            Ring##_data *ptr,                           \
-                            unsigned count,                             \
-                            Ring##_block_fn read_block,                 \
-                            Ring##_block_fn read_overflow);             \
+    static inline                                                       \
+    size_t Ring##_read(Ring *rb,                                        \
+                       Type *ptr,                                       \
+                       size_t count,                                    \
+                       Ring##_block_fn read_block,                      \
+                       Ring##_block_fn read_overflow)                   \
+    {                                                                   \
+        return ring_read(&rb->ring, ptr, count,                         \
+                         (ring_block_fn) read_block,                    \
+                         (ring_block_fn) read_overflow);                \
+    }                                                                   \
                                                                         \
+    static inline                                                       \
+    size_t Ring##_write(Ring *rb,                                       \
+                        Type *ptr,                                      \
+                        size_t count,                                   \
+                        Ring##_block_fn write_block,                    \
+                        Ring##_block_fn commit_block)                   \
+    {                                                                   \
+        return ring_write(&rb->ring, ptr, count,                        \
+                          (ring_block_fn) write_block,                  \
+                          (ring_block_fn) commit_block);                \
+    }                                                                   \
                                                                         \
-extern unsigned Ring##_peek(Ring *rb,                                   \
-                            Ring##_data *ptr);                          \
+    static inline                                                       \
+    ringidx_t Ring##_readable(Ring *rb)                                 \
+    {                                                                   \
+        return ring_readable(&rb->ring);                                \
+    }                                                                   \
                                                                         \
-                                                                        \
-extern unsigned Ring##_write(Ring *rb,                                  \
-                             const Ring##_data *ptr,                    \
-                             unsigned count,                            \
-                             Ring##_block_fn write_block,               \
-                             Ring##_block_fn commit_block);             \
-                                                                        \
-                                                                        \
-static inline unsigned Ring##_readable(Ring *rb)                        \
-/* ----------------------------------------------------------------*/   \
-/*  The number of readable elements                                */   \
-/* ----------------------------------------------------------------*/   \
-{                                                                       \
-    return rb->commit - rb->reader;                                     \
-}                                                                       \
-                                                                        \
-                                                                        \
-static inline unsigned Ring##_writable(Ring *rb)                        \
-/* ----------------------------------------------------------------*/   \
-/*  The number of writable elements                                */   \
-/* ----------------------------------------------------------------*/   \
-{                                                                       \
-    const unsigned size = Ring##_size;                                  \
-    unsigned reader = rb->reader;                                       \
-    unsigned writer = rb->writer;                                       \
-    unsigned written = writer - reader;                                 \
-    unsigned writable = size - written - 1;                             \
-    if (written >= size - 1)                                            \
-        writable = 0;           /* Check if we overflowed */            \
-    return writable;                                                    \
-}
+    static inline                                                       \
+    ringidx_t Ring##_writable(Ring *rb)                                 \
+    {                                                                   \
+        return ring_writable(&rb->ring);                                \
+    }                                                                   \
 
-
-#define RING_TYPE_DEFINE(Ring, Type, Size)                              \
-/* ----------------------------------------------------------------*/   \
-/*  Define a ring buffer type with Size elements of given Type     */   \
-/* ----------------------------------------------------------------*/   \
-                                                                        \
-static inline unsigned Ring##_readable(Ring *rb);                       \
-static inline unsigned Ring##_writable(Ring *rb);                       \
-                                                                        \
-                                                                        \
-unsigned Ring##_peek(Ring *rb,                                          \
-                     Ring##_data *ptr)                                  \
-/* ----------------------------------------------------------------*/   \
-/*  Peek the first element in the ring buffer, returns read index  */   \
-/* ----------------------------------------------------------------*/   \
-{                                                                       \
-    const unsigned size = Ring##_size;                                  \
-    unsigned reader = rb->reader;                                       \
-    *ptr = rb->data[reader % size];                                     \
-    return reader;                                                      \
-}                                                                       \
-                                                                        \
-                                                                        \
-unsigned Ring##_read(Ring *rb,                                          \
-                     Ring##_data *ptr,                                  \
-                     unsigned count,                                    \
-                     Ring##_block_fn read_block,                        \
-                     Ring##_block_fn read_overflow)                     \
-/* ----------------------------------------------------------------*/   \
-/*  Read up to 'count' elements from 'rb' into 'ptr'               */   \
-/* ----------------------------------------------------------------*/   \
-{                                                                       \
-    const unsigned size = Ring##_size;                                  \
-    Ring##_data *begin = ptr;                                           \
-    Ring##_data *end = ptr + count;                                     \
-    while (ptr < end)                                                   \
-    {                                                                   \
-        unsigned reader = rb->reader;                                   \
-        unsigned writer = rb->writer;                                   \
-        if (writer - reader >= size)                                    \
-        {                                                               \
-            /* Writer went beyond what we are about to read             \
-               Check if overflow handler can cope (e.g. catch up),      \
-               Otherwise record overflow and abort read here */         \
-            unsigned minR = writer - size + 1;                          \
-            if (!read_overflow || !read_overflow(rb, reader, minR))     \
-            {                                                           \
-                unsigned skip = minR - reader;                          \
-                ring_add_fetch(rb->overflow, skip);                     \
-                ring_add_fetch(rb->reader, skip);                       \
-                break;                                                  \
-            }                                                           \
-        }                                                               \
-                                                                        \
-        /* Check if we want to read beyond what was committed.          \
-           If so, we can either block until there is enough data,       \
-           or abort the read here and return amount of data read. */    \
-        unsigned commit = rb->commit;                                   \
-        if ((int) (reader - commit) >= 0)                               \
-            if (!read_block || !read_block(rb,reader,reader+(end-ptr))) \
-                break;  /* We read everything there is to read */       \
-                                                                        \
-        *ptr = rb->data[reader % size];                                 \
-        if (reader == ring_fetch_add(rb->reader, 1))                    \
-            ptr++;                                                      \
-    }                                                                   \
-    return ptr - begin;                                                 \
-}                                                                       \
-                                                                        \
-                                                                        \
-unsigned Ring##_write(Ring *rb,                                         \
-                      const Ring##_data *ptr,                           \
-                      unsigned count,                                   \
-                      Ring##_block_fn write_block,                      \
-                      Ring##_block_fn commit_block)                     \
-/* ----------------------------------------------------------------*/   \
-/*  Write 'count' elements from 'ptr' into 'rb', return entry idx  */   \
-/* ----------------------------------------------------------------*/   \
-{                                                                       \
-    const unsigned size = Ring##_size;                                  \
-    unsigned oldW = ring_fetch_add(rb->writer, count);                  \
-    unsigned lastW = oldW + count;                                      \
-    unsigned reader = rb->reader;                                       \
-    unsigned lastSafeW = reader + size - 1;                             \
-                                                                        \
-    /* Optimize writes that can't possibly overwrite reader */          \
-    if (!write_block || (int) (lastSafeW - lastW) > 0)                  \
-        lastSafeW = lastW;                                              \
-                                                                        \
-    /* Write everything that is not at risk to overwrite reader */      \
-    unsigned w = oldW;                                                  \
-    while ((int) (w - lastSafeW) < 0)                                   \
-        rb->data[w++ % size] = *ptr++;                                  \
-                                                                        \
-    /* Slower write for things that may require us to block */          \
-    while ((int) (w - lastW) < 0)                                       \
-    {                                                                   \
-        /* If we are overwriting reader data, block or abort write */   \
-        if (w - rb->reader >= size-1 && !write_block(rb, oldW, lastW))  \
-            break;                                                      \
-        rb->data[w++ % size] = *ptr++;                                  \
-    }                                                                   \
-                                                                        \
-    /* We are done. Commit buffer change, but only if commit is oldW    \
-       Otherwise, some other guy before us is still copying data,       \
-       so we need to wait. This is the only active spin. */             \
-    unsigned expected = oldW;                                           \
-    while (!ring_compare_exchange(rb->commit, expected, lastW))         \
-    {                                                                   \
-        unsigned current = rb->commit;                                  \
-        expected = oldW;                                                \
-        if (!commit_block || !commit_block(rb, current, expected))      \
-        {                                                               \
-            ring_fetch_add(rb->commit, count);                          \
-            break;                                                      \
-        }                                                               \
-    }                                                                   \
-    return oldW;                                                        \
-}
 
 
 // ============================================================================
 //
-//    Ring buffer static allocation
+//    Static ring buffer allocation
 //
 // ============================================================================
 
-#define RING_STORAGE_DECLARE(Ring, Name, Size)                          \
+#define RING_DECLARE(Name, Type, Size)                                  \
 /* ----------------------------------------------------------------*/   \
 /*  Declare a named ring buffer with helper functions to access it */   \
 /* ----------------------------------------------------------------*/   \
 /*   This is what you should use in headers */                          \
                                                                         \
-extern Ring Name;                                                       \
+    extern struct Name##_ring                                           \
+    {                                                                   \
+        ring_t ring;                                                    \
+        Type   data[Size];                                              \
+    } Name;                                                             \
                                                                         \
+    static inline                                                       \
+    size_t Name##_readable()                                            \
+    {                                                                   \
+        return ring_readable(&Name.ring);                               \
+    }                                                                   \
                                                                         \
-static inline unsigned Name##_readable()                                \
-/* ----------------------------------------------------------------*/   \
-/*  The number of elements that can be read from buffer            */   \
-/* ----------------------------------------------------------------*/   \
-{                                                                       \
-    return Ring##_readable(&Name);                                      \
-}                                                                       \
+    static inline                                                       \
+    size_t Name##_writable()                                            \
+    {                                                                   \
+        return ring_writable(&Name.ring);                               \
+    }                                                                   \
                                                                         \
+    static inline                                                       \
+    ringidx_t Name##_peek(Type *ptr)                                    \
+    {                                                                   \
+        return ring_peek(&Name.ring, ptr);                              \
+    }                                                                   \
                                                                         \
-static inline unsigned Name##_writable()                                \
-/* ----------------------------------------------------------------*/   \
-/*  The number of elements that can be written without overwrite   */   \
-/* ----------------------------------------------------------------*/   \
-{                                                                       \
-    return Ring##_writable(&Name);                                      \
-}                                                                       \
+    static inline                                                       \
+    size_t Name##_read(Type *ptr, ringidx_t count)                      \
+    {                                                                   \
+        return ring_read(&Name.ring, ptr, count, NULL, NULL);           \
+    }                                                                   \
                                                                         \
+    static inline                                                       \
+    size_t Name##_write(Type *ptr, ringidx_t count)                     \
+    {                                                                   \
+        return ring_write(&Name.ring, ptr, count, NULL, NULL);          \
+    }                                                                   \
                                                                         \
-static inline unsigned Name##_peek(Ring##_data *ptr)                    \
-/* ----------------------------------------------------------------*/   \
-/*  Peek the first element without moving read index, return rdidx */   \
-/* ----------------------------------------------------------------*/   \
-{                                                                       \
-    return Ring##_peek(&Name, ptr);                                     \
-}                                                                       \
+    static inline                                                       \
+    size_t Name##_block_read(Type *ptr,                                 \
+                             size_t count,                              \
+                             ring_block_fn block,                       \
+                             ring_block_fn overflow)                    \
+    {                                                                   \
+        return ring_read(&Name.ring, ptr, count, block, overflow);      \
+    }                                                                   \
                                                                         \
-                                                                        \
-static inline unsigned Name##_read(Ring##_data *ptr,                    \
-                                   unsigned count)                      \
-/* ----------------------------------------------------------------*/   \
-/*  Read up to 'count' elements from buffer, non-blocking          */   \
-/* ----------------------------------------------------------------*/   \
-{                                                                       \
-    return Ring##_read(&Name, ptr, count, NULL, NULL);                  \
-}                                                                       \
-                                                                        \
-                                                                        \
-static inline unsigned Name##_write(const Ring##_data *ptr,             \
-                                    unsigned count)                     \
-/* ----------------------------------------------------------------*/   \
-/*  Write 'count' elements in buffer, non-blocking                 */   \
-/* ----------------------------------------------------------------*/   \
-/*  Returns the write index for first element written */                \
-{                                                                       \
-    return Ring##_write(&Name, ptr, count, NULL, NULL);                 \
-}                                                                       \
-                                                                        \
-                                                                        \
-static inline unsigned Name##_block_read(Ring##_data *ptr,              \
-                                         unsigned count,                \
-                                         Ring##_block_fn block,         \
-                                         Ring##_block_fn overflow)      \
-/* ----------------------------------------------------------------*/   \
-/*  Read up to count elements with actions on block / overflow     */   \
-/* ----------------------------------------------------------------*/   \
-{                                                                       \
-    return Ring##_read(&Name, ptr, count, block, overflow);             \
-}                                                                       \
-                                                                        \
-                                                                        \
-static inline unsigned Name##_block_write(const Ring##_data *ptr,       \
-                                          unsigned count,               \
-                                          Ring##_block_fn write_block,  \
-                                          Ring##_block_fn commit_block) \
-/* ----------------------------------------------------------------*/   \
-/*  Write elements with actions if write or commit must block      */   \
-/* ----------------------------------------------------------------*/   \
-{                                                                       \
-    return Ring##_write(&Name, ptr, count, write_block, commit_block);  \
-}
+    static inline                                                       \
+    size_t Name##_block_write(const Type *ptr,                          \
+                              size_t  count,                            \
+                              ring_block_fn write_block,                \
+                              ring_block_fn commit_block)               \
+    {                                                                   \
+        return ring_write(&Name.ring, ptr, count,                       \
+                          write_block, commit_block);                   \
+    }
 
 
-#define RING_STORAGE_DEFINE(Ring, Name, Size)                           \
+#define RING_DEFINE(Name, Type, Size)                                   \
 /* ----------------------------------------------------------------*/   \
-/*  Define a named ring buffer with helper functions to access it  */   \
+/*  Define a named ring buffer                                     */   \
 /* ----------------------------------------------------------------*/   \
                                                                         \
-Ring Name = { #Name, 0 };
-
-
-// ============================================================================
-//
-//   Ring declarations and definition
-//
-// ============================================================================
-
-#define RING_DECLARE(Type, Name, Size)                                  \
-/* ----------------------------------------------------------------*/   \
-/*  Shortcut that declares a ring buffer type and one instance     */   \
-/* ----------------------------------------------------------------*/   \
-    RING_TYPE_DECLARE(Name##_ring, Type, Size)                          \
-    RING_STORAGE_DECLARE(Name##_ring, Name, Size)
-
-
-#define RING_DEFINE(Type, Name, Size)                                   \
-/* ----------------------------------------------------------------*/   \
-/*  Shortcut that declares a ring buffer type and one instance     */   \
-/* ----------------------------------------------------------------*/   \
-    RING_TYPE_DEFINE(Name##_ring, Type, Size)                           \
-    RING_STORAGE_DEFINE(Name##_ring, Name, Size)
+    struct Name##_ring Name =                                           \
+    {                                                                   \
+        { #Name, Size, sizeof(Type), 0 }                                \
+    };
 
 
 #endif // RING_H

@@ -159,7 +159,7 @@ extern unsigned recorder_order;
 extern unsigned recorder_blocked;
 
 /// Generic recorder type, used for common code, e.g. \ref recorder_dump
-RING_TYPE_DECLARE(recorder, recorder_entry, 4);
+RING_TYPE_DECLARE(recorder, recorder_entry);
 
 /// A function pointer type used by generic code to read each recorder.
 /// \param entries will be filled with the entries read from the recorder.

@@ -22,9 +22,9 @@
 // ****************************************************************************
 
 // Place these declaration in a header to avoid clang warnings
-#define RING(Type, Name, Size)                  \
-    RING_DECLARE(Type, Name, Size)              \
-    RING_DEFINE (Type, Name, Size)
-RING(char, buffer, 1024);
+#define RING(Name, Type, Size)                  \
+    RING_DECLARE(Name, Type, Size)              \
+    RING_DEFINE (Name, Type, Size)
+RING(buffer, char, 1024);
 
 #endif

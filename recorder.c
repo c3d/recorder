@@ -43,15 +43,14 @@
 /*! \param Name is the C name fo the recorder.                          \
  *! \param Size is the number of entries in the circular buffer. */     \
                                                                         \
-typedef recorder_entry recorder_##Name##_entry;                         \
-RING_DECLARE(recorder_##Name##_entry,recorder_##Name, Size);            \
-RING_DEFINE(recorder_Name##_entry, recorder_##Name, Size);              \
+RING_DECLARE(recorder_##Name, recorder_entry, Size);                    \
+RING_DEFINE (recorder_##Name, recorder_entry, Size);                    \
                                                                         \
                                                                         \
 /* The entry in linked list for this type */                            \
 recorder_list recorder_##Name##_list_entry =                            \
 {                                                                       \
-    #Name,                                                              \
+    NULL,                                                               \
     (recorder_read_fn) recorder_##Name##_read,                          \
     (recorder_peek_fn) recorder_##Name##_peek,                          \
     (recorder_readable_fn) recorder_##Name##_readable,                  \
@@ -90,10 +89,12 @@ void recorder_##Name##_record(uintptr_t caller,                         \
     entry.args[1] = a1;                                                 \
     entry.args[2] = a2;                                                 \
     entry.args[3] = a3;                                                 \
-    unsigned writeIndex = recorder_##Name##_write(&entry, 1);           \
+    recorder_##Name##_write(&entry, 1);                                 \
                                                                         \
     /* Check if this is the first time we record here */                \
-    if (writeIndex == 0)                                                \
+    const char *null = NULL;                                            \
+    if (ring_compare_exchange(recorder_##Name##_list_entry.name,        \
+                              null, #Name))                             \
         recorder_##Name##_activate();                                   \
 }
 
@@ -395,13 +396,9 @@ void recorder_activate (recorder_list *recorder)
 // ----------------------------------------------------------------------------
 {
     /* This was the first write in this recorder, put it in list */
-    recorder_list **link = &recorders;
-    recorder_list  *head = *link;
-    do
-    {
-        /* Update new linked entry until head no longer changes */
-        recorder->next = head;
-    } while (!ring_compare_exchange(*link, head, recorder));
+    recorder_list  *head = recorders;
+    do { recorder->next = head; }
+    while (!ring_compare_exchange(recorders, head, recorder));
 }
 
 
