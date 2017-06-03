@@ -23,29 +23,21 @@
 #include <stdlib.h>
 #include <string.h>
 
-static ring_p rings = NULL;
 typedef intptr_t ringdiff_t;
 
 
-ring_p ring_new(const char *name, size_t size, size_t item_size)
+ring_p ring_new(size_t size, size_t item_size)
 // ----------------------------------------------------------------------------
 //   Create a new ring with the given name
 // ----------------------------------------------------------------------------
 {
     ring_p ring = malloc(sizeof(ring_t) + size * item_size);
-    ring->name = strdup(name);
     ring->size = size;
     ring->item_size = item_size;
     ring->reader = 0;
     ring->writer = 0;
     ring->commit = 0;
     ring->overflow = 0;
-
-    // Link in list
-    ring_p expected = rings;
-    do { ring->next = expected; }
-    while (!ring_compare_exchange(rings, expected, ring));
-
     return ring;
 }
 
@@ -55,43 +47,7 @@ void ring_delete(ring_p ring)
 //   Delete the given ring from the list
 // ----------------------------------------------------------------------------
 {
-    // Unlink from linked list
-    ring_p *previous;
-    ring_p expected;
-    do
-    {
-        previous = &rings;
-        while (*previous != ring)
-            previous = &((*previous)->next);
-        expected = ring;
-    } while (!ring_compare_exchange(*previous, expected, ring->next));
-
-    // Free the ring itself
-    free((void *) ring->name);
     free(ring);
-}
-
-
-ring_p ring_find(const char *name, ring_p after)
-// ----------------------------------------------------------------------------
-//    Find a ring by name in the list
-// ----------------------------------------------------------------------------
-{
-    ring_p first = after ? after->next : rings;
-    if (*name == '*')
-    {
-        name++;
-        for (ring_p ring = first; ring; ring = ring->next)
-            if (strstr(ring->name, name) != NULL)
-                return ring;
-    }
-    else
-    {
-        for (ring_p ring = first; ring; ring = ring->next)
-            if (strcmp(ring->name, name) == 0)
-                return ring;
-    }
-    return NULL;
 }
 
 

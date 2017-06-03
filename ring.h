@@ -154,14 +154,12 @@ typedef struct ring
 //   Header for ring buffers
 // ----------------------------------------------------------------------------
 {
-    const char *name;           // Name for debugging purpose
     size_t      size;           // Number of elements in data array
     size_t      item_size;      // Size of the elements
     ringidx_t   reader;         // Reader index
     ringidx_t   writer;         // Writer index
     ringidx_t   commit;         // Last commited write
     ringidx_t   overflow;       // Overflowed writes
-    ring_p      next;           // Next in linked list
 } ring_t;
 
 /* Deal with blocking situations on given ring
@@ -173,9 +171,8 @@ typedef struct ring
    by the time the block-handling function get to read them. */
 typedef bool (*ring_block_fn)(ring_p, ringidx_t from, ringidx_t to);
 
-extern ring_p    ring_new(const char *name, size_t size, size_t item_size);
+extern ring_p    ring_new(size_t size, size_t item_size);
 extern void      ring_delete(ring_p ring);
-extern ring_p    ring_find(const char *name, ring_p after);
 extern size_t    ring_readable(ring_p ring);
 extern size_t    ring_writable(ring_p ring);
 extern size_t    ring_read(ring_p ring, void *data, size_t count,
@@ -202,9 +199,9 @@ extern ringidx_t ring_write(ring_p ring, const void *data, size_t count,
     typedef bool (*Ring##_block_fn)(Ring *,ringidx_t, ringidx_t);       \
                                                                         \
     static inline                                                       \
-    Ring *Ring##_new(const char *name, size_t size)                     \
+    Ring *Ring##_new(size_t size)                                       \
     {                                                                   \
-        return (Ring *) ring_new(name, size, sizeof(Type));             \
+        return (Ring *) ring_new(size, sizeof(Type));                   \
     }                                                                   \
                                                                         \
     static inline                                                       \
@@ -332,7 +329,7 @@ extern ringidx_t ring_write(ring_p ring, const void *data, size_t count,
                                                                         \
     struct Name##_ring Name =                                           \
     {                                                                   \
-        { #Name, Size, sizeof(Type), 0 }                                \
+        { Size, sizeof(Type), 0 }                                       \
     };
 
 
