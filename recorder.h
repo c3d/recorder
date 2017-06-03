@@ -165,16 +165,16 @@ RING_TYPE_DECLARE(recorder, recorder_entry);
 /// \param entries will be filled with the entries read from the recorder.
 /// \param count is the maximum number of entries that can be read.
 /// \return the number of recorder entries read.
-typedef unsigned (*recorder_read_fn)(recorder_entry *entries, unsigned count);
+typedef size_t (*recorder_read_fn)(recorder_entry *entries, size_t count);
 
 /// A function pointer type used by generic code to peek into each recorder.
 /// \param entries will be filled with the first readable entry.
 /// \return the read index of the entry that was read.
-typedef unsigned (*recorder_peek_fn)(recorder_entry *entry);
+typedef size_t (*recorder_peek_fn)(recorder_entry *entry);
 
 /// A function pointer type used by generic code to count readable items.
 /// \return the number of recorder entries that can safely be read.
-typedef unsigned (*recorder_readable_fn)();
+typedef size_t (*recorder_readable_fn)();
 
 /// The function type for recorder functions
 typedef void recorder_record_fn(uintptr_t caller,
