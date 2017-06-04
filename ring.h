@@ -146,7 +146,6 @@
 //
 // ============================================================================
 
-typedef struct ring *ring_p;
 typedef uintptr_t ringidx_t;
 
 typedef struct ring
@@ -160,7 +159,7 @@ typedef struct ring
     ringidx_t   writer;         // Writer index
     ringidx_t   commit;         // Last commited write
     ringidx_t   overflow;       // Overflowed writes
-} ring_t;
+} ring_t, *ring_p;
 
 /* Deal with blocking situations on given ring
    - Return true if situation is handled and operation can proceed
@@ -177,11 +176,13 @@ extern size_t    ring_readable(ring_p ring);
 extern size_t    ring_writable(ring_p ring);
 extern size_t    ring_read(ring_p ring, void *data, size_t count,
                            ring_block_fn read_block,
-                           ring_block_fn read_overflow);
+                           ring_block_fn read_overflow,
+                           ringidx_t *reader);
 extern ringidx_t ring_peek(ring_p ring, void *data);
 extern ringidx_t ring_write(ring_p ring, const void *data, size_t count,
-                           ring_block_fn write_block,
-                           ring_block_fn commit_block);
+                            ring_block_fn write_block,
+                            ring_block_fn commit_block,
+                            ringidx_t *writer);
 
 
 
@@ -221,11 +222,13 @@ extern ringidx_t ring_write(ring_p ring, const void *data, size_t count,
                        Type *ptr,                                       \
                        size_t count,                                    \
                        Ring##_block_fn read_block,                      \
-                       Ring##_block_fn read_overflow)                   \
+                       Ring##_block_fn read_overflow,                   \
+                       ringidx_t *reader)                               \
     {                                                                   \
         return ring_read(&rb->ring, ptr, count,                         \
                          (ring_block_fn) read_block,                    \
-                         (ring_block_fn) read_overflow);                \
+                         (ring_block_fn) read_overflow,                 \
+                         reader);                                       \
     }                                                                   \
                                                                         \
     static inline                                                       \
@@ -233,11 +236,13 @@ extern ringidx_t ring_write(ring_p ring, const void *data, size_t count,
                         Type *ptr,                                      \
                         size_t count,                                   \
                         Ring##_block_fn write_block,                    \
-                        Ring##_block_fn commit_block)                   \
+                        Ring##_block_fn commit_block,                   \
+                        ringidx_t *writer)                              \
     {                                                                   \
         return ring_write(&rb->ring, ptr, count,                        \
                           (ring_block_fn) write_block,                  \
-                          (ring_block_fn) commit_block);                \
+                          (ring_block_fn) commit_block,                 \
+                          writer);                                      \
     }                                                                   \
                                                                         \
     static inline                                                       \
@@ -293,32 +298,34 @@ extern ringidx_t ring_write(ring_p ring, const void *data, size_t count,
     static inline                                                       \
     size_t Name##_read(Type *ptr, ringidx_t count)                      \
     {                                                                   \
-        return ring_read(&Name.ring, ptr, count, NULL, NULL);           \
+        return ring_read(&Name.ring, ptr, count, NULL, NULL, NULL);     \
     }                                                                   \
                                                                         \
     static inline                                                       \
     size_t Name##_write(Type *ptr, ringidx_t count)                     \
     {                                                                   \
-        return ring_write(&Name.ring, ptr, count, NULL, NULL);          \
+        return ring_write(&Name.ring, ptr, count, NULL, NULL, NULL);    \
     }                                                                   \
                                                                         \
     static inline                                                       \
     size_t Name##_block_read(Type *ptr,                                 \
                              size_t count,                              \
                              ring_block_fn block,                       \
-                             ring_block_fn overflow)                    \
+                             ring_block_fn overflow,                    \
+                             ringidx_t *pos)                            \
     {                                                                   \
-        return ring_read(&Name.ring, ptr, count, block, overflow);      \
+        return ring_read(&Name.ring, ptr, count, block, overflow, pos); \
     }                                                                   \
                                                                         \
     static inline                                                       \
     size_t Name##_block_write(const Type *ptr,                          \
                               size_t  count,                            \
                               ring_block_fn write_block,                \
-                              ring_block_fn commit_block)               \
+                              ring_block_fn commit_block,               \
+                              ringidx_t *pos)                           \
     {                                                                   \
         return ring_write(&Name.ring, ptr, count,                       \
-                          write_block, commit_block);                   \
+                          write_block, commit_block, pos);              \
     }
 
 

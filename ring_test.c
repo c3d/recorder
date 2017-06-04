@@ -209,11 +209,13 @@ void *writer_thread(void *data)
         VERBOSE("Write #%02d '%s' size %u", tid, str, len);
         ring_fetch_add(count_writes, 1);
         RECORD(Writes, "Writing '%s'", str);
-        unsigned wr = buffer_block_write(str, len, writer_block, commit_block);
-        RECORD(Writes, "Wrote '%s' at index %u", str, wr);
+        ringidx_t wr = 0;
+        size_t size = buffer_block_write(str, len,
+                                         writer_block, commit_block, &wr);
+        RECORD(Writes, "Wrote '%s' size %zu at index %u", str, size, wr);
         ring_fetch_add(count_written, 1);
 
-        VERBOSE("Wrote #%02d '%s' at offset %u-%u size %u",
+        VERBOSE("Wrote #%02d '%s' at offset %lu-%lu size %u",
                 tid, str, wr, wr + len - 1, len);
     }
     unsigned toStop = ring_fetch_add(threads_to_stop, -1U);
@@ -281,7 +283,8 @@ void *reader_thread(void *data)
         if (readable)
         {
             // Reported that we can't read. Check if it's overflow
-            size = buffer_block_read(buf, 1, reader_block, reader_overflow);
+            size = buffer_block_read(buf, 1,
+                                     reader_block, reader_overflow, NULL);
             if (size == 0)
             {
                 FAIL("Blocking read did not get data");
@@ -310,7 +313,7 @@ void *reader_thread(void *data)
         VERBOSE("Reading #%02d '%c' %u bytes", tid, initial, testLen);
         ring_fetch_add(count_reads, 1);
         size += buffer_block_read(buf + size, testLen - size,
-                                  reader_block, reader_overflow);
+                                  reader_block, reader_overflow, NULL);
         ring_fetch_add(count_read, 1);
 
         if (testLen != size)

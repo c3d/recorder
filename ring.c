@@ -105,7 +105,8 @@ ringidx_t ring_read(ring_p ring,
                     void *destination,
                     size_t count,
                     ring_block_fn read_block,
-                    ring_block_fn read_overflow)
+                    ring_block_fn read_overflow,
+                    ringidx_t *reader_ptr)
 // ----------------------------------------------------------------------------
 //   Ring up to 'count' elements, return number of elements read
 // ----------------------------------------------------------------------------
@@ -149,6 +150,9 @@ ringidx_t ring_read(ring_p ring,
         }
     } while (!ring_compare_exchange(ring->reader, reader, reader + to_copy));
 
+    if (reader_ptr)
+        *reader_ptr = reader;
+
     // Then copy data in contiguous memcpy chunks (normally at most two)
     while (to_copy)
     {
@@ -174,7 +178,8 @@ ringidx_t ring_write(ring_p ring,
                      const void *source,
                      size_t count,
                      ring_block_fn write_block,
-                     ring_block_fn commit_block)
+                     ring_block_fn commit_block,
+                     ringidx_t *writer_ptr)
 // ----------------------------------------------------------------------------
 //   Write 'count' elements from 'ptr' into 'rb', return entry idx
 // ----------------------------------------------------------------------------
@@ -205,6 +210,8 @@ ringidx_t ring_write(ring_p ring,
 
     // Record first writer, to see if we will be the one committing
     first_writer = writer;
+    if (writer_ptr)
+        *writer_ptr = writer;
 
     // Then copy data in contiguous memcpy chunks (normally at most two)
     while (to_copy)
