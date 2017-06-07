@@ -299,6 +299,12 @@ static inline uintptr_t _recorder_double(double d)
 // Return ticks (some kind of time unit) since first called
 extern uintptr_t recorder_tick(void);
 
+#if INTPTR_MAX < 0x8000000
+#define RECORDER_HZ     1000
+#else // Large enough intptr_t
+#define RECORDER_HZ     1000000
+#endif // INTPTR_MAX
+
 // Compute the return address (may be different on different compilers)
 #ifdef __GNUC__
 #define recorder_return_address()       ((uintptr_t)__builtin_return_address(0))
