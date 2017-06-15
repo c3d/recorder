@@ -85,8 +85,24 @@ extern void recorder_##Name##_record(uintptr_t where,                   \
                                      uintptr_t a3);
 
 
-// Some ugly macro drudgery to make things easy to use. Pad with zeroes.
-#define RECORDER_ARG(_1,_2,_3,_4, arg,...)    ((uintptr_t) (arg))
+// Some ugly macro drudgery to make things easy to use.
+// Convert types, pad with zeroes.
+#define RECORDER_ARG(_1,_2,_3,_4, arg,...)              \
+    _Generic(arg,                                       \
+             unsigned char:     _recorder_unsigned,     \
+             unsigned short:    _recorder_unsigned,     \
+             unsigned:          _recorder_unsigned,     \
+             unsigned long:     _recorder_unsigned,     \
+             unsigned long long:_recorder_unsigned,     \
+             signed char:       _recorder_signed,       \
+             signed short:      _recorder_signed,       \
+             signed:            _recorder_signed,       \
+             signed long:       _recorder_signed,       \
+             signed long long:  _recorder_signed,       \
+             default:           _recorder_pointer,      \
+             float:             _recorder_float,        \
+             double:            _recorder_double) (arg)
+
 #define RECORD(Name, Format, ...)                                       \
     recorder_##Name##_record(0,                                         \
                              Format,                                    \
@@ -116,7 +132,7 @@ typedef struct recorder_entry
 ///  Notice that the arguments are stored as "intptr_t" because that type
 ///  is guaranteed to be the same size as a pointer. This allows us to
 ///  properly align recorder entries to powers of 2 for efficiency.
-///  Also read explanations of \ref D2I and \ref F2I below regarding
+///  Also read explanations of \ref _recorder_double and \ref _recorder_float below regarding
 ///  how to use floating-point with the recorder.
 {
     const char *format;         ///< Printf-style format for record
@@ -199,24 +215,40 @@ extern void recorder_activate(recorder_list *recorder);
 //
 // ============================================================================
 //
-//   If you want to record a floating point value, you need to use F2I, as in:
-//
-//      RECORD(MyRecoder, "My FP value is %6.2f", F2I(3.1415));
-//
-//   On platforms such as x86_64 or ARM32, different registers are used to
-//   pass floating-point values than integral or pointer values.
-//   So when you call printf("%d %f %d", 1, 3.1415, 42), you may end up on
-//   ARM32 with:
-//   - R0 containing the format pointer
-//   - R1 containing 1
-//   - R2 containing 42
-//   - D0 containing 3.1415
-//   Since the recorder always uses intptr_t to represent the values,
-//   the corresponding va_arg() call uses intptr_t, reading from R0-R3.
-//   If we want to pass a floating-point value, we need to first convert it
-//   to integral format to make sure that it is passed in Rn and not Dn.
+//   The recorder stores only uintptr_t in recorder entries. Integer types
+//   are promoted, pointer types are converted. Floating point values
+//   are converted a floating point type of the same size as uintptr_t,
+//   i.e. float are converted to double on 64-bit platforms, and conversely.
 
-static inline uintptr_t F2I(float f)
+
+static inline uintptr_t _recorder_unsigned(uintptr_t i)
+// ----------------------------------------------------------------------------
+//   Necessary because of the way generic selections work
+// ----------------------------------------------------------------------------
+{
+    return i;
+}
+
+
+static inline uintptr_t _recorder_signed(intptr_t i)
+// ----------------------------------------------------------------------------
+//   Necessary because of the way generic selections work
+// ----------------------------------------------------------------------------
+{
+    return (uintptr_t) i;
+}
+
+
+static inline uintptr_t _recorder_pointer(const void *i)
+// ----------------------------------------------------------------------------
+//   Necessary because of the way generic selections work
+// ----------------------------------------------------------------------------
+{
+    return (uintptr_t) i;
+}
+
+
+static inline uintptr_t _recorder_float(float f)
 // ----------------------------------------------------------------------------
 //   Convert floating point number to intptr_t representation for recorder
 // ----------------------------------------------------------------------------
@@ -236,7 +268,7 @@ static inline uintptr_t F2I(float f)
 }
 
 
-static inline uintptr_t D2I(double d)
+static inline uintptr_t _recorder_double(double d)
 // ----------------------------------------------------------------------------
 //   Convert double-precision floating point number to intptr_t representation
 // ----------------------------------------------------------------------------
@@ -249,6 +281,7 @@ static inline uintptr_t D2I(double d)
     }
     else
     {
+        // Better to lose precision than not store any data
         union { float f; uintptr_t i; } u;
         u.f = d;
         return u.i;

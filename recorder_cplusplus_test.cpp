@@ -1,18 +1,18 @@
 // ****************************************************************************
-//  recorder_cplusplus_test.cpp                              Recorder project 
+//  recorder_cplusplus_test.cpp                              Recorder project
 // ****************************************************************************
-// 
+//
 //   File Description:
-// 
+//
 //     Test for the flight recorder
-// 
+//
 //     This tests that we can record things and dump them.
-// 
-// 
-// 
-// 
-// 
-// 
+//
+//
+//
+//
+//
+//
 // ****************************************************************************
 //  (C) 2017 Christophe de Dinechin <christophe@dinechin.org>
 //   This software is licensed under the GNU General Public License v3
@@ -133,18 +133,14 @@ void flight_recorder_test(int argc, char **argv)
     INFO("  Iterations / ms      = %10u", recorder_count / (howLong * 1000));
     INFO("  Duration per record  = %10uns",
          (unsigned) (howLong * 1000000000ULL / recorder_count));
-    
+
     Special("Sizeof int=%u intptr_t=%u float=%u double=%u",
             sizeof(int), sizeof(intptr_t), sizeof(float), sizeof(double));
 
-    Special("Float      3.1415 = %f",     3.1415f);
-    Special("Float    X 3.1415 = %x",     3.1415f);
-    Special("Float  F2I 3.1415 = %f", F2I(3.1415f));
-    Special("Float  F2X 3.1415 = %x", F2I(3.1415f));
-    Special("Double     3.1415 = %f",     3.1415);
-    Special("Double   X 3.1415 = %x",     3.1415);
-    Special("Double D2I 3.1415 = %f", D2I(3.1415));
-    Special("Double D2X 3.1415 = %x", D2I(3.1415));
+    Special("Float      3.1415 = %f", 3.1415f);
+    Special("Float    X 3.1415 = %x", 3.1415f);
+    Special("Double     3.1415 = %f", 3.1415);
+    Special("Double   X 3.1415 = %x", 3.1415);
 
     recorder_dump_for("Special");
     recorder_dump();

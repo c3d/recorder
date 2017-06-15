@@ -203,7 +203,7 @@ static void recorder_dump_entry(const char       *label,
     // (passed in different registers). So we detect them from the format,
     // convert intptr_t to float or double depending on its size,
     // and call the variadic snprintf passing a double value that will
-    // naturally go in the right register.
+    // naturally go in the right register. A bit ugly.
     bool finishedInNewline = false;
     while (dst < dst_end && argIndex < maxArgIndex)
     {

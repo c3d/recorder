@@ -225,10 +225,5 @@ dump. A good practice is to only record string constants.
     RECORD(Main, "You will see garbage here: %s", tempStr);
     free(tempStr); // At dump time, the string no longer exists
 
-In C, conversion of floating-point values must be done manually using
-the `F2I` or `D2I` functions. For example:
-
-    printf("The value of pi is close to %f", 3.1415);
-    RECORD(Main, "The value of pi is close to %f", F2I(3.1415));
-
-In C++, this is done automatically for you.
+The `RECORD` macro automatically converts floating point values
+to `uintptr_t` based on their type.

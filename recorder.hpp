@@ -56,15 +56,15 @@ struct Recorder
     // Helper struct to safely pass floating-point arguments
     struct Arg
     {
-        Arg(float f):           value(F2I(f))               {}
-        Arg(double d):          value(D2I(d))               {}
+        Arg(float f):           value(_recorder_float(f))   {}
+        Arg(double d):          value(_recorder_double(d))  {}
         template<class T>
         Arg(T t):               value(intptr_t(t))          {}
         operator uintptr_t()    { return value; }
     private:
         uintptr_t               value;
     };
-    
+
     void operator()(const char *what, Arg a1=0, Arg a2=0, Arg a3=0, Arg a4=0)
     {
         RecordFunction(recorder_return_address(), what, a1,a2,a3,a4);
