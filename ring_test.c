@@ -114,6 +114,7 @@ const char *testStrings[] =
         len += snprintf(buf + len, sizeof(buf) - len, __VA_ARGS__);     \
         puts(buf);                                                      \
         failed = 1;                                                     \
+        recorder_dump();                                                \
     } while(0)
 
 
