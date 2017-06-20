@@ -38,7 +38,7 @@ include $(BUILD)rules.mk
 CXX=$(CXX11)
 
 $(BUILD)rules.mk:
-	cd .. && git submodule update --init --recursive
+	git submodule update --init --recursive
 prebuild: recorder.tbl
 recorder.tbl: recorder.tbl.in
 	$(PRINT_COPY) cp $< $@
