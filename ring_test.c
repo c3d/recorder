@@ -154,12 +154,16 @@ bool writer_block(ring_t *rb, ringidx_t oldW, ringidx_t lastW)
     ring_fetch_add(count_write_blocked, 1);
 
     /* Wait until reader is beyond the last item we are going to write */
-    while (lastW - rb->reader >= rb->size - 1)
+    RECORD(Writes,"Blocking write %zu-%zu", oldW, lastW);
+    while ((intptr_t) (lastW - rb->reader) >= (intptr_t) (rb->size - 1))
     {
         ring_fetch_add(count_write_spins, 1);
         VERBOSE("Blocking write ahead %d %zu-%zu",
                 (int) (lastW - rb->reader - rb->size),
                 oldW, lastW);
+        RECORD(Pauses,"Blocking write ahead %d %zu-%zu",
+               (int) (lastW - rb->reader - rb->size),
+               oldW, lastW);
         dawdle(5);
     }
     VERBOSE("Unblocked write ahead %d %zu-%zu",
@@ -180,10 +184,12 @@ bool commit_block(ring_t *rb, ringidx_t commit, ringidx_t oldW)
     ring_fetch_add(count_commit_blocked, 1);
 
     /* Wait until reader is beyond the last item we are going to write */
+    RECORD(Reads,"Blocking commit %zu-%zu", commit, oldW);
     while (rb->commit != oldW)
     {
         ring_fetch_add(count_commit_spins, 1);
         VERBOSE("Blocking commit, at %zu, need %zu", rb->commit, oldW);
+        RECORD(Pauses,"Blocking commit %zu-%zu-%zu", commit, rb->commit, oldW);
         dawdle(1);
     }
     VERBOSE("Unblocked commit was %zu, needed %zu, now %zu",
@@ -229,10 +235,11 @@ bool reader_block(ring_t *rb, ringidx_t curR, ringidx_t lastR)
 {
     RECORD(Reads, "Blocked curR=%zu lastR=%zu", curR, lastR);
     ring_fetch_add(count_read_blocked, 1);
-    while ((int) (rb->commit - lastR) < 0)
+    while ((intptr_t) (rb->commit - lastR) < 0)
     {
         ring_fetch_add(count_read_spins, 1);
         VERBOSE("Blocking read commit=%zu lastR=%zu", rb->commit, lastR);
+        RECORD(Pauses, "Blocking read commit=%zu last=%zu", rb->commit, lastR);
         dawdle(1);
     }
     RECORD(Reads, "Unblocking commit=%zu lastR=%zu", rb->commit, lastR);
@@ -251,6 +258,7 @@ bool reader_overflow(ring_t *rb, ringidx_t curR, ringidx_t minR)
     VERBOSE("Reader overflow %zu reader %zu -> %zu, skip %zu",
             rb->overflow, rb->reader, minR, skip);
     ring_fetch_add(overflow_handler_called, 1);
+
 
     RECORD(Reads, "End overflow minReader=%u skip=%u", minR, skip);
 
@@ -271,6 +279,7 @@ void *reader_thread(void *data)
         // Read initial byte, the capital at beginning of message
         unsigned overflow = buffer.ring.overflow;
         unsigned readable = buffer_readable();
+        ringidx_t rd = 0;
 
         if (overflow)
         {
@@ -285,12 +294,14 @@ void *reader_thread(void *data)
         {
             // Reported that we can't read. Check if it's overflow
             size = buffer_block_read(buf, 1,
-                                     reader_block, reader_overflow, NULL);
+                                     reader_block, reader_overflow, &rd);
             if (size == 0)
             {
                 FAIL("Blocking read did not get data");
             }
         }
+        RECORD(Reads, "Index %u Readable: %u, Size: %u, Overflow %u",
+               rd, readable, size, overflow);
         if (size == 0)
             continue;
 
@@ -309,13 +320,17 @@ void *reader_thread(void *data)
         unsigned index = initial - 'A';
         const char *test = testStrings[index];
         unsigned testLen = strlen(test);
+        RECORD(Reads, "Initial %c (%d), expecting '%s' length %u",
+               initial, initial, test, testLen);
 
         // Read the rest of the buffer based on input length
         VERBOSE("Reading #%02d '%c' %u bytes", tid, initial, testLen);
         ring_fetch_add(count_reads, 1);
         size += buffer_block_read(buf + size, testLen - size,
-                                  reader_block, reader_overflow, NULL);
+                                  reader_block, reader_overflow, &rd);
         ring_fetch_add(count_read, 1);
+        RECORD(Reads, "Index %u: Read %u bytes out of %u at index %u",
+               rd, size, testLen);
 
         if (testLen != size)
         {

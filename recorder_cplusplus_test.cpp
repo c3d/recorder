@@ -41,6 +41,7 @@ int failed = 0;
 // ============================================================================
 
 unsigned recorder_count = 0;
+unsigned pauses_count = 0;
 
 #define INFO(...)                                                       \
     do                                                                  \
@@ -76,7 +77,9 @@ void dawdle(unsigned minimumMs)
     struct timespec tm;
     tm.tv_sec = 0;
     tm.tv_nsec =  + minimumMs * (1000 * 1000 + lrand48() % 2000000);
-    Pauses("Pausing %ld.%03dus", tm.tv_nsec / 1000, tm.tv_nsec % 1000);
+    Pauses("Pausing #%u: %ld.%03dus",
+           ring_fetch_add(pauses_count, 1),
+           tm.tv_nsec / 1000, tm.tv_nsec % 1000);
     nanosleep(&tm, NULL);
 }
 
