@@ -85,6 +85,90 @@ extern void recorder_##Name##_record(uintptr_t where,                   \
                                      uintptr_t a3);
 
 
+// ============================================================================
+//
+//    Definition of recorders
+//
+// ============================================================================
+
+#define RECORDER_DEFINE(Name, Size)                                     \
+/*!----------------------------------------------------------------*/   \
+/*! Define a recorder type with Size elements                      */   \
+/*!----------------------------------------------------------------*/   \
+/*! \param Name is the C name fo the recorder.                          \
+ *! \param Size is the number of entries in the circular buffer. */     \
+                                                                        \
+RING_DECLARE(recorder_##Name, recorder_entry, Size);                    \
+RING_DEFINE (recorder_##Name, recorder_entry, Size);                    \
+                                                                        \
+                                                                        \
+/* The entry in linked list for this type */                            \
+recorder_list recorder_##Name##_list_entry =                            \
+{                                                                       \
+    NULL,                                                               \
+    (recorder_read_fn) recorder_##Name##_read,                          \
+    (recorder_peek_fn) recorder_##Name##_peek,                          \
+    (recorder_readable_fn) recorder_##Name##_readable,                  \
+    Size,                                                               \
+    NULL                                                                \
+};                                                                      \
+                                                                        \
+                                                                        \
+static void recorder_##Name##_activate()                                \
+/* ----------------------------------------------------------------*/   \
+/*  Enter a record in a ring buffer with given set of args         */   \
+/* ----------------------------------------------------------------*/   \
+{                                                                       \
+    recorder_activate(&recorder_##Name##_list_entry);                   \
+}                                                                       \
+                                                                        \
+                                                                        \
+void recorder_##Name##_record(uintptr_t caller,                         \
+                              const char *format,                       \
+                              uintptr_t a0,                             \
+                              uintptr_t a1,                             \
+                              uintptr_t a2,                             \
+                              uintptr_t a3)                             \
+/* ----------------------------------------------------------------*/   \
+/*  Enter a record entry in ring buffer with given set of args     */   \
+/* ----------------------------------------------------------------*/   \
+{                                                                       \
+    recorder_entry entry;                                               \
+    if (recorder_blocked)                                               \
+        return;                                                         \
+    entry.format = format;                                              \
+    entry.order = ring_fetch_add(recorder_order, 1);                    \
+    entry.timestamp = recorder_tick();                                  \
+    entry.where = caller ? caller : recorder_return_address();          \
+    entry.args[0] = a0;                                                 \
+    entry.args[1] = a1;                                                 \
+    entry.args[2] = a2;                                                 \
+    entry.args[3] = a3;                                                 \
+    recorder_##Name##_write(&entry, 1);                                 \
+                                                                        \
+    /* Check if this is the first time we record here */                \
+    const char *null = NULL;                                            \
+    if (ring_compare_exchange(recorder_##Name##_list_entry.name,        \
+                              null, #Name))                             \
+        recorder_##Name##_activate();                                   \
+}
+
+
+
+// ============================================================================
+//
+//    Recording stuff
+//
+// ============================================================================
+
+#define RECORD(Name, Format, ...)                                       \
+    recorder_##Name##_record(0,                                         \
+                             Format,                                    \
+                             RECORDER_ARG(0,0,0,0, ## __VA_ARGS__,0),   \
+                             RECORDER_ARG(0,0,0,## __VA_ARGS__,0,0),    \
+                             RECORDER_ARG(0,0,## __VA_ARGS__,0,0,0),    \
+                             RECORDER_ARG(0,## __VA_ARGS__,0,0,0,0))
+
 // Some ugly macro drudgery to make things easy to use.
 // Convert types, pad with zeroes.
 #define RECORDER_ARG(_1,_2,_3,_4, arg,...)              \
@@ -103,13 +187,13 @@ extern void recorder_##Name##_record(uintptr_t where,                   \
              float:             _recorder_float,        \
              double:            _recorder_double) (arg)
 
-#define RECORD(Name, Format, ...)                                       \
-    recorder_##Name##_record(0,                                         \
-                             Format,                                    \
-                             RECORDER_ARG(0,0,0,0, ## __VA_ARGS__,0),   \
-                             RECORDER_ARG(0,0,0,## __VA_ARGS__,0,0),    \
-                             RECORDER_ARG(0,0,## __VA_ARGS__,0,0,0),    \
-                             RECORDER_ARG(0,## __VA_ARGS__,0,0,0,0))
+
+
+// ============================================================================
+//
+//   Automatic declaration of recorders
+//
+// ============================================================================
 
 // Declare available recorders
 #define RECORDER(Name, Size)        RECORDER_DECLARE(Name, Size)
