@@ -178,6 +178,7 @@ void recorder_##Name##_record(uintptr_t caller,                         \
              unsigned:          _recorder_unsigned,     \
              unsigned long:     _recorder_unsigned,     \
              unsigned long long:_recorder_unsigned,     \
+             char:              _recorder_char,         \
              signed char:       _recorder_signed,       \
              signed short:      _recorder_signed,       \
              signed:            _recorder_signed,       \
@@ -303,6 +304,15 @@ extern void recorder_activate(recorder_list *recorder);
 //   are promoted, pointer types are converted. Floating point values
 //   are converted a floating point type of the same size as uintptr_t,
 //   i.e. float are converted to double on 64-bit platforms, and conversely.
+
+
+static inline uintptr_t _recorder_char(char c)
+// ----------------------------------------------------------------------------
+//   Necessary because of the way generic selections work
+// ----------------------------------------------------------------------------
+{
+    return c;
+}
 
 
 static inline uintptr_t _recorder_unsigned(uintptr_t i)
