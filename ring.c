@@ -132,7 +132,7 @@ ringidx_t ring_read(ring_p ring,
 
         // Check if we want to copy more than available
         if (to_copy > available)
-            if (!read_block || !read_block(ring, reader, reader + to_copy))
+            if (read_block && !read_block(ring, reader, reader + to_copy))
                 to_copy = available;
 
         // Check if write may have overwritten beyound our read point
@@ -203,7 +203,7 @@ ringidx_t ring_write(ring_p ring,
 
         // Check if we want to copy more than can be written
         if (to_copy > available)
-            if (!write_block || !write_block(ring, writer, writer + to_copy))
+            if (write_block && !write_block(ring, writer, writer + to_copy))
                 to_copy = available;
 
     } while (!ring_compare_exchange(ring->writer, writer, writer + to_copy));
