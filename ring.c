@@ -118,6 +118,7 @@ ringidx_t ring_read(ring_p ring,
     char         *ptr       = destination;
     char         *data      = (char *) (ring + 1);
     ringidx_t     reader, writer, commit, available, to_copy;
+    ringidx_t     first_reader, next_reader;
     ringidx_t     idx, to_end;
     size_t        this_round, byte_count;
 
@@ -135,7 +136,7 @@ ringidx_t ring_read(ring_p ring,
             if (read_block && !read_block(ring, reader, reader + to_copy))
                 to_copy = available;
 
-        // Check if write may have overwritten beyound our read point
+        // Check if write may have overwritten beyond our read point
         if (writer - reader >= size)
         {
             // If so, catch up
@@ -148,26 +149,29 @@ ringidx_t ring_read(ring_p ring,
                 reader = first_valid;
             }
         }
-    } while (!ring_compare_exchange(ring->reader, reader, reader + to_copy));
 
-    if (reader_ptr)
-        *reader_ptr = reader;
+        if (reader_ptr)
+            *reader_ptr = reader;
 
-    // Then copy data in contiguous memcpy chunks (normally at most two)
-    while (to_copy)
-    {
-        // Compute how much we can copy in one memcpy
-        idx        = reader % size;
-        to_end     = size - idx;
-        this_round = to_copy < to_end ? to_copy : to_end;
-        byte_count = this_round * item_size;
+        // Then copy data in contiguous memcpy chunks (normally at most two)
+        ptr = destination;
+        first_reader = reader;
+        next_reader = first_reader + to_copy;
+        while (to_copy)
+        {
+            // Compute how much we can copy in one memcpy
+            idx        = reader % size;
+            to_end     = size - idx;
+            this_round = to_copy < to_end ? to_copy : to_end;
+            byte_count = this_round * item_size;
 
-        // Copy data from buffer into destination
-        memcpy(ptr, data + idx * item_size, byte_count);
-        ptr += byte_count;
-        to_copy -= this_round;
-        reader += this_round;
-    }
+            // Copy data from buffer into destination
+            memcpy(ptr, data + idx * item_size, byte_count);
+            ptr += byte_count;
+            to_copy -= this_round;
+            reader += this_round;
+        }
+    } while (!ring_compare_exchange(ring->reader, first_reader, next_reader));
 
     // Return number of items effectively read
     return count - to_copy;
