@@ -37,6 +37,21 @@ int failed = 0;
 
 // ============================================================================
 //
+//    Recorders that we will use here
+//
+// ============================================================================
+
+RECORDER(MAIN,       64, "Global operations in 'main()'");
+RECORDER(Pauses,    256, "Pauses during blocking operations");
+RECORDER(Reads,     256, "Reading from the ring");
+RECORDER(Writes,    256, "Writing into the ring");
+RECORDER(Special,    64, "Special operations to the recorder");
+RECORDER(SpeedTest,  32, "Recorder speed test");
+
+
+
+// ============================================================================
+//
 //    Ringbuffer test
 //
 // ============================================================================

@@ -37,6 +37,3 @@ CXX=$(CXX11)
 
 $(BUILD)rules.mk:
 	git submodule update --init --recursive
-prebuild: recorder.tbl
-recorder.tbl: recorder.tbl.in
-	$(PRINT_COPY) cp $< $@

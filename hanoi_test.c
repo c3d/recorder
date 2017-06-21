@@ -1,18 +1,18 @@
 // ****************************************************************************
-//  hanoi_test.c                                              Recorder project 
+//  hanoi_test.c                                              Recorder project
 // ****************************************************************************
-// 
+//
 //   File Description:
-// 
+//
 //      A simple illustration of the recorder on the Towers of Hanoi problem
-// 
-// 
-// 
-// 
-// 
-// 
-// 
-// 
+//
+//
+//
+//
+//
+//
+//
+//
 // ****************************************************************************
 //  (C) 2017 Christophe de Dinechin <christophe@dinechin.org>
 //   This software is licensed under the GNU General Public License v3
@@ -23,6 +23,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+
+RECORDER(MOVE, 1024, "Moving pieces around")
+RECORDER(TIMING, 32, "Timing information")
 
 typedef enum post { LEFT, MIDDLE, RIGHT } post;
 const char *postName[] = { "LEFT", "MIDDLE", "RIGHT" };

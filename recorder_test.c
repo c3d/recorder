@@ -33,6 +33,12 @@
 
 int failed = 0;
 
+RECORDER(MAIN,       64, "Global operations in 'main()'");
+RECORDER(Pauses,    256, "Pauses during blocking operations");
+RECORDER(Special,    64, "Special operations to the recorder");
+RECORDER(SpeedTest,  32, "Recorder speed test");
+
+
 
 // ============================================================================
 //

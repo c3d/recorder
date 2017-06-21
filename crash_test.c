@@ -1,18 +1,18 @@
 // ****************************************************************************
-//  crash_test.c                                              Recorder project 
+//  crash_test.c                                              Recorder project
 // ****************************************************************************
-// 
+//
 //   File Description:
-// 
+//
 //     Test for the flight recorder
-// 
+//
 //     This tests that we can dump something at crash time
-// 
-// 
-// 
-// 
-// 
-// 
+//
+//
+//
+//
+//
+//
 // ****************************************************************************
 //  (C) 2017 Christophe de Dinechin <christophe@dinechin.org>
 //   This software is licensed under the GNU General Public License v3
@@ -36,6 +36,8 @@ int *ptr = NULL;
 //    Main entry point
 //
 // ============================================================================
+
+RECORDER(MAIN, 64, "Primary recorder for crash_test.c");
 
 static void signal_handler(int sig)
 {

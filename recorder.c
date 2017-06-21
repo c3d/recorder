@@ -29,31 +29,6 @@
 #include <sys/time.h>
 
 
-#ifndef recorder_tick
-uintptr_t recorder_tick()
-// ----------------------------------------------------------------------------
-//   Return the "ticks" as stored in the recorder
-// ----------------------------------------------------------------------------
-{
-    static uintptr_t initialTick = 0;
-    struct timeval t;
-    gettimeofday(&t, NULL);
-#if INTPTR_MAX < 0x8000000
-    uintptr_t tick = t.tv_sec * 1000ULL + t.tv_usec / 1000;
-#else
-    uintptr_t tick = t.tv_sec * 1000000ULL + t.tv_usec;
-#endif
-    if (!initialTick)
-        initialTick = tick;
-    return tick - initialTick;
-}
-#endif // recorder_tick
-
-
-#define RECORDER(Name, Size, Info)        RECORDER_DEFINE(Name, Size, Info)
-#include "recorder.tbl"
-
-
 
 // ============================================================================
 //
@@ -394,17 +369,14 @@ void recorder_dump_for(const char *what)
 }
 
 
-void recorder_activate (recorder_list *recorder)
-// ----------------------------------------------------------------------------
-//   Activate the given recorder by putting it in linked list
-// ----------------------------------------------------------------------------
-{
-    /* This was the first write in this recorder, put it in list */
-    recorder_list  *head = recorders;
-    do { recorder->next = head; }
-    while (!ring_compare_exchange(recorders, head, recorder));
-}
 
+// ============================================================================
+//
+//    Signal handling
+//
+// ============================================================================
+
+RECORDER(signals, 32, "Information about signals");
 
 // Saved old actions
 #if HAVE_STRUCT_SIGACTION
@@ -416,7 +388,7 @@ static void signal_handler(int sig, siginfo_t *info, void *ucontext)
 //    Dump the recorder when receiving a signal
 // ----------------------------------------------------------------------------
 {
-    RECORD(MAIN, "Received signal %s (%d) si_addr=%p, dumping recorder",
+    RECORD(signals, "Received signal %s (%d) si_addr=%p, dumping recorder",
            strsignal(sig), sig, info->si_addr);
     fprintf(stderr, "Received signal %s (%d), dumping recorder\n",
             strsignal(sig), sig);
@@ -460,7 +432,7 @@ static void signal_handler(int sig)
 //   Dump the recorder when receiving the given signal
 // ----------------------------------------------------------------------------
 {
-    RECORD(MAIN, "Received signal %d, dumping recorder", sig);
+    RECORD(signals, "Received signal %d, dumping recorder", sig);
     fprintf(stderr, "Received signal %d, dumping recorder\n", sig);
 
     // Restore previous handler
@@ -543,4 +515,44 @@ void recorder_dump_on_common_signals(unsigned add, unsigned remove)
             recorder_dump_on_signal(sig);
         signals &= ~mask;
     }
+}
+
+
+
+// ============================================================================
+//
+//    Support functions
+//
+// ============================================================================
+
+#ifndef recorder_tick
+uintptr_t recorder_tick()
+// ----------------------------------------------------------------------------
+//   Return the "ticks" as stored in the recorder
+// ----------------------------------------------------------------------------
+{
+    static uintptr_t initialTick = 0;
+    struct timeval t;
+    gettimeofday(&t, NULL);
+#if INTPTR_MAX < 0x8000000
+    uintptr_t tick = t.tv_sec * 1000ULL + t.tv_usec / 1000;
+#else
+    uintptr_t tick = t.tv_sec * 1000000ULL + t.tv_usec;
+#endif
+    if (!initialTick)
+        initialTick = tick;
+    return tick - initialTick;
+}
+#endif // recorder_tick
+
+
+void recorder_activate (recorder_list *recorder)
+// ----------------------------------------------------------------------------
+//   Activate the given recorder by putting it in linked list
+// ----------------------------------------------------------------------------
+{
+    /* This was the first write in this recorder, put it in list */
+    recorder_list  *head = recorders;
+    do { recorder->next = head; }
+    while (!ring_compare_exchange(recorders, head, recorder));
 }

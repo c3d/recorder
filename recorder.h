@@ -164,7 +164,7 @@ extern void recorder_activate(recorder_list *recorder);
 //
 // ============================================================================
 
-#define RECORDER_DECLARE(Name, Size)                                    \
+#define RECORDER_DECLARE(Name)                                          \
 /* ----------------------------------------------------------------*/   \
 /*  Declare a recorder type with Size elements                     */   \
 /* ----------------------------------------------------------------*/   \
@@ -185,7 +185,7 @@ extern bool recorder_##Name##_trace_enabled;
 //
 // ============================================================================
 
-#define RECORDER_DEFINE(Name, Size, Info)                               \
+#define RECORDER(Name, Size, Info)                                      \
 /*!----------------------------------------------------------------*/   \
 /*! Define a recorder type with Size elements                      */   \
 /*!----------------------------------------------------------------*/   \
@@ -405,19 +405,6 @@ extern uintptr_t recorder_tick(void);
 #define RECORDER_HZ     1000000
 #endif // INTPTR_MAX
 #endif // RECORDER_HZ
-
-
-// ============================================================================
-//
-//   Automatic declaration of recorders
-//
-// ============================================================================
-//  Recorders in recorders.tbl are defined automatically, but you can
-//  add your own by using e.g. RECORDER_DEFINE(MyRecorder, 256)
-
-// Declare available recorders
-#define RECORDER(Name, Size, Info)        RECORDER_DECLARE(Name, Size)
-#include "recorder.tbl"
 
 #ifdef __cplusplus
 }
