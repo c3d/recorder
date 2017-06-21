@@ -39,7 +39,6 @@ extern "C" {
 //
 //  Within gdb, you can use: 'p recorder_dump()' to get a dump of what
 //  happened in your program until this point
-//
 
 // Configuration of the function used to dump the recorder
 typedef unsigned (*recorder_show_fn) (const char *text,size_t len,void *output);
@@ -250,7 +249,7 @@ typedef struct recorder_entry
 /// This is incremented atomically for each RECORD() call.
 /// It must be exposed because all XYZ_record() implementations need to
 /// touch the same shared variable in order to provide a global order.
-extern unsigned recorder_order;
+extern uintptr_t recorder_order;
 
 /// A counter of how many clients are currently blocking the recorder.
 /// Code that needs to block the recorder for any reason can atomically

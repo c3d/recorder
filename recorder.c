@@ -62,7 +62,7 @@ uintptr_t recorder_tick()
 // ============================================================================
 
 /// Global counter indicating the order of entries across recorders.
-unsigned        recorder_order   = 0;
+uintptr_t       recorder_order   = 0;
 
 /// Counter of how many clients are currently blocking the recorder.
 unsigned        recorder_blocked = 0;
