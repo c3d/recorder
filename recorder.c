@@ -50,7 +50,7 @@ uintptr_t recorder_tick()
 #endif // recorder_tick
 
 
-#define RECORDER(Name, Size)        RECORDER_DEFINE(Name, Size)
+#define RECORDER(Name, Size, Info)        RECORDER_DEFINE(Name, Size, Info)
 #include "recorder.tbl"
 
 

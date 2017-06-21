@@ -119,7 +119,7 @@ extern "C" {
 #define ring_add_fetch(Value, Offset)                        \
     __atomic_add_fetch(&Value, Offset, __ATOMIC_ACQUIRE)
 
-#define ring_compare_exchange(Value, Expected, New)                      \
+#define ring_compare_exchange(Value, Expected, New)                     \
     __atomic_compare_exchange_n(&Value, &Expected, New,                 \
                                 0, __ATOMIC_RELEASE, __ATOMIC_RELAXED)
 
