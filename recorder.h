@@ -25,12 +25,11 @@
 #include <stdarg.h>
 #include <stdint.h>
 
-#if defined(__cplusplus) && !defined(RECORDER_HPP)
-// If a C++ program includes 'recorder.h', switch to the C++ version
-#include "recorder.hpp"
 
+#ifdef __cplusplus
+extern "C" {
+#endif // __cplusplus
 
-#else // ! __cplusplus
 
 // ============================================================================
 //
@@ -77,7 +76,7 @@ extern void recorder_dump_on_common_signals(unsigned add, unsigned remove);
 /*  Declare a recorder type with Size elements                     */   \
 /* ----------------------------------------------------------------*/   \
                                                                         \
-extern void recorder_##Name##_record(uintptr_t where,                   \
+extern void recorder_##Name##_record(const char *where,                 \
                                      const char *format,                \
                                      uintptr_t a0,                      \
                                      uintptr_t a1,                      \
@@ -123,7 +122,7 @@ static void recorder_##Name##_activate()                                \
 }                                                                       \
                                                                         \
                                                                         \
-void recorder_##Name##_record(uintptr_t caller,                         \
+void recorder_##Name##_record(const char *where,                        \
                               const char *format,                       \
                               uintptr_t a0,                             \
                               uintptr_t a1,                             \
@@ -139,7 +138,7 @@ void recorder_##Name##_record(uintptr_t caller,                         \
     entry.format = format;                                              \
     entry.order = ring_fetch_add(recorder_order, 1);                    \
     entry.timestamp = recorder_tick();                                  \
-    entry.where = caller ? caller : recorder_return_address();          \
+    entry.where = where;                                                \
     entry.args[0] = a0;                                                 \
     entry.args[1] = a1;                                                 \
     entry.args[2] = a2;                                                 \
@@ -162,7 +161,7 @@ void recorder_##Name##_record(uintptr_t caller,                         \
 // ============================================================================
 
 #define RECORD(Name, Format, ...)                                       \
-    recorder_##Name##_record(0,                                         \
+    recorder_##Name##_record(RECORDER_SOURCE_LOCATION,                  \
                              Format,                                    \
                              RECORDER_ARG(0,0,0,0, ## __VA_ARGS__,0),   \
                              RECORDER_ARG(0,0,0,## __VA_ARGS__,0,0),    \
@@ -187,6 +186,11 @@ void recorder_##Name##_record(uintptr_t caller,                         \
              default:           _recorder_pointer,      \
              float:             _recorder_float,        \
              double:            _recorder_double) (arg)
+
+
+#define RECORDER_SOURCE_LOCATION        __FILE__ ":" RECORDER_STRING(__LINE__)
+#define RECORDER_STRING(LINE)           RECORDER_STRING_(LINE)
+#define RECORDER_STRING_(LINE)          #LINE
 
 
 
@@ -223,7 +227,7 @@ typedef struct recorder_entry
     const char *format;         ///< Printf-style format for record
     uintptr_t   order;          ///< Global order of events (across recorders)
     uintptr_t   timestamp;      ///< Time at which record took place
-    uintptr_t   where;          ///< Location (e.g. program counter)
+    const char *where;          ///< Source code location (__FILE__ : __LINE__)
     uintptr_t   args[4];        ///< Four arguments, for a total of 8 fields
 } recorder_entry;
 
@@ -403,14 +407,8 @@ extern uintptr_t recorder_tick(void);
 #endif // INTPTR_MAX
 #endif // RECORDER_HZ
 
-// Compute the return address (may be different on different compilers)
-#ifdef __GNUC__
-#define recorder_return_address()       ((uintptr_t)__builtin_return_address(0))
-#else
-#warning "No return address on this compiler, implement recorder_return_address"
-#define recorder_return_address()       0
-#endif
-
+#ifdef __cplusplus
+}
 #endif // __cplusplus
 
 #endif // RECORDER_H

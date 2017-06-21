@@ -66,7 +66,7 @@ and test the library on your system, type:
 `make test`
 
 This should build the library itself, which really consists of a
-single header and a single C++ file, and then execute three tests that
+two headers and a single C file, and then execute three tests that
 perform some operations and record what is happening while they do so.
 
 ## Adding recorders to your own project
@@ -82,14 +82,6 @@ three source files:
 
 * The `recorder.tbl` file lists the recorders your application will
   use, and their size.
-
-For C++ projects, you should add
-
-* The `recorder.hpp` header which contains a C++ wrapper for the
-  recorder features. You can still Use `#include "recorder.h"` for C++
-  programs if that fits your programming style better.
-
-* The `recorder.cpp` implementation file adds support for C++ code.
 
 You can look at the `hanoi_test.c` file for an example of use.
 To use a recorder called `MOVES` with 256 entries, you declare
@@ -109,11 +101,6 @@ statement, specifying the name of the recorder as the first argument:
 
     RECORD(MOVES, "Move disk from %s to %s\n", name[left], name[right]);
 
-To record events in C++, you can also use the name of the recorder
-itself, using the recorder as a functional object:
-
-    MOVES("Move disk from %s to %s\n", name[left], name[right]);
-
 
 ## Dumping recorder events
 
@@ -121,9 +108,6 @@ To dump recorded events, you use the `recorder_dump` function. This
 dumps all the recorders:
 
     recorder_dump();
-
-In C++, you can use the `Recorder::Dump` function and pass an
-`ostream` object.
 
 If you want to dump specific recorders, you can use
 `recorder_dump_for`, which matches the recorder names against the
@@ -144,11 +128,9 @@ CPU1. In that case, the recorder will contain entry 2, then entry 1.
 It is often desirable to dump the recorder when some specific signal is
 received. To detect crashes, for example, you can dump the recorder
 when receiving `SIGBUS`, `SIGSEGV`, `SIGILL`, `SIGABRT`, etc. To do
-this, call the function `record_dump_on_signal` or the C++ functoin
-`Recorder::DumpOnSignal`:
+this, call the function `record_dump_on_signal`
 
     recorder_dump_on_signal(SIGBUS);
-    Recorder::DumpOnSignal(SIGSEGV);
 
 When running BSD or macOS, you can have your program dump the current
 state of the recorder by adding a signal handler for `SIGINFO`. You
@@ -192,14 +174,6 @@ You can also define a recorder named `MyRecorder` with 256 entries
 that can be called from C using:
 
     RECORDER_DEFINE(MyRecorder, 256)
-
-However, note that since the actual implementation of recorders is
-written in C++, the definition of recorders with `RECORDER_DEFINE`
-must be compiled in C++, not in C.
-
-In C++, you would use:
-
-    Recorder<256> MyRecorder;
 
 
 ## Caveats and limitations

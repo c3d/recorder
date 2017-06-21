@@ -18,7 +18,7 @@
 
 BUILD=build/
 
-SOURCES= ring.c recorder.c recorder.cpp
+SOURCES=ring.c recorder.c
 PRODUCTS=librecorder.lib
 CONFIG=struct_sigaction
 
@@ -27,9 +27,7 @@ LDFLAGS_linux  = -lpthread
 LDFLAGS_cygwin = -lpthread
 LDFLAGS_mingw  = -lpthread
 
-TESTS=  hanoi_test.c hanoi_test.cpp 			\
-	recorder_cplusplus_test.cpp recorder_test.c 	\
-	ring_test.c crash_test.c
+TESTS=  hanoi_test.c recorder_test.c ring_test.c crash_test.c
 TEST_ARGS_hanoi_test=10 | wc
 
 include $(BUILD)rules.mk

@@ -108,23 +108,23 @@ static void recorder_dump_entry(const char       *label,
     {
         // Time stamp in us, show in seconds
         dst += snprintf(dst, dst_end - dst,
-                        "%lu [%lu.%06lu:%p] %s: ",
+                        "%s: %lu [%lu.%06lu] %s: ",
+                        entry->where,
                         (unsigned long) entry->order,
                         (unsigned long) entry->timestamp / 1000000,
                         (unsigned long) entry->timestamp % 1000000,
-                        (void *) entry->where,
                         label);
     }
     else
     {
         // Time stamp  in ms, show in seconds
         dst += snprintf(dst, dst_end - dst,
-                        "%lu [%lu.%03lu:%p] %s: ",
+                        "%s: %lu [%lu.%03lu] %s: ",
+                        entry->where,
                         (unsigned long) entry->order,
                         (unsigned long) entry->timestamp / 1000,
                         (unsigned long) entry->timestamp % 1000,
-                        (void *) entry->where,
-                 label);
+                        label);
     }
     const char *fmt = entry->format;
     unsigned argIndex = 0;

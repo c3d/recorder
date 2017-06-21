@@ -94,20 +94,14 @@
 //
 // ****************************************************************************
 
-#ifdef __cplusplus
-#include "ring.hpp"
-#endif // __cplusplus
-
 #include <stdint.h>
 #include <stdbool.h>
 #include <stddef.h>
 
 
-// ****************************************************************************
-//
-//    Pure C implementation
-//
-// ****************************************************************************
+#ifdef __cplusplus
+extern "C" {
+#endif  // __cplusplus
 
 
 // ============================================================================
@@ -336,5 +330,9 @@ extern ringidx_t ring_write(ring_p ring, const void *data, size_t count,
         { Size, sizeof(Type), 0 }                                       \
     };
 
+
+#ifdef __cplusplus
+}
+#endif // __cplusplus
 
 #endif // RING_H
