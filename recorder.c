@@ -71,64 +71,22 @@ unsigned        recorder_blocked = 0;
 recorder_list * recorders        = NULL;
 
 
-static unsigned recorder_print_to_stderr(const char *ptr, unsigned len,
-                                         void *arg)
-// ----------------------------------------------------------------------------
-//   The default printing function - prints to stderr
-// ----------------------------------------------------------------------------
-{
-    return (unsigned) write(2, ptr, len);
-}
-
-
-// Truly shocking that Visual Studio before 2015 does not have a working
-// snprintf or vsnprintf. Note that the proposed replacements are not accurate
-// since they return -1 on overflow instead of the length that would have
-// been written as the standard mandates.
-// http://stackoverflow.com/questions/2915672/snprintf-and-visual-studio-2010.
-#if defined(_MSC_VER) && _MSC_VER < 1900
-#  define snprintf  _snprintf
-#endif
-
-static void recorder_dump_entry(const char       *label,
-                                recorder_entry   *entry,
-                                recorder_show_fn  show,
-                                void             *arg)
+static void recorder_dump_entry(const char         *label,
+                                recorder_entry     *entry,
+                                recorder_format_fn  format,
+                                recorder_show_fn    show,
+                                void               *output)
 // ----------------------------------------------------------------------------
 //  Dump a recorder entry in a buffer between dst and dst_end, return last pos
 // ----------------------------------------------------------------------------
 {
-    static char buffer[1024];
-    static char format_buffer[32];
-
-    char *dst = buffer;
-    char *dst_end = buffer + sizeof buffer;
-
-    if (UINTPTR_MAX >= 0x7fffffff) // Static if to detect how to display time
-    {
-        // Time stamp in us, show in seconds
-        dst += snprintf(dst, dst_end - dst,
-                        "%s: %lu [%lu.%06lu] %s: ",
-                        entry->where,
-                        (unsigned long) entry->order,
-                        (unsigned long) entry->timestamp / 1000000,
-                        (unsigned long) entry->timestamp % 1000000,
-                        label);
-    }
-    else
-    {
-        // Time stamp  in ms, show in seconds
-        dst += snprintf(dst, dst_end - dst,
-                        "%s: %lu [%lu.%03lu] %s: ",
-                        entry->where,
-                        (unsigned long) entry->order,
-                        (unsigned long) entry->timestamp / 1000,
-                        (unsigned long) entry->timestamp % 1000,
-                        label);
-    }
-    const char *fmt = entry->format;
-    unsigned argIndex = 0;
-    const unsigned maxArgIndex = sizeof(entry->args) / sizeof(entry->args[0]);
+    char            buffer[256];
+    char            format_buffer[32];
+    char           *dst         = buffer;
+    char           *dst_end     = buffer + sizeof buffer - 2;
+    const char     *fmt         = entry->format;
+    unsigned        argIndex    = 0;
+    const unsigned  maxArgIndex = sizeof(entry->args) / sizeof(entry->args[0]);
 
     // Apply formatting. This complicated loop is because
     // we need to detect floating-point values, which are passed
@@ -238,13 +196,127 @@ static void recorder_dump_entry(const char       *label,
         }
         finishedInNewline = c == '\n';
     }
-    if (!finishedInNewline && dst < dst_end)
+    if (!finishedInNewline)
         *dst++ = '\n';
-    show(buffer, dst - buffer, arg);
+    *dst++ = 0;
+
+    format(show, output, label,
+           entry->where, entry->order, entry->timestamp, buffer);
 }
 
 
-void recorder_sort(const char *what, recorder_show_fn show, void *arg)
+
+// ============================================================================
+//
+//    Default output prints things to stderr
+//
+// ============================================================================
+
+static void * recorder_output = NULL;
+void *recorder_configure_output(void *output)
+// ----------------------------------------------------------------------------
+//   Configure the output stream
+// ----------------------------------------------------------------------------
+{
+    void *previous = recorder_output;
+    recorder_output = output;
+    return previous;
+}
+
+
+static unsigned recorder_print(const char *ptr, size_t len, void *file_arg)
+// ----------------------------------------------------------------------------
+//   The default printing function - prints to stderr
+// ----------------------------------------------------------------------------
+{
+    FILE *file = file_arg ? file_arg : stderr;
+    return (unsigned) fwrite(ptr, 1, len, file);
+}
+
+
+static recorder_show_fn recorder_show = recorder_print;
+recorder_show_fn  recorder_configure_show(recorder_show_fn show)
+// ----------------------------------------------------------------------------
+//   Configure the function used to output data to the stream
+// ----------------------------------------------------------------------------
+{
+    recorder_show_fn previous = recorder_show;
+    recorder_show = show;
+    return previous;
+}
+
+
+
+// ============================================================================
+//
+//    Default format for recorder entries
+//
+// ============================================================================
+
+// Truly shocking that Visual Studio before 2015 does not have a working
+// snprintf or vsnprintf. Note that the proposed replacements are not accurate
+// since they return -1 on overflow instead of the length that would have
+// been written as the standard mandates.
+// http://stackoverflow.com/questions/2915672/snprintf-and-visual-studio-2010.
+#if defined(_MSC_VER) && _MSC_VER < 1900
+#  define snprintf  _snprintf
+#endif
+
+static void recorder_format_entry(recorder_show_fn show,
+                                  void *output,
+                                  const char *label,
+                                  const char *location,
+                                  uintptr_t order,
+                                  uintptr_t timestamp,
+                                  const char *message)
+// ----------------------------------------------------------------------------
+//   Default formatting for the entries
+// ----------------------------------------------------------------------------
+{
+    char buffer[256];
+    char *dst = buffer;
+    char *dst_end = buffer + sizeof buffer;
+
+    if (UINTPTR_MAX >= 0x7fffffff) // Static if to detect how to display time
+    {
+        // Time stamp in us, show in seconds
+        dst += snprintf(dst, dst_end - dst,
+                        "%s: [%lu %.6f] %s: %s",
+                        location,
+                        (unsigned long) order,
+                        (double) timestamp / RECORDER_HZ,
+                        label, message);
+    }
+    else
+    {
+        // Time stamp  in ms, show in seconds
+        dst += snprintf(dst, dst_end - dst,
+                        "%s: [%lu %.3f] %s: %s",
+                        location,
+                        (unsigned long) order,
+                        (float) timestamp / RECORDER_HZ,
+                        label, message);
+    }
+
+    show(buffer, dst - buffer, output);
+}
+
+
+static recorder_format_fn recorder_format = recorder_format_entry;
+recorder_format_fn recorder_configure_format(recorder_format_fn format)
+// ----------------------------------------------------------------------------
+//   Configure the function used to format entries
+// ----------------------------------------------------------------------------
+{
+    recorder_format_fn previous = recorder_format;
+    recorder_format = format;
+    return previous;
+}
+
+
+void recorder_sort(const char *what,
+                   recorder_format_fn format,
+                   recorder_show_fn show, void *output)
 // ----------------------------------------------------------------------------
 //   Dump all entries, sorted by their global 'order' field
 // ----------------------------------------------------------------------------
@@ -284,7 +356,7 @@ void recorder_sort(const char *what, recorder_show_fn show, void *arg)
                 if (!rec->read(&entry, 1))
                     continue;
 
-                recorder_dump_entry(rec->name, &entry, show, arg);
+                recorder_dump_entry(rec->name, &entry, format, show, output);
                 nextOrder++;
             }
         }
@@ -296,7 +368,7 @@ void recorder_sort(const char *what, recorder_show_fn show, void *arg)
         if (!lowest->read(&entry, 1))
             continue;
 
-        recorder_dump_entry(lowest->name, &entry, show, arg);
+        recorder_dump_entry(lowest->name, &entry, format, show, output);
         nextOrder = entry.order + 1;
     }
 
@@ -309,7 +381,7 @@ void recorder_dump(void)
 //   Dump all entries, sorted by their global 'order' field
 // ----------------------------------------------------------------------------
 {
-    recorder_sort("", recorder_print_to_stderr, NULL);
+    recorder_sort("", recorder_format, recorder_show, recorder_output);
 }
 
 
@@ -318,7 +390,7 @@ void recorder_dump_for(const char *what)
 //   Dump all entries for recorder with names matching 'what'
 // ----------------------------------------------------------------------------
 {
-    recorder_sort(what, recorder_print_to_stderr, NULL);
+    recorder_sort(what, recorder_format, recorder_show, recorder_output);
 }
 
 

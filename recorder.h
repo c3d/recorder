@@ -42,16 +42,30 @@ extern "C" {
 //
 
 // Configuration of the function used to dump the recorder
-typedef unsigned (*recorder_show_fn) (const char *ptr, unsigned len, void *arg);
+typedef unsigned (*recorder_show_fn) (const char *text,size_t len,void *output);
+typedef void (*recorder_format_fn)(recorder_show_fn show,
+                                   void *output,
+                                   const char *label,
+                                   const char *location,
+                                   uintptr_t order,
+                                   uintptr_t timestamp,
+                                   const char *message);
 
 // Dump all recorder entries for all recorders, sorted between recorders
 extern void recorder_dump(void);
 
 // Dump all recorder entries matching recorders with 'what' in the name
-extern void recorder_dump_for(const char *name);
+extern void recorder_dump_for(const char *what);
+
+// Configure function used to print and format entries
+extern void *             recorder_configure_output(void *output);
+extern recorder_show_fn   recorder_configure_show(recorder_show_fn show);
+extern recorder_format_fn recorder_configure_format(recorder_format_fn format);
 
 // Sort all recorder entries for all recorders with names matching 'what'
-extern void recorder_sort(const char *what, recorder_show_fn show, void *arg);
+extern void recorder_sort(const char *what,
+                          recorder_format_fn format,
+                          recorder_show_fn show, void *arg);
 
 // Dump recorder entries on signal
 extern void recorder_dump_on_signal(int signal);
