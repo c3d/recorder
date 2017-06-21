@@ -33,12 +33,28 @@ extern "C" {
 
 // ============================================================================
 //
-//   Global recorder dump functions, for use within a debugger
+//   Recorder dump, to use in fault handlers or within a debugger
 //
 // ============================================================================
-//
 //  Within gdb, you can use: 'p recorder_dump()' to get a dump of what
 //  happened in your program until this point
+
+// Dump all recorder entries for all recorders, sorted between recorders
+extern void recorder_dump(void);
+
+// Dump all recorder entries matching recorders with 'what' in the name
+extern void recorder_dump_for(const char *what);
+
+// Dump recorder entries on signal
+extern void recorder_dump_on_signal(int signal);
+
+// Dump recorder entries on common signals (exact signals depend on platform)
+// By default, when called with (0,0), this dumps for:
+//    SIGQUIT, SIGILL, SIGABRT, SIGBUS, SIGSEGV, SIGSYS,
+//    SIGXCPU, SIGXFSZ, SIGINFO, SIGUSR1, SIGUSR2, SIGSTKFLT, SIGPWR
+// You can add add or remove signals by setting the bitmasks 'add' and 'remove'
+extern void recorder_dump_on_common_signals(unsigned add, unsigned remove);
+
 
 // Configuration of the function used to dump the recorder
 typedef unsigned (*recorder_show_fn) (const char *text,size_t len,void *output);
@@ -50,31 +66,94 @@ typedef void (*recorder_format_fn)(recorder_show_fn show,
                                    uintptr_t timestamp,
                                    const char *message);
 
-// Dump all recorder entries for all recorders, sorted between recorders
-extern void recorder_dump(void);
-
-// Dump all recorder entries matching recorders with 'what' in the name
-extern void recorder_dump_for(const char *what);
-
 // Configure function used to print and format entries
 extern void *             recorder_configure_output(void *output);
 extern recorder_show_fn   recorder_configure_show(recorder_show_fn show);
 extern recorder_format_fn recorder_configure_format(recorder_format_fn format);
 
-// Sort all recorder entries for all recorders with names matching 'what'
+// Sort recorder entries with specific format and output functions
 extern void recorder_sort(const char *what,
                           recorder_format_fn format,
-                          recorder_show_fn show, void *arg);
+                          recorder_show_fn show, void *show_arg);
 
-// Dump recorder entries on signal
-extern void recorder_dump_on_signal(int signal);
 
-// Dump recorder entries on common signals (exact signals depend on platform)
-// By default, when called with (0,0), this dumps for:
-//    SIGQUIT, SIGILL, SIGABRT, SIGBUS, SIGSEGV, SIGSYS,
-//    SIGXCPU, SIGXFSZ, SIGINFO, SIGUSR1, SIGUSR2, SIGSTKFLT, SIGPWR
-// You can add add or remove signals by setting the bitmasks 'add' and 'remove'
-extern void recorder_dump_on_common_signals(unsigned add, unsigned remove);
+
+// ============================================================================
+//
+//    Recorder data structures
+//
+// ============================================================================
+
+typedef struct recorder_entry
+/// ---------------------------------------------------------------------------
+///   Entry in the flight recorder.
+///----------------------------------------------------------------------------
+///  Notice that the arguments are stored as "intptr_t" because that type
+///  is guaranteed to be the same size as a pointer. This allows us to
+///  properly align recorder entries to powers of 2 for efficiency.
+///  Also read explanations of \ref _recorder_double and \ref _recorder_float below regarding
+///  how to use floating-point with the recorder.
+{
+    const char *format;         ///< Printf-style format for record
+    uintptr_t   order;          ///< Global order of events (across recorders)
+    uintptr_t   timestamp;      ///< Time at which record took place
+    const char *where;          ///< Source code location (__FILE__ : __LINE__)
+    uintptr_t   args[4];        ///< Four arguments, for a total of 8 fields
+} recorder_entry;
+
+
+/// A global counter indicating the order of entries across recorders.
+/// This is incremented atomically for each RECORD() call.
+/// It must be exposed because all XYZ_record() implementations need to
+/// touch the same shared variable in order to provide a global order.
+extern uintptr_t recorder_order;
+
+/// A counter of how many clients are currently blocking the recorder.
+/// Code that needs to block the recorder for any reason can atomically
+/// increase this on entry, and atomically decrease this on exit.
+/// Typically, functions like \ref recorder_dump block the recorder
+/// while dumping in order to maximize the amount of "relevant" data
+/// they can show. This variable needs to be public because all
+/// recording functions need to test it.
+extern unsigned recorder_blocked;
+
+/// A function pointer type used by generic code to read each recorder.
+/// \param entries will be filled with the entries read from the recorder.
+/// \param count is the maximum number of entries that can be read.
+/// \return the number of recorder entries read.
+typedef size_t (*recorder_read_fn)(recorder_entry *entries, size_t count);
+
+/// A function pointer type used by generic code to peek into each recorder.
+/// \param entries will be filled with the first readable entry.
+/// \return the read index of the entry that was read.
+typedef size_t (*recorder_peek_fn)(recorder_entry *entry);
+
+/// A function pointer type used by generic code to count readable items.
+/// \return the number of recorder entries that can safely be read.
+typedef size_t (*recorder_readable_fn)();
+
+
+typedef struct recorder_list
+///----------------------------------------------------------------------------
+///   A linked list of the activated recorders.
+///----------------------------------------------------------------------------
+///   The first time you write into a recorder, it is 'activated' by placing
+///   it on a linked list that will be then traversed by functions like
+///   \see recorder_dump. The content of this structure is automatically
+///   generated by the \ref RECORDER_DEFINE macro.
+{
+    const char *            name;       ///< Name of this recorder (generated)
+    recorder_read_fn        read;       ///< Read entries
+    recorder_peek_fn        peek;       ///< Peek first readable entry
+    recorder_readable_fn    readable;   ///< Count readable entries
+    size_t                  size;       ///< Size (maximum number of entries)
+    struct recorder_list   *next;      ///< Pointer to next in list
+} recorder_list;
+
+
+/// Activate a recorder, e.g. because something was written in it.
+/// An active recorder is processed during \ref recorder_dump.
+extern void recorder_activate(recorder_list *recorder);
 
 
 
@@ -209,110 +288,6 @@ void recorder_##Name##_record(const char *where,                        \
 
 // ============================================================================
 //
-//   Automatic declaration of recorders
-//
-// ============================================================================
-
-// Declare available recorders
-#define RECORDER(Name, Size)        RECORDER_DECLARE(Name, Size)
-#include "recorder.tbl"
-
-
-
-// ============================================================================
-//
-//    Definition for recorders
-//
-// ============================================================================
-//  Recorders in recorders.tbl are defined automatically, but you can
-//  add your own by using e.g. RECORDER_DEFINE(MyRecorder, 256)
-
-typedef struct recorder_entry
-/// ---------------------------------------------------------------------------
-///   Entry in the flight recorder.
-///----------------------------------------------------------------------------
-///  Notice that the arguments are stored as "intptr_t" because that type
-///  is guaranteed to be the same size as a pointer. This allows us to
-///  properly align recorder entries to powers of 2 for efficiency.
-///  Also read explanations of \ref _recorder_double and \ref _recorder_float below regarding
-///  how to use floating-point with the recorder.
-{
-    const char *format;         ///< Printf-style format for record
-    uintptr_t   order;          ///< Global order of events (across recorders)
-    uintptr_t   timestamp;      ///< Time at which record took place
-    const char *where;          ///< Source code location (__FILE__ : __LINE__)
-    uintptr_t   args[4];        ///< Four arguments, for a total of 8 fields
-} recorder_entry;
-
-
-/// A global counter indicating the order of entries across recorders.
-/// This is incremented atomically for each RECORD() call.
-/// It must be exposed because all XYZ_record() implementations need to
-/// touch the same shared variable in order to provide a global order.
-extern uintptr_t recorder_order;
-
-/// A counter of how many clients are currently blocking the recorder.
-/// Code that needs to block the recorder for any reason can atomically
-/// increase this on entry, and atomically decrease this on exit.
-/// Typically, functions like \ref recorder_dump block the recorder
-/// while dumping in order to maximize the amount of "relevant" data
-/// they can show. This variable needs to be public because all
-/// recording functions need to test it.
-extern unsigned recorder_blocked;
-
-/// Generic recorder type, used for common code, e.g. \ref recorder_dump
-RING_TYPE_DECLARE(recorder, recorder_entry);
-
-/// A function pointer type used by generic code to read each recorder.
-/// \param entries will be filled with the entries read from the recorder.
-/// \param count is the maximum number of entries that can be read.
-/// \return the number of recorder entries read.
-typedef size_t (*recorder_read_fn)(recorder_entry *entries, size_t count);
-
-/// A function pointer type used by generic code to peek into each recorder.
-/// \param entries will be filled with the first readable entry.
-/// \return the read index of the entry that was read.
-typedef size_t (*recorder_peek_fn)(recorder_entry *entry);
-
-/// A function pointer type used by generic code to count readable items.
-/// \return the number of recorder entries that can safely be read.
-typedef size_t (*recorder_readable_fn)();
-
-/// The function type for recorder functions
-typedef void recorder_record_fn(uintptr_t caller,
-                                const char *format,
-                                uintptr_t a0,
-                                uintptr_t a1,
-                                uintptr_t a2,
-                                uintptr_t a3);
-
-
-typedef struct recorder_list
-///----------------------------------------------------------------------------
-///   A linked list of the activated recorders.
-///----------------------------------------------------------------------------
-///   The first time you write into a recorder, it is 'activated' by placing
-///   it on a linked list that will be then traversed by functions like
-///   \see recorder_dump. The content of this structure is automatically
-///   generated by the \ref RECORDER_DEFINE macro.
-{
-    const char *            name;       ///< Name of this recorder (generated)
-    recorder_read_fn        read;       ///< Read entries
-    recorder_peek_fn        peek;       ///< Peek first readable entry
-    recorder_readable_fn    readable;   ///< Count readable entries
-    unsigned                size;       ///< Size (maximum number of entries)
-    struct recorder_list   *next;      ///< Pointer to next in list
-} recorder_list;
-
-
-/// Activate a recorder, e.g. because something was written in it.
-/// An active recorder is processed during \ref recorder_dump.
-extern void recorder_activate(recorder_list *recorder);
-
-
-
-// ============================================================================
-//
 //    Utility: Convert floating point values for vararg format
 //
 // ============================================================================
@@ -419,6 +394,19 @@ extern uintptr_t recorder_tick(void);
 #define RECORDER_HZ     1000000
 #endif // INTPTR_MAX
 #endif // RECORDER_HZ
+
+
+// ============================================================================
+//
+//   Automatic declaration of recorders
+//
+// ============================================================================
+//  Recorders in recorders.tbl are defined automatically, but you can
+//  add your own by using e.g. RECORDER_DEFINE(MyRecorder, 256)
+
+// Declare available recorders
+#define RECORDER(Name, Size)        RECORDER_DECLARE(Name, Size)
+#include "recorder.tbl"
 
 #ifdef __cplusplus
 }
