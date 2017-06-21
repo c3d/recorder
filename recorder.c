@@ -29,6 +29,7 @@
 #include <sys/time.h>
 
 
+#ifndef recorder_tick
 uintptr_t recorder_tick()
 // ----------------------------------------------------------------------------
 //   Return the "ticks" as stored in the recorder
@@ -46,6 +47,7 @@ uintptr_t recorder_tick()
         initialTick = tick;
     return tick - initialTick;
 }
+#endif // recorder_tick
 
 
 #define RECORDER(Name, Size)        RECORDER_DEFINE(Name, Size)
