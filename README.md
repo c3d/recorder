@@ -111,11 +111,6 @@ statement, specifying the name of the recorder as the first argument:
 While a `RECORD` behaves mostly like `printf`, there are important
 caveats and limitations to be aware of, see below.
 
-Normally, `RECORD` stores a time stamp for each event being recorded.
-This is actually the most expensive part of recording. For very tight
-loops, it is possible to use `RECORD_FAST`, which does not record time
-and may be approximately twice as fast on modern x86 CPUs.
-
 
 ## Caveats and limitations
 
@@ -291,3 +286,69 @@ but none on `SIGSEGV` or `SIGBUS`, you can use:
     unsigned enable = 1U << SIGINT;
     unsigned disable = (1U << SIGSEGV) | (1U << SIGBUS);
     recorder_dump_on_common_signals(enable, disable);
+
+
+## Performance considerations
+
+The flight recorder `RECORD` statement is designed to cost so little
+that you should be able to use it practically anywhere, and in
+practically any context, including in signal handlers, interrupt
+handlers, etc. The cost of a `RECORD` call is typically two to ten
+times smaller than a single call to `snprintf` or `malloc`.
+
+Most of the cost is actually from keeping track of time, i.e. updating
+the `timestamp` field. If you need to instrument the tightest loops in
+your code, the `RECORD_FAST` variant can be about twice as fast by
+reusing the last time that was recorded in that recorder.
+
+The following figures can help you compare `RECORD` to
+various low-cost operations. In all cases, the message being recorded
+or printed was the same, `"Speed test %u", i`:
+
+Function                    | Xeon  | Mac   | Pi    | Pi-2  |
+----------------------------|-------|-------|-------|-------|
+`RECORD_FAST`               |  20ns |  20ns | 129ns | 152ns |
+`RECORD`                    |  35ns |  64ns |1070ns | 224ns |
+`gettimeofday`              |  16ns |  36ns | 913ns |       |
+`memcpy` (512 bytes)        |  26ns |  15ns |1669ns |       |
+`malloc` (512 bytes)        |  40ns |  61ns | 603ns |       |
+`snprintf`                  |  64ns |  98ns |2530ns |       |
+`fprintf`                   |  64ns |  14ns |4840ns |       |
+Flushed `fprintf`           | 751ns |1334ns |4509ns |       |
+`malloc` (512-4K jigsaw)    | 508ns | 483   |3690ns |       |
+Hanoi 20 (printing | wc)    | 320ms | 180ms | 19.7s |       |
+Hanoi 20 (recording)        |  60ms |  60ms |  1.55s|       |
+Hanoi 20 (fast recording)   |  23ms |  24ms |  0.26s|       |
+
+
+Scalability depending on number of threads
+
+Function                    | Xeon  | Mac   | Pi    | Pi-2  |
+----------------------------|-------|-------|-------|-------|
+`RECORD_FAST` * 1           |  20ns | 21ns  | 137ns | 133ns |
+`RECORD_FAST` * 2           |  92ns | 86ns  | 137ns | 110ns |
+`RECORD_FAST` * 4           |  94ns | 76ns  | 137ns | 152ns |
+`RECORD_FAST` * 8           |  57ns | 55ns  | 137ns | 152ns |
+`RECORD_FAST` * 16          |  52ns | 52ns  | 137ns | 152ns |
+`RECORD_FAST` * 32          |  52ns | 54ns  | 137ns | 152ns |
+`RECORD` * 1                |  37ns | 60ns  |1315ns | 742ns |
+`RECORD` * 2                |  97ns | 93ns  |1076ns | 412ns |
+`RECORD` * 4                |  95ns | 71ns  |1080ns | 224ns |
+`RECORD` * 8                |  59ns | 54ns  |1083ns | 224ns |
+`RECORD` * 16               |  54ns | 50ns  |1084ns | 224ns |
+`RECORD` * 32               |  54ns | 53ns  |1372ns | 224ns |
+
+
+The platforms that were tested are:
+
+* Xeon: a 6-CPU (12-thread) Intel(R) Xeon(R) CPU E5-1650 v4 @ 3.60GHz
+  running Fedora 26 Linux kernel, GCC 7.1.1
+
+* Mac: a 4-CPU (8-thread) 2.5GHz Intel Core i7 MacBook Pro (15'
+  Retina, mid 2015), Xcode 8.1.0 clang
+
+* Pi: First generation Raspberry Pi, ARMv6 CPU, running Raspbian Linux
+  with kernel 4.4.50, GCC 4.9.2
+
+* Pi-2: Second generation Raspberry Pi, 4-way ARMv7 CPU, running
+  Raspbian Linux with kernel 4.4.50, GCC 4.9.2
