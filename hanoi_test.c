@@ -61,6 +61,7 @@ void hanoi_record(int n, post left, post right, post middle)
 int main(int argc, char **argv)
 {
     int i;
+    recorder_dump_on_common_signals(0, 0);
     for (i = 1; i < argc; i++)
     {
         int count = atoi(argv[i]);

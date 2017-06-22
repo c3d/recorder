@@ -27,20 +27,20 @@ important, but slow, events, as well as much more frequent ones.
 
 Here is what a recorder dump can look like:
 
-    0 [0.000000:0x10d463170] Main: Launching 16 recorder threads
-    1 [0.000019:0x10d4631bb] Main: Starting speed test for 10s with 16 threads
-    2179 [0.000235:0x10d46320c] Main: Recorder testing in progress, please wait about 10s
-    104892175 [10.001407:0x10d463277] Main: Recorder testing completed, 104892165 iterations
-    104892207 [10.001410:0x10d4630bc] SpeedTest: Recording 104892205
-    104892208 [10.001411:0x10d4630bc] SpeedTest: Recording 104892206
-    104892233 [10.001413:0x10d4632ff] Pauses: Waiting for recorder threads to stop, 16 remaining
-    104892234 [10.001432:0x10d463368] Pauses: Pausing 2401.618us
-    104892235 [10.001437:0x10d4630bc] SpeedTest: Recording 104892231
-    104892238 [10.004529:0x10d463393] Main: All threads have stopped.
-    104892239 [10.004573:0x10d463422] Main: Recorder test complete, 16 threads.
-    104892240 [10.004573:0x10d46346c] Main:   Iterations           =  104892232
-    104892241 [10.004574:0x10d4634c3] Main:   Iterations / ms      =      10489
-    104892242 [10.004574:0x10d463527] Main:   Duration per record  =         95ns
+     recorder_test.c:95: [64944745 10.001962] SpeedTest: Recording 64944741
+     recorder_test.c:88: [64944746 10.001979] Pauses: Pausing #0 2401.618us
+     recorder_test.c:95: [64944747 10.001986] SpeedTest: Recording 64944729
+     recorder_test.c:95: [64944540 10.001940] SpeedTest: Recording 64944537
+     recorder_test.c:95: [64944523 10.001998] SpeedTest: Recording 64944520
+     recorder_test.c:95: [64885029 9.992381] SpeedTest: Recording 64885026
+     recorder_test.c:95: [64883353 9.992112] SpeedTest: Recording 64883349
+     recorder_test.c:95: [64936311 10.002076] SpeedTest: Recording 64936306
+     recorder_test.c:95: [64944748 10.002082] SpeedTest: Recording 64938309
+     recorder_test.c:125: [64944749 10.005009] MAIN: All threads have stopped.
+     recorder_test.c:137: [64944750 10.005034] MAIN: Recorder test complete, 16 threads.
+     recorder_test.c:138: [64944751 10.005035] MAIN:   Iterations           =   64944742
+     recorder_test.c:139: [64944752 10.005037] MAIN:   Iterations / ms      =       6494
+     recorder_test.c:141: [64944753 10.005038] MAIN:   Duration per record  =        153ns
 
 
 The first column is the *order* of records, a sequence number that
@@ -69,6 +69,7 @@ This should build the library itself, which really consists of a
 two headers and a single C file, and then execute three tests that
 perform some operations and record what is happening while they do so.
 
+
 ## Adding recorders to your own project
 
 In order to add recorders to your own C project, you need to integrate
@@ -80,14 +81,20 @@ three source files:
 * The `recorder.c` file is the implementation file, which provides
   support for C programs.
 
-* The `recorder.tbl` file lists the recorders your application will
-  use, and their size.
+To define recorders, you use `RECORDER` statements, which takes
+three arguments: the name of the recorder, the number of entries to
+keep, and a description. You can look at the `hanoi_test.c` file for
+an example of use.  This example defines for example a recorder called
+`MOVES` with 1024 entries, declared as follows:
 
-You can look at the `hanoi_test.c` file for an example of use.
-To use a recorder called `MOVES` with 256 entries, you declare
-it as follows in the `recorder.tbl` file:
+    RECORDER(MOVES, 1024, "Moving pieces around")
 
-    RECORDER(MOVES, 256)
+It is also possible to declare recorders in a header file using the
+`RECORDER_DECLARE` statement that takes the name of the recorder.
+
+    RECORDER_DECLARE(MOVES)
+
+This allows to share a recorder across multiple C source files.
 
 
 ## Recording events
@@ -101,6 +108,36 @@ statement, specifying the name of the recorder as the first argument:
 
     RECORD(MOVES, "Move disk from %s to %s\n", name[left], name[right]);
 
+While a `RECORD` behaves mostly like `printf`, there are important
+caveats and limitations to be aware of, see below.
+
+
+## Caveats and limitations
+
+Each record can store up to 4 arguments. Therefore, unlike `printf`,
+you can only pass 4 values to `RECORD`.
+
+You can pass integer values, floating-point values (limited to `float`
+on 32-bit machines for size reasons), pointers or strings as `RECORD` argument.
+
+However, unlike `printf`, the rendering of the final message is done
+*at the time of the dump*. This is not a problem for integer, pointer or
+floating-point values, but for strings (the `%s` format of `printf`),
+you must make sure that the string is still valid at the time of the
+dump. A good practice is to only record string constants.
+
+    // OK if 0 <= i and i < 5
+    const char *array[5] = { "ONE", "TWO", "THREE", "FOUR", "FIVE" };
+    RECORD(Main, "Looking at %s", array[i]);
+
+    // Not OK because the value of the string has been freed at dump time
+    char *tempStr = strdup("Hello");
+    RECORD(Main, "You will see garbage here: %s", tempStr);
+    free(tempStr); // At dump time, the string no longer exists
+
+The `RECORD` macro automatically converts floating point values
+to `uintptr_t` based on their type.
+
 
 ## Dumping recorder events
 
@@ -108,6 +145,12 @@ To dump recorded events, you use the `recorder_dump` function. This
 dumps all the recorders:
 
     recorder_dump();
+
+This can be used in a number of situations, in particular from a
+debugger. In `gdb` for example, you could run the following command to
+dump the recorder during a debugging session:
+
+    p recorder_dump()
 
 If you want to dump specific recorders, you can use
 `recorder_dump_for`, which matches the recorder names against the
@@ -121,6 +164,87 @@ Note that sorting only happens across recorders. Within a single
 recorder, events may be out of order. For example, CPU1 may get order
 1, CPU2 then gets order 2, then CPU2 writes its record entry, then
 CPU1. In that case, the recorder will contain entry 2, then entry 1.
+
+In other words, recorder entries are only sorted across different
+recorders, but may be out of order within the same recorder.
+
+
+## Recorder tracing
+
+In some cases, it is useful to print specific information as you go
+instead of after the fact. In this flight recorder, this is called
+*tracing*, and can be enabled for each recorder individually.
+
+When tracing for a given recorder is enabled, the trace entries for
+that recorder are dumped immediately after being recorded. They are
+still stored in the flight recorder for later replay by
+`recorder_dump`.
+
+Tracing can be activated by the `recorder_trace_set` function, which
+takes a string specifying which traces to activate. The specification
+is a colon or space separated list of trace settings, each of them
+specifying a regular expression to match recorder names, optionally
+followed by an `=` sign and a numerical value. If no numerical value
+is given, then the value `1` is assumed.
+
+For example, the trace specification `foo:bar=0:b[a-z]z.*=3` sets the
+recorder trace for `foo` to value `1` (enabling tracing for that
+recorder), sets the recorder trace for `bar` to `0`, and sets all
+recorders with a name matching regular expression `b[a-z]z.*` to
+value `3`.
+
+Three values for the trace specification have special meaning:
+
+* The `list` and `help` values will print the list of available
+  recorders on `stderr`.
+
+* The `all` value will be turned into the catch-all `.*`
+  regular expression.
+
+
+## Using the RECORDER_TRACES environment variables
+
+If your application calls `recorder_dump_on_common_signals` (see below),
+ then traces will be activated or deactivated according to the
+`RECORDER_TRACES` environment variable.
+
+Your application can define traces from another application-specific
+environment variable with code like:
+
+    recorder_trace_set(getenv("MY_APP_TRACES"));
+
+
+## Recorder trace value
+
+The `RECORDER_TRACE(name)` macro lets you test if the recorder trace
+for `name` is activated. The associated value is an `intptr_t`.
+Any non-zero value activates tracing for that recorder.
+
+You may set the value for `RECORDER_TRACE` to any value that fits in
+an `intptr_t` with `recorder_trace_set`. This can be used for example
+to activate special, possibly expensive instrumentation.
+
+For example, to measure the duration and average of a function over N
+iterations, you could use code like the following:
+
+    if (RECORDER_TRACE(foo_loops))
+    {
+        intptr_t loops = RECORDER_TRACE(foo_loops);
+        RECORD(foo_loops, "Testing foo() duration");
+        uintptr_t start = recorder_tick();
+        double sum = 0.0;
+        for (int i = 0; i < loops; i++)
+            sum += foo();
+        uintptr_t duration = recorder_tick() - start;
+        RECORD(foo_loops, "Average duration %.3f us, average value %f",
+               1e6 * duration / RECORDER_HZ / loops,
+               sum / loops);
+    }
+
+While this is less-often useful, it is also possible to assign to a
+recorder trace value, for example:
+
+    RECORDER_TRACE(foo_loops) = 1000;
 
 
 ## Reacting to signals
@@ -162,42 +286,3 @@ but none on `SIGSEGV` or `SIGBUS`, you can use:
     unsigned enable = 1U << SIGINT;
     unsigned disable = (1U << SIGSEGV) | (1U << SIGBUS);
     recorder_dump_on_common_signals(enable, disable);
-
-
-## Adding new recorders in your code
-
-If you want to add recorders to your code, the recommended method is
-to list them in `recorders.tbl`. This makes it easy to locate all your
-recorders in one place.
-
-You can also define a recorder named `MyRecorder` with 256 entries
-that can be called from C using:
-
-    RECORDER_DEFINE(MyRecorder, 256)
-
-
-## Caveats and limitations
-
-Each record can store up to 4 arguments. Therefore, unlike `printf`,
-you can only pass 4 values to `RECORD`.
-
-You can pass integer values, floating-point values (limited to `float`
-on 32-bit machines for size reasons), pointers or strings as `RECORD` argument.
-
-However, unlike `printf`, the rendering of the final message is done
-*at the time of the dump*. This is not a problem for integer, pointer or
-floating-point values, but for strings (the `%s` format of `printf`),
-you must make sure that the string is still valid at the time of the
-dump. A good practice is to only record string constants.
-
-    // OK if 0 <= i and i < 5
-    const char *array[5] = { "ONE", "TWO", "THREE", "FOUR", "FIVE" };
-    RECORD(Main, "Looking at %s", array[i]);
-
-    // Not OK because the value of the string has been freed at dump time
-    char *tempStr = strdup("Hello");
-    RECORD(Main, "You will see garbage here: %s", tempStr);
-    free(tempStr); // At dump time, the string no longer exists
-
-The `RECORD` macro automatically converts floating point values
-to `uintptr_t` based on their type.

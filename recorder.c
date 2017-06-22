@@ -24,8 +24,10 @@
 #include <string.h>
 #include <stdio.h>
 #include <stdbool.h>
+#include <stdlib.h>
 #include <unistd.h>
 #include <signal.h>
+#include <regex.h>
 #include <sys/time.h>
 
 
@@ -43,7 +45,7 @@ uintptr_t       recorder_order   = 0;
 unsigned        recorder_blocked = 0;
 
 /// List of the currently active flight recorders (ring buffers)
-recorder_list * recorders        = NULL;
+recorder_info * recorders        = NULL;
 
 
 static void recorder_dump_entry(const char         *label,
@@ -300,17 +302,20 @@ void recorder_sort(const char *what,
 
     uintptr_t      nextOrder = 0;
     recorder_entry entry;
+    regex_t        re;
+
+    int status = regcomp(&re, what, REG_EXTENDED|REG_NOSUB|REG_ICASE);
 
     for(;;)
     {
         uintptr_t      lowestOrder = ~0UL;
-        recorder_list *lowest      = NULL;
-        recorder_list *rec;
+        recorder_info *lowest      = NULL;
+        recorder_info *rec;
 
         for (rec = recorders; rec; rec = rec->next)
         {
             // Skip recorders that don't match the pattern
-            if (!strstr(rec->name, what))
+            if (status == 0 && regexec(&re, rec->name, 0, NULL, 0) != 0)
                 continue;
 
             // Loop while this recorder is readable and we can find next order
@@ -347,6 +352,7 @@ void recorder_sort(const char *what,
         nextOrder = entry.order + 1;
     }
 
+    regfree(&re);
     ring_fetch_add(recorder_blocked, -1);
 }
 
@@ -356,7 +362,7 @@ void recorder_dump(void)
 //   Dump all entries, sorted by their global 'order' field
 // ----------------------------------------------------------------------------
 {
-    recorder_sort("", recorder_format, recorder_show, recorder_output);
+    recorder_sort(".*", recorder_format, recorder_show, recorder_output);
 }
 
 
@@ -366,6 +372,16 @@ void recorder_dump_for(const char *what)
 // ----------------------------------------------------------------------------
 {
     recorder_sort(what, recorder_format, recorder_show, recorder_output);
+}
+
+
+void recorder_trace_entry(const char *label, recorder_entry *entry)
+// ----------------------------------------------------------------------------
+//   Show a recorder entry when a traqce is enabled
+// ----------------------------------------------------------------------------
+{
+    recorder_dump_entry(label, entry,
+                        recorder_format, recorder_show, recorder_output);
 }
 
 
@@ -464,6 +480,10 @@ void recorder_dump_on_common_signals(unsigned add, unsigned remove)
 //    Easy interface to dump on the most common signals
 // ----------------------------------------------------------------------------
 {
+    // Normally, this is called after constructors have run, so this is
+    // a good time to check environment settings
+    recorder_trace_set(getenv("RECORDER_TRACES"));
+
     unsigned sig;
     unsigned signals = add
 #ifdef SIGQUIT
@@ -508,6 +528,7 @@ void recorder_dump_on_common_signals(unsigned add, unsigned remove)
         ;
     signals &= ~remove;
 
+    RECORD(signals, "Activating dump for signal mask %u", signals);
     for (sig = 0; signals; sig++)
     {
         unsigned mask = 1U << sig;
@@ -546,13 +567,132 @@ uintptr_t recorder_tick()
 #endif // recorder_tick
 
 
-void recorder_activate (recorder_list *recorder)
+void recorder_activate (recorder_info *recorder)
 // ----------------------------------------------------------------------------
 //   Activate the given recorder by putting it in linked list
 // ----------------------------------------------------------------------------
 {
     /* This was the first write in this recorder, put it in list */
-    recorder_list  *head = recorders;
+    recorder_info  *head = recorders;
     do { recorder->next = head; }
     while (!ring_compare_exchange(recorders, head, recorder));
+}
+
+
+RECORDER(recorder_trace_set, 64, "Setting recorder traces");
+
+int recorder_trace_set(const char *param_spec)
+// ----------------------------------------------------------------------------
+//   Activate given traces
+// ----------------------------------------------------------------------------
+{
+    const char *next = param_spec;
+    char        buffer[128];
+    int         rc = RECORDER_TRACE_OK;
+    regex_t     re;
+    static char error[128];
+
+    // Facilitate usage such as: recorder_trace_set(getenv("RECORDER_TRACES"))
+    if (!param_spec)
+        return 0;
+
+    if (strcmp(param_spec, "help") == 0 || strcmp(param_spec, "list") == 0)
+    {
+        printf("List of available recorders:\n");
+        for (recorder_info *rec = recorders; rec; rec = rec->next)
+            printf("%15s : %s\n", rec->name, rec->description);
+        return 0;
+    }
+    if (strcmp(param_spec, "all") == 0)
+        next = param_spec = ".*";
+
+    RECORD(recorder_trace_set, "Setting traces to %s", param_spec);
+
+    // Loop splitting input at ':' and ' ' boundaries
+    do
+    {
+        // Default value is 1 if not specified
+        int value = 1;
+        char *param = (char *) next;
+        const char *original = param;
+        const char *value_ptr = NULL;
+        char *alloc = NULL;
+        char *end = NULL;
+
+        // Split foo:bar:baz so that we consider only foo in this loop
+        next = strpbrk(param, ": ");
+        if (next)
+        {
+            if (next - param < sizeof(buffer)-1)
+            {
+                memcpy(buffer, param, next - param);
+                param = buffer;
+            }
+            else
+            {
+                alloc = malloc(next - param + 1);
+                memcpy(alloc, param, next - param);
+            }
+            param[next - param] = 0;
+            next++;
+        }
+
+        // Check if we have an explicit value (foo=1), otherwise use default
+        value_ptr = strchr(param, '=');
+        if (value_ptr)
+        {
+            if (param == buffer)
+            {
+                if (value_ptr - buffer < sizeof(buffer)-1)
+                {
+                    memcpy(buffer, param, value_ptr - param);
+                    param = buffer;
+                }
+                else
+                {
+                    alloc = malloc(value_ptr - param + 1);
+                    memcpy(alloc, param, value_ptr - param);
+                }
+            }
+            param[value_ptr - param] = 0;
+            value = strtol(value_ptr + 1, &end, 0);
+            if (*end != 0)
+            {
+                rc = RECORDER_TRACE_INVALID_VALUE;
+                RECORD(recorder_trace_set,
+                       "Invalid numerical value %s (ends with %c)",
+                       original + (value_ptr + 1 - param),
+                       *end);
+            }
+        }
+
+        int status = regcomp(&re, param, REG_EXTENDED|REG_NOSUB|REG_ICASE);
+        if (status == 0)
+        {
+            for (recorder_info *rec = recorders; rec; rec = rec->next)
+            {
+                int re_result = regexec(&re, rec->name, 0, NULL, 0);
+                RECORD(recorder_trace_set, "Testing %s: re_result=%d",
+                       rec->name, re_result);
+                if (re_result == 0)
+                {
+                    RECORD(recorder_trace_set, "Set %s from %ld to %ld",
+                           rec->name, rec->trace, value);
+                    rec->trace = value;
+                }
+            }
+        }
+        else
+        {
+            rc = RECORDER_TRACE_INVALID_NAME;
+            regerror(status, &re, error, sizeof(error));
+            RECORD(recorder_trace_set, "regcomp returned %d: %s",
+                   status, error);
+        }
+
+        if (alloc)
+            free(alloc);
+    } while (next);
+
+    return rc;
 }
