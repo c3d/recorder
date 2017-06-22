@@ -117,6 +117,7 @@ extern uintptr_t recorder_order;
 /// recording functions need to test it.
 extern unsigned recorder_blocked;
 
+
 /// A function pointer type used by generic code to read each recorder.
 /// \param entries will be filled with the entries read from the recorder.
 /// \param count is the maximum number of entries that can be read.
@@ -180,12 +181,19 @@ enum { RECORDER_TRACE_OK,
 /*  Declare a recorder type with Size elements                     */   \
 /* ----------------------------------------------------------------*/   \
                                                                         \
-extern void recorder_##Name##_record(const char *where,                 \
-                                     const char *format,                \
-                                     uintptr_t a0,                      \
-                                     uintptr_t a1,                      \
-                                     uintptr_t a2,                      \
-                                     uintptr_t a3);
+extern ringidx_t recorder_##Name##_record(const char *where,            \
+                                          const char *format,           \
+                                          uintptr_t a0,                 \
+                                          uintptr_t a1,                 \
+                                          uintptr_t a2,                 \
+                                          uintptr_t a3);                \
+                                                                        \
+extern ringidx_t recorder_##Name##_record_fast(const char *where,       \
+                                               const char *format,      \
+                                               uintptr_t a0,            \
+                                               uintptr_t a1,            \
+                                               uintptr_t a2,            \
+                                               uintptr_t a3);
 
 
 
@@ -226,30 +234,61 @@ static void recorder_##Name##_activate()                                \
 }                                                                       \
                                                                         \
                                                                         \
-void recorder_##Name##_record(const char *where,                        \
-                              const char *format,                       \
-                              uintptr_t a0,                             \
-                              uintptr_t a1,                             \
-                              uintptr_t a2,                             \
-                              uintptr_t a3)                             \
+ringidx_t recorder_##Name##_record(const char *where,                   \
+                                   const char *format,                  \
+                                   uintptr_t a0,                        \
+                                   uintptr_t a1,                        \
+                                   uintptr_t a2,                        \
+                                   uintptr_t a3)                        \
 /* ----------------------------------------------------------------*/   \
 /*  Enter a record entry in ring buffer with given set of args     */   \
 /* ----------------------------------------------------------------*/   \
 {                                                                       \
-    recorder_entry entry;                                               \
     if (recorder_blocked)                                               \
-        return;                                                         \
-    entry.format = format;                                              \
-    entry.order = ring_fetch_add(recorder_order, 1);                    \
-    entry.timestamp = recorder_tick();                                  \
-    entry.where = where;                                                \
-    entry.args[0] = a0;                                                 \
-    entry.args[1] = a1;                                                 \
-    entry.args[2] = a2;                                                 \
-    entry.args[3] = a3;                                                 \
-    recorder_##Name##_write(&entry, 1);                                 \
+        return recorder_##Name.ring.writer;                             \
+    ringidx_t writer = ring_fetch_add(recorder_##Name.ring.writer, 1);  \
+    recorder_entry *entry = &recorder_##Name.data[writer % Size];       \
+    entry->format = format;                                             \
+    entry->order = ring_fetch_add(recorder_order, 1);                   \
+    entry->timestamp = recorder_tick();                                 \
+    entry->where = where;                                               \
+    entry->args[0] = a0;                                                \
+    entry->args[1] = a1;                                                \
+    entry->args[2] = a2;                                                \
+    entry->args[3] = a3;                                                \
+    ring_fetch_add(recorder_##Name.ring.commit, 1);                     \
     if (recorder_##Name##_info.trace)                                   \
-        recorder_trace_entry(#Name, &entry);                            \
+        recorder_trace_entry(#Name, entry);                             \
+    return writer;                                                      \
+}                                                                       \
+                                                                        \
+                                                                        \
+ringidx_t recorder_##Name##_recfast(const char *where,                  \
+                                    const char *format,                 \
+                                    uintptr_t a0,                       \
+                                    uintptr_t a1,                       \
+                                    uintptr_t a2,                       \
+                                    uintptr_t a3)                       \
+/* ----------------------------------------------------------------*/   \
+/*  Enter a record entry in ring buffer with given set of args     */   \
+/* ----------------------------------------------------------------*/   \
+{                                                                       \
+    if (recorder_blocked)                                               \
+        return recorder_##Name.ring.writer;                             \
+    ringidx_t writer = ring_fetch_add(recorder_##Name.ring.writer, 1);  \
+    recorder_entry *entry = &recorder_##Name.data[writer % Size];       \
+    entry->format = format;                                             \
+    entry->order = ring_fetch_add(recorder_order, 1);                   \
+    entry->timestamp = recorder_##Name.data[(writer-1)%Size].timestamp; \
+    entry->where = where;                                               \
+    entry->args[0] = a0;                                                \
+    entry->args[1] = a1;                                                \
+    entry->args[2] = a2;                                                \
+    entry->args[3] = a3;                                                \
+    ring_fetch_add(recorder_##Name.ring.commit, 1);                     \
+    if (recorder_##Name##_info.trace)                                   \
+        recorder_trace_entry(#Name, entry);                             \
+    return writer;                                                      \
 }
 
 
@@ -270,6 +309,15 @@ void recorder_##Name##_record(const char *where,                        \
                              RECORDER_ARG(0,0,0,## __VA_ARGS__,0,0),    \
                              RECORDER_ARG(0,0,## __VA_ARGS__,0,0,0),    \
                              RECORDER_ARG(0,## __VA_ARGS__,0,0,0,0))
+
+// Faster version that does not record time, about 2x faster on x86
+#define RECORD_FAST(Name, Format, ...)                                  \
+    recorder_##Name##_recfast(RECORDER_SOURCE_LOCATION,                 \
+                              Format,                                   \
+                              RECORDER_ARG(0,0,0,0,##__VA_ARGS__,0),    \
+                              RECORDER_ARG(0,0,0,##__VA_ARGS__,0,0),    \
+                              RECORDER_ARG(0,0,##__VA_ARGS__,0,0,0),    \
+                              RECORDER_ARG(0,##__VA_ARGS__,0,0,0,0))
 
 // Some ugly macro drudgery to make things easy to use.
 // Convert types, pad with zeroes.

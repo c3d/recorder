@@ -58,6 +58,21 @@ void hanoi_record(int n, post left, post right, post middle)
     }
 }
 
+void hanoi_record_fast(int n, post left, post right, post middle)
+{
+    if (n == 1)
+    {
+        RECORD_FAST(MOVE,"Move disk from %s to %s",
+                    postName[left], postName[right]);
+    }
+    else
+    {
+        hanoi_record_fast(n-1, left, middle, right);
+        hanoi_record_fast(1, left, right, middle);
+        hanoi_record_fast(n-1, middle, right, left);
+    }
+}
+
 int main(int argc, char **argv)
 {
     int i;
@@ -71,6 +86,9 @@ int main(int argc, char **argv)
         RECORD(TIMING,"Begin recording Hanoi with %d", count);
         hanoi_record(count, LEFT, MIDDLE, RIGHT);
         RECORD(TIMING,"End recording Hanoi with %d", count);
+        RECORD(TIMING,"Begin fast recording Hanoi with %d", count);
+        hanoi_record_fast(count, LEFT, MIDDLE, RIGHT);
+        RECORD(TIMING,"End fast recording Hanoi with %d", count);
     }
     recorder_dump_for("TIMING");
 }

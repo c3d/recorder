@@ -46,7 +46,7 @@ RECORDER(SpeedTest,  32, "Recorder speed test");
 //
 // ============================================================================
 
-unsigned recorder_count = 0;
+uintptr_t recorder_count = 0;
 unsigned pauses_count = 0;
 
 #define INFO(...)                                                       \
@@ -91,54 +91,80 @@ void dawdle(unsigned minimumMs)
 
 void *recorder_thread(void *unused)
 {
+    uintptr_t i = 0;
     while (!threads_to_stop)
-        RECORD(SpeedTest, "Recording %u", ring_fetch_add(recorder_count, 1));
+        RECORD(SpeedTest, "Recording %u", i++);
+    ring_fetch_add(recorder_count, i);
+    ring_fetch_add(threads_to_stop, -1);
+    return NULL;
+}
+
+void *recorder_fast_thread(void *unused)
+{
+    uintptr_t i = 0;
+    while (!threads_to_stop)
+        RECORD_FAST(SpeedTest, "Fast recording %u", i++);
+    ring_fetch_add(recorder_count, i);
     ring_fetch_add(threads_to_stop, -1);
     return NULL;
 }
 
 void flight_recorder_test(int argc, char **argv)
 {
-    int i, count = argc >= 2 ? atoi(argv[1]) : 16;
-    if (count < 0)
-        count = -count;
+    int i, j;
+    uintptr_t count = argc >= 2 ? atoi(argv[1]) : 16;
     unsigned howLong = argc >= 3 ? atoi(argv[2]) : 10;
 
-    INFO("Launching %d recorder thread%s", count, count>1?"s":"");
-    RECORD(MAIN, "Starting speed test for %us with %u threads", howLong, count);
-    pthread_t tid;
-    for (i = 0; i < count; i++)
-        pthread_create(&tid, NULL, recorder_thread, NULL);
-
-    INFO("Recorder testing in progress, please wait about %ds", howLong);
-    unsigned sleepTime = howLong;
-    do { sleepTime =  sleep(sleepTime); } while (sleepTime);
-    INFO("Recorder testing completed, %u iterations", recorder_count);
-    threads_to_stop = count;
-
-    while(threads_to_stop)
+    for (i = 0; i < 2; i++)
     {
-        RECORD(Pauses, "Waiting for recorder threads to stop, %u remaining",
-               threads_to_stop);
-        dawdle(1);
+        recorder_count = 0;
+
+        INFO("Launching %lu %s recorder thread%s",
+             count, i ? "fast" : "normal", count>1?"s":"");
+        RECORD(MAIN, "Starting %s speed test for %us with %u threads",
+               i ? "fast" : "normal", howLong, count);
+
+        pthread_t tid;
+        for (j = 0; j < count; j++)
+            pthread_create(&tid, NULL,
+                           i ? recorder_fast_thread : recorder_thread,
+                           NULL);
+
+        INFO("%s recorder testing in progress, please wait about %ds",
+             i ? "Fast" : "Normal", howLong);
+        unsigned sleepTime = howLong;
+        do { sleepTime =  sleep(sleepTime); } while (sleepTime);
+        INFO("%s recorder testing completed, stopping threads",
+             i ? "Fast" : "Normal");
+        threads_to_stop = count;
+
+        while(threads_to_stop)
+        {
+            RECORD(Pauses, "Waiting for recorder threads to stop, %u remaining",
+                   threads_to_stop);
+            dawdle(1);
+        }
+        INFO("%s test: all threads have stopped, %lu iterations",
+             i ? "Fast" : "Normal", recorder_count);
+
+        printf("Recorder test analysis (%s):\n"
+               "  Iterations            = %8lu\n"
+               "  Iterations / ms       = %8lu\n"
+               "  Duration per record   = %8uns\n"
+               "  Number of threads     = %8lu\n",
+               i ? "Fast version" : "Normal version",
+               recorder_count,
+               recorder_count / (howLong * 1000),
+               (unsigned) (howLong * 1000000000ULL / recorder_count),
+               count);
+
+        INFO("Recorder test complete (%s), %lu threads.",
+             i ? "Fast version" : "Normal version", count);
+        INFO("  Iterations      = %10lu", recorder_count);
+        INFO("  Iterations / ms = %10lu", recorder_count / (howLong * 1000));
+        INFO("  Record cost     = %10uns",
+             (unsigned) (howLong * 1000000000ULL / recorder_count));
     }
-    INFO("All threads have stopped.");
-
-    printf("Recorder test analysis:\n"
-           "  Iterations            = %8u\n"
-           "  Iterations / ms       = %8u\n"
-           "  Duration per record   = %8uns\n"
-           "  Number of threads     = %8u\n",
-           recorder_count,
-           recorder_count / (howLong * 1000),
-           (unsigned) (howLong * 1000000000ULL / recorder_count),
-           count);
-
-    INFO("Recorder test complete, %u threads.", count);
-    INFO("  Iterations           = %10u", recorder_count);
-    INFO("  Iterations / ms      = %10u", recorder_count / (howLong * 1000));
-    INFO("  Duration per record  = %10uns",
-         (unsigned) (howLong * 1000000000ULL / recorder_count));
 
     RECORD(Special, "Sizeof int=%u intptr_t=%u float=%u double=%u",
            sizeof(int), sizeof(intptr_t), sizeof(float), sizeof(double));

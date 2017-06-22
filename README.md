@@ -111,6 +111,11 @@ statement, specifying the name of the recorder as the first argument:
 While a `RECORD` behaves mostly like `printf`, there are important
 caveats and limitations to be aware of, see below.
 
+Normally, `RECORD` stores a time stamp for each event being recorded.
+This is actually the most expensive part of recording. For very tight
+loops, it is possible to use `RECORD_FAST`, which does not record time
+and may be approximately twice as fast on modern x86 CPUs.
+
 
 ## Caveats and limitations
 
