@@ -78,7 +78,7 @@ int main(int argc, char **argv)
     int i;
     uintptr_t duration;
     recorder_dump_on_common_signals(0, 0);
-#define DURATION (1e6 * duration / RECORDER_HZ)
+#define DURATION ((double) duration / RECORDER_HZ)
     for (i = 1; i < argc; i++)
     {
         int count = atoi(argv[i]);
@@ -91,7 +91,7 @@ int main(int argc, char **argv)
         duration = recorder_tick() - duration;                  \
         RECORD(TIMING,                                          \
                "End " Info " with %d iterations, "              \
-               "duration %.6fus",                               \
+               "duration %.6fs",                                \
                count, DURATION);
 
         TEST("printing Hanoi",
