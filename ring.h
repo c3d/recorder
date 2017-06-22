@@ -123,7 +123,7 @@ extern "C" {
     __atomic_compare_exchange_n(&Value, &Expected, New,                 \
                                 0, __ATOMIC_RELEASE, __ATOMIC_RELAXED)
 
-#define RING_SOMETIMES_UNUSED   __attribute__((unused))
+#define RING_MAYBE_UNUSED   __attribute__((unused))
 
 #else // ! __GNUC__
 
@@ -132,7 +132,7 @@ extern "C" {
 #define ring_add_fetch(Value, Offset)   ((Value += Offset), Value)
 #define ring_compare_exchange(Value, Expected, New)   ((Value = New), true)
 
-#define RING_SOMETIMES_UNUSED
+#define RING_MAYBE_UNUSED
 
 #endif
 
@@ -197,25 +197,25 @@ extern ringidx_t ring_write(ring_p ring, const void *data, size_t count,
                                                                         \
     typedef bool (*Ring##_block_fn)(Ring *,ringidx_t, ringidx_t);       \
                                                                         \
-    static inline RING_SOMETIMES_UNUSED                                 \
+    static inline RING_MAYBE_UNUSED                                     \
     Ring *Ring##_new(size_t size)                                       \
     {                                                                   \
         return (Ring *) ring_new(size, sizeof(Type));                   \
     }                                                                   \
                                                                         \
-    static inline RING_SOMETIMES_UNUSED                                 \
+    static inline RING_MAYBE_UNUSED                                     \
     void Ring##_delete(Ring *rb)                                        \
     {                                                                   \
         ring_delete(&rb->ring);                                         \
     }                                                                   \
                                                                         \
-    static inline RING_SOMETIMES_UNUSED                                 \
+    static inline RING_MAYBE_UNUSED                                     \
     ringidx_t Ring##_peek(Ring *rb, Type *ptr)                          \
     {                                                                   \
         return ring_peek(&rb->ring, ptr);                               \
     }                                                                   \
                                                                         \
-    static inline RING_SOMETIMES_UNUSED                                 \
+    static inline RING_MAYBE_UNUSED                                     \
     size_t Ring##_read(Ring *rb,                                        \
                        Type *ptr,                                       \
                        size_t count,                                    \
@@ -229,7 +229,7 @@ extern ringidx_t ring_write(ring_p ring, const void *data, size_t count,
                          reader);                                       \
     }                                                                   \
                                                                         \
-    static inline RING_SOMETIMES_UNUSED                                 \
+    static inline RING_MAYBE_UNUSED                                     \
     size_t Ring##_write(Ring *rb,                                       \
                         Type *ptr,                                      \
                         size_t count,                                   \
@@ -243,17 +243,17 @@ extern ringidx_t ring_write(ring_p ring, const void *data, size_t count,
                           writer);                                      \
     }                                                                   \
                                                                         \
-    static inline RING_SOMETIMES_UNUSED                                 \
+    static inline RING_MAYBE_UNUSED                                     \
     ringidx_t Ring##_readable(Ring *rb)                                 \
     {                                                                   \
         return ring_readable(&rb->ring);                                \
     }                                                                   \
                                                                         \
-    static inline RING_SOMETIMES_UNUSED                                 \
+    static inline RING_MAYBE_UNUSED                                     \
     ringidx_t Ring##_writable(Ring *rb)                                 \
     {                                                                   \
         return ring_writable(&rb->ring);                                \
-    }                                                                   \
+    }
 
 
 
@@ -275,37 +275,37 @@ extern ringidx_t ring_write(ring_p ring, const void *data, size_t count,
         Type   data[Size];                                              \
     } Name;                                                             \
                                                                         \
-    static inline RING_SOMETIMES_UNUSED                                 \
+    static inline RING_MAYBE_UNUSED                                     \
     size_t Name##_readable()                                            \
     {                                                                   \
         return ring_readable(&Name.ring);                               \
     }                                                                   \
                                                                         \
-    static inline RING_SOMETIMES_UNUSED                                 \
+    static inline RING_MAYBE_UNUSED                                     \
     size_t Name##_writable()                                            \
     {                                                                   \
         return ring_writable(&Name.ring);                               \
     }                                                                   \
                                                                         \
-    static inline RING_SOMETIMES_UNUSED                                 \
+    static inline RING_MAYBE_UNUSED                                     \
     ringidx_t Name##_peek(Type *ptr)                                    \
     {                                                                   \
         return ring_peek(&Name.ring, ptr);                              \
     }                                                                   \
                                                                         \
-    static inline RING_SOMETIMES_UNUSED                                 \
+    static inline RING_MAYBE_UNUSED                                     \
     size_t Name##_read(Type *ptr, ringidx_t count)                      \
     {                                                                   \
         return ring_read(&Name.ring, ptr, count, NULL, NULL, NULL);     \
     }                                                                   \
                                                                         \
-    static inline RING_SOMETIMES_UNUSED                                 \
+    static inline RING_MAYBE_UNUSED                                     \
     size_t Name##_write(Type *ptr, ringidx_t count)                     \
     {                                                                   \
         return ring_write(&Name.ring, ptr, count, NULL, NULL, NULL);    \
     }                                                                   \
                                                                         \
-    static inline RING_SOMETIMES_UNUSED                                 \
+    static inline RING_MAYBE_UNUSED                                     \
     size_t Name##_block_read(Type *ptr,                                 \
                              size_t count,                              \
                              ring_block_fn block,                       \
@@ -315,7 +315,7 @@ extern ringidx_t ring_write(ring_p ring, const void *data, size_t count,
         return ring_read(&Name.ring, ptr, count, block, overflow, pos); \
     }                                                                   \
                                                                         \
-    static inline RING_SOMETIMES_UNUSED                                 \
+    static inline RING_MAYBE_UNUSED                                     \
     size_t Name##_block_write(const Type *ptr,                          \
                               size_t  count,                            \
                               ring_block_fn write_block,                \
