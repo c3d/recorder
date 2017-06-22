@@ -154,9 +154,9 @@ dump the recorder during a debugging session:
 
 If you want to dump specific recorders, you can use
 `recorder_dump_for`, which matches the recorder names against the
-string given as an argument:
+regular expression given as an argument:
 
-    recorder_dump_for("TIMING"); // Dumps "TIMING", but also "MY_TIMING_2"
+    recorder_dump_for(".*TIMING.*"); // Dumps "TIMING", but also "MY_TIMING_2"
 
 During a dump, events are sorted according to the global event order.
 
