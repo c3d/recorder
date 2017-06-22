@@ -47,6 +47,7 @@ RECORDER(Reads,     256, "Reading from the ring");
 RECORDER(Writes,    256, "Writing into the ring");
 RECORDER(Special,    64, "Special operations to the recorder");
 RECORDER(SpeedTest,  32, "Recorder speed test");
+RECORDER(Timing,     64, "Timing information");
 
 
 
@@ -442,6 +443,98 @@ int ringbuffer_test(int argc, char **argv)
 }
 
 
+RING_DECLARE(speed_test, recorder_entry, 512);
+RING_DEFINE(speed_test, recorder_entry, 512);
+
+
+inline ringidx_t special_ring_write(ring_p ring,
+                                    recorder_entry *source)
+// ----------------------------------------------------------------------------
+//   Optimized version
+// ----------------------------------------------------------------------------
+{
+    const size_t     size   = 512;
+    recorder_entry * data   = (recorder_entry *) (ring + 1);
+    ringidx_t        writer = ring_fetch_add(ring->writer, 1);
+    data[writer % size] = *source;
+    return writer;
+}
+
+
+void compare_performance_of_common_operations(unsigned loops)
+{
+    unsigned       i;
+    uintptr_t      start, duration;
+    double         cost;
+    recorder_entry entry = { 0 };
+    void *         ptrs[256] = { NULL };
+
+#define TEST(Info, Code)                                        \
+    RECORD(Timing, "Test: " Info);                              \
+    start = recorder_tick();                                    \
+    for (i = 0; i < loops; i++) { Code; }                       \
+    duration = recorder_tick() - start;                         \
+    cost = 1e9 * duration / RECORDER_HZ / loops;                \
+    RECORD(Timing, Info " cost is %.6f ns", cost);
+
+    TEST("regular ring_write", speed_test_write(&entry, 1));
+    TEST("special ring_write", special_ring_write(&speed_test.ring, &entry));
+    TEST("fetch-add",
+         entry.order = ring_fetch_add(recorder_order, 1);
+         special_ring_write(&speed_test.ring, &entry));
+    TEST("recorder_tick()",
+         entry.timestamp = recorder_tick();
+         special_ring_write(&speed_test.ring, &entry));
+    TEST("tick + fetch-add",
+         entry.order = ring_fetch_add(recorder_order, 1);
+         entry.timestamp = recorder_tick();
+         special_ring_write(&speed_test.ring, &entry));
+    TEST("tick + fetch-add + copy",
+         entry.order = ring_fetch_add(recorder_order, 1);
+         entry.timestamp = recorder_tick();
+         entry.args[0] = i;
+         entry.args[1] = 3-i;
+         entry.args[2] = i * 1081;
+         entry.args[3] = i ^ 0xFE;
+         special_ring_write(&speed_test.ring, &entry));
+    TEST("clock_gettime + copy",
+         struct timespec ts;
+         clock_gettime(CLOCK_MONOTONIC, &ts);
+         entry.order = ring_fetch_add(recorder_order, 1);
+         entry.timestamp = ts.tv_sec * 1000000L + ts.tv_nsec / 1000;
+         entry.args[0] = i;
+         entry.args[1] = 3-i;
+         entry.args[2] = i * 1081;
+         entry.args[3] = i ^ 0xFE;
+         special_ring_write(&speed_test.ring, &entry));
+
+    TEST("RECORD", RECORD(SpeedTest, "Speed test %u", i));
+    TEST("RECORD_FAST", RECORD_FAST(SpeedTest, "Speed test %u", i));
+
+    TEST("malloc(512)",
+         free(ptrs[i % 256]);
+         ptrs[i % 256] = malloc(32));
+    TEST("malloc(jigsaw)",
+         free(ptrs[i % 256]);
+         ptrs[i % 256] = malloc(512 + i % 7777 * 13));
+    TEST("memcpy",
+         memcpy(ptrs[i % 256], ptrs[(i+1) % 256], 512));
+    TEST("gettimeofday", recorder_tick());
+    TEST("snprintf", snprintf(ptrs[i % 256], 512, "Speed test %u", i));
+
+    FILE *f = fopen("test.out", "w");
+    TEST("fprintf", fprintf(f, "Speed test %u", i));
+    fclose(f);
+
+    f = fopen("test.out", "w");
+    TEST("fprintf + fflush", fprintf(f, "Speed test %u", i); fflush(f));
+    fclose(f);
+
+    recorder_dump_for("Timing");
+}
+
+
+
 // ============================================================================
 //
 //    Main entry point
@@ -454,5 +547,6 @@ int main(int argc, char **argv)
     ringbuffer_test(argc, argv);
     if (failed)
         recorder_dump();        // Try to figure out what failed
+    compare_performance_of_common_operations(10000000);
     return failed;
 }
