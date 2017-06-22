@@ -76,19 +76,30 @@ void hanoi_record_fast(int n, post left, post right, post middle)
 int main(int argc, char **argv)
 {
     int i;
+    uintptr_t duration;
     recorder_dump_on_common_signals(0, 0);
+#define DURATION (1e6 * duration / RECORDER_HZ)
     for (i = 1; i < argc; i++)
     {
         int count = atoi(argv[i]);
-        RECORD(TIMING,"Begin printing Hanoi with %d", count);
-        hanoi_print(count, LEFT, MIDDLE, RIGHT);
-        RECORD(TIMING,"End printing Hanoi with %d", count);
-        RECORD(TIMING,"Begin recording Hanoi with %d", count);
-        hanoi_record(count, LEFT, MIDDLE, RIGHT);
-        RECORD(TIMING,"End recording Hanoi with %d", count);
-        RECORD(TIMING,"Begin fast recording Hanoi with %d", count);
-        hanoi_record_fast(count, LEFT, MIDDLE, RIGHT);
-        RECORD(TIMING,"End fast recording Hanoi with %d", count);
+
+#define TEST(Info, Code)                                        \
+        RECORD(TIMING,                                          \
+               "Begin " Info " with %d iterations", count);     \
+        duration = recorder_tick();                             \
+        Code;                                                   \
+        duration = recorder_tick() - duration;                  \
+        RECORD(TIMING,                                          \
+               "End " Info " with %d iterations, "              \
+               "duration %.6fus",                               \
+               count, DURATION);
+
+        TEST("printing Hanoi",
+             hanoi_print(count, LEFT, MIDDLE, RIGHT));
+        TEST("recording Hanoi",
+             hanoi_record(count, LEFT, MIDDLE, RIGHT));
+        TEST("fast recording Hanoi",
+             hanoi_record_fast(count, LEFT, MIDDLE, RIGHT));
     }
     recorder_dump_for("TIMING");
 }

@@ -28,7 +28,7 @@ LDFLAGS_cygwin = -lpthread
 LDFLAGS_mingw  = -lpthread
 
 TESTS=  hanoi_test.c recorder_test.c ring_test.c crash_test.c
-TEST_ARGS_hanoi_test=10 | wc
+TEST_ARGS_hanoi_test=20 | wc
 
 include $(BUILD)rules.mk
 
