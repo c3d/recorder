@@ -528,7 +528,7 @@ void recorder_dump_on_common_signals(unsigned add, unsigned remove)
         ;
     signals &= ~remove;
 
-    RECORD(signals, "Activating dump for signal mask %u", signals);
+    RECORD(signals, "Activating dump for signal mask 0x%X", signals);
     for (sig = 0; signals; sig++)
     {
         unsigned mask = 1U << sig;
