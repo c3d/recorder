@@ -586,11 +586,12 @@ int recorder_trace_set(const char *param_spec)
 //   Activate given traces
 // ----------------------------------------------------------------------------
 {
-    const char *next = param_spec;
-    char        buffer[128];
-    int         rc = RECORDER_TRACE_OK;
-    regex_t     re;
-    static char error[128];
+    const char    *next = param_spec;
+    char           buffer[128];
+    int            rc   = RECORDER_TRACE_OK;
+    recorder_info *rec;
+    regex_t        re;
+    static char    error[128];
 
     // Facilitate usage such as: recorder_trace_set(getenv("RECORDER_TRACES"))
     if (!param_spec)
@@ -599,7 +600,7 @@ int recorder_trace_set(const char *param_spec)
     if (strcmp(param_spec, "help") == 0 || strcmp(param_spec, "list") == 0)
     {
         printf("List of available recorders:\n");
-        for (recorder_info *rec = recorders; rec; rec = rec->next)
+        for (rec = recorders; rec; rec = rec->next)
             printf("%15s : %s\n", rec->name, rec->description);
         return 0;
     }
@@ -669,7 +670,7 @@ int recorder_trace_set(const char *param_spec)
         int status = regcomp(&re, param, REG_EXTENDED|REG_NOSUB|REG_ICASE);
         if (status == 0)
         {
-            for (recorder_info *rec = recorders; rec; rec = rec->next)
+            for (rec = recorders; rec; rec = rec->next)
             {
                 int re_result = regexec(&re, rec->name, 0, NULL, 0);
                 RECORD(recorder_trace_set, "Testing %s: re_result=%d",
