@@ -112,16 +112,6 @@ typedef struct recorder_entry
 /// touch the same shared variable in order to provide a global order.
 extern uintptr_t recorder_order;
 
-/// A counter of how many clients are currently blocking the recorder.
-/// Code that needs to block the recorder for any reason can atomically
-/// increase this on entry, and atomically decrease this on exit.
-/// Typically, functions like \ref recorder_dump block the recorder
-/// while dumping in order to maximize the amount of "relevant" data
-/// they can show. This variable needs to be public because all
-/// recording functions need to test it.
-extern unsigned recorder_blocked;
-
-
 /// A function pointer type used by generic code to read each recorder.
 /// \param entries will be filled with the entries read from the recorder.
 /// \param count is the maximum number of entries that can be read.
@@ -264,8 +254,6 @@ ringidx_t recorder_##Name##_record(const char *where,                   \
 /*  Enter a record entry in ring buffer with given set of args     */   \
 /* ----------------------------------------------------------------*/   \
 {                                                                       \
-    if (recorder_blocked)                                               \
-        return recorder_##Name.ring.writer;                             \
     ringidx_t writer = ring_fetch_add(recorder_##Name.ring.writer, 1);  \
     recorder_entry *entry = &recorder_##Name.data[writer % Size];       \
     entry->format = format;                                             \
@@ -293,8 +281,6 @@ ringidx_t recorder_##Name##_recfast(const char *where,                  \
 /*  Enter a record entry in ring buffer with given set of args     */   \
 /* ----------------------------------------------------------------*/   \
 {                                                                       \
-    if (recorder_blocked)                                               \
-        return recorder_##Name.ring.writer;                             \
     ringidx_t writer = ring_fetch_add(recorder_##Name.ring.writer, 1);  \
     recorder_entry *entry = &recorder_##Name.data[writer % Size];       \
     entry->format = format;                                             \

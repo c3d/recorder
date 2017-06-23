@@ -42,9 +42,6 @@
 /// Global counter indicating the order of entries across recorders.
 uintptr_t       recorder_order   = 0;
 
-/// Counter of how many clients are currently blocking the recorder.
-unsigned        recorder_blocked = 0;
-
 /// List of the currently active flight recorders (ring buffers)
 recorder_info * recorders        = NULL;
 
