@@ -515,7 +515,8 @@ void recorder_shmem_delete(recorder_shmem_p chans)
 // ----------------------------------------------------------------------------
 {
     recorder_chan_p next = NULL;
-    for (recorder_chan_p chan = chans->head; chan; chan = next)
+    recorder_chan_p chan;
+    for (chan = chans->head; chan; chan = next)
     {
         next = chan->next;
         recorder_chan_delete(chan);
@@ -624,8 +625,9 @@ void recorder_chan_delete(recorder_chan_p chan)
     char               *map_addr    = shmem->map_addr;
     recorder_shmem_shp  shmemp      = (recorder_shmem_shp) map_addr;
     off_t              *last        = &shmemp->head;
+    off_t               offset;
 
-    for (off_t offset = *last; offset; offset = *last)
+    for (offset = *last; offset; offset = *last)
     {
         recorder_chan_shp chanp = (recorder_chan_shp) (map_addr + offset);
         if (*last == chan_offset)
@@ -716,7 +718,8 @@ recorder_shmem_p recorder_shmem_open(const char *file)
 
     // Create recorder_shmem for all recorder_shmem in shared memory
     recorder_chan_shp chanp;
-    for (off_t off = shmemp->head; off; off = chanp->next)
+    off_t             off;
+    for (off = shmemp->head; off; off = chanp->next)
     {
         chanp = (recorder_chan_shp) ((char *) map_addr + off);
         recorder_chan_p chan = malloc(sizeof(recorder_chan_t));
