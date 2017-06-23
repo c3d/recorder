@@ -93,7 +93,7 @@ void dawdle(unsigned minimumMs)
 void *recorder_thread(void *thread)
 {
     uintptr_t i = 0;
-    unsigned tid = (unsigned) thread;
+    unsigned tid = (unsigned) (uintptr_t) thread;
     while (!threads_to_stop)
         RECORD(SpeedTest, "[thread %u] Recording %u", tid, i++);
     ring_fetch_add(recorder_count, i);
@@ -104,7 +104,7 @@ void *recorder_thread(void *thread)
 void *recorder_fast_thread(void *thread)
 {
     uintptr_t i = 0;
-    unsigned tid = (unsigned) thread;
+    unsigned tid = (unsigned) (uintptr_t) thread;
     while (!threads_to_stop)
         RECORD_FAST(FastSpeedTest, "[thread %u] Fast recording %u", tid, i++);
     ring_fetch_add(recorder_count, i);
