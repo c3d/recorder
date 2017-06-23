@@ -95,7 +95,7 @@ void *recorder_thread(void *thread)
     uintptr_t i = 0;
     unsigned tid = (unsigned) thread;
     while (!threads_to_stop)
-        RECORD(SpeedTest, "[%u] Recording %u thread %u", tid, i++);
+        RECORD(SpeedTest, "[thread %u] Recording %u", tid, i++);
     ring_fetch_add(recorder_count, i);
     ring_fetch_add(threads_to_stop, -1);
     return NULL;
@@ -106,7 +106,7 @@ void *recorder_fast_thread(void *thread)
     uintptr_t i = 0;
     unsigned tid = (unsigned) thread;
     while (!threads_to_stop)
-        RECORD_FAST(FastSpeedTest, "[%u] Fast recording %u", tid, i++);
+        RECORD_FAST(FastSpeedTest, "[thread %u] Fast recording %u", tid, i++);
     ring_fetch_add(recorder_count, i);
     ring_fetch_add(threads_to_stop, -1);
     return NULL;
