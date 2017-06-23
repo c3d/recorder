@@ -21,15 +21,18 @@
 
 #include "recorder.h"
 #include "config.h"
-#include <string.h>
-#include <stdio.h>
-#include <stdbool.h>
-#include <stdlib.h>
-#include <unistd.h>
-#include <signal.h>
-#include <regex.h>
+#include <fcntl.h>
 #include <pthread.h>
+#include <regex.h>
+#include <signal.h>
+#include <stdbool.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
 #include <sys/time.h>
+#include <sys/mman.h>
+#include <sys/stat.h>
 
 
 
@@ -305,7 +308,7 @@ unsigned recorder_sort(const char *what,
 
     int status = regcomp(&re, what, REG_EXTENDED|REG_NOSUB|REG_ICASE);
 
-    for(;;)
+    while (status == 0)
     {
         uintptr_t      lowestOrder = ~0UL;
         recorder_info *lowest      = NULL;
@@ -314,7 +317,7 @@ unsigned recorder_sort(const char *what,
         for (rec = recorders; rec; rec = rec->next)
         {
             // Skip recorders that don't match the pattern
-            if (status == 0 && regexec(&re, rec->name, 0, NULL, 0) != 0)
+            if (regexec(&re, rec->name, 0, NULL, 0) != 0)
                 continue;
 
             // Loop while this recorder is readable and we can find next order
@@ -364,15 +367,549 @@ unsigned recorder_dump_for(const char *what)
 }
 
 
-void recorder_trace_entry(const char *label, recorder_entry *entry)
+
+// ============================================================================
+//
+//    Implementation of recorder shared memory structures
+//
+// ============================================================================
+
+typedef struct recorder_shmem_sh
+// ----------------------------------------------------------------------------
+//   Shared-memory information about recorder_shmem
+// ----------------------------------------------------------------------------
+{
+    uint32_t    magic;          // Magic number to check structure type
+    uint32_t    version;        // Version number for shared memory format
+    off_t       head;           // First recorder_chan in linked list
+    off_t       free_list;      // Free list
+    off_t       offset;         // Current offset for new recorder_shmem
+} recorder_shmem_sh, *recorder_shmem_shp;
+
+
+typedef struct recorder_shmem
+// ----------------------------------------------------------------------------
+//   Information about mapping of shared recorder_shmem
+// ----------------------------------------------------------------------------
+{
+    int             fd;         // File descriptor for mmap
+    void *          map_addr;   // Address in memory for mmap
+    size_t          map_size;   // Size allocated for mmap
+    recorder_chan_p head;       // First recorder_chan in list
+} recorder_shmem_t;
+
+
+typedef struct recorder_chan_sh
+// ----------------------------------------------------------------------------
+//   A named data recorder_chan in shared memory
+// ----------------------------------------------------------------------------
+{
+    recorder_type type;         // Data type stored in recorder_chan
+    off_t         next;         // Offset to next recorder_chan in linked list
+    off_t         name;         // Offset of name in recorder_chan_sh
+    off_t         description;  // Offset of description
+    off_t         unit;         // Offset of measurement unit
+    recorder_data min;          // Minimum value
+    recorder_data max;          // Maximum value
+    ring_t        ring;         // Ring data
+} recorder_chan_sh, *recorder_chan_shp;
+
+
+typedef struct recorder_chan
+// ----------------------------------------------------------------------------
+//   Accessing a shared memory recorder_chan
+// ----------------------------------------------------------------------------
+{
+    recorder_shmem_p recorder_shmem;
+    off_t            offset;
+    recorder_chan_p  next;
+} recorder_chan_t, *recorder_chan_p;
+
+
+// Map memory in 4K chunks (one page)
+#define MAP_SIZE        4096
+
+
+static inline recorder_chan_shp recorder_chan_shared(recorder_chan_p chan)
+// ----------------------------------------------------------------------------
+//  Return the recorder_chan shared address
+// ----------------------------------------------------------------------------
+{
+    recorder_shmem_p   chans    = chan->recorder_shmem;
+    char              *map_addr = chans->map_addr;
+    recorder_chan_shp  chanp    = (recorder_chan_shp) (map_addr + chan->offset);
+    return chanp;
+}
+
+
+
+// ============================================================================
+//
+//    Interface for the local process
+//
+// ============================================================================
+
+static bool recorder_chan_file_extend(int fd, off_t new_size)
+// ----------------------------------------------------------------------------
+//    Extend a file to the given size
+// ----------------------------------------------------------------------------
+{
+    return
+        lseek(fd, new_size-1, SEEK_SET) != -1 &&
+        write(fd, "", 1) == 1;
+}
+
+
+recorder_shmem_p recorder_shmem_new(const char *file)
+// ----------------------------------------------------------------------------
+//   Create a new mmap'd file
+// ----------------------------------------------------------------------------
+{
+    // Open the file
+    int fd = open(file, O_RDWR|O_CREAT|O_TRUNC, (mode_t) 0600);
+    if (fd == -1)
+        return NULL;
+
+    // Make sure we have enough space for the data
+    size_t map_size = MAP_SIZE;
+    if (!recorder_chan_file_extend(fd, map_size))
+    {
+        close(fd);
+        return NULL;
+    }
+
+    // Map space for the recorder_shmem
+    off_t  offset = 0;
+    void *map_addr = mmap(NULL, map_size,
+                          PROT_READ | PROT_WRITE,
+                          MAP_FILE | MAP_SHARED,
+                          fd, offset);
+    if (map_addr == MAP_FAILED)
+    {
+        close(fd);
+        return NULL;
+    }
+
+    // Successful: Initialize in-memory recorder_shmem list
+    recorder_shmem_p chans = malloc(sizeof(recorder_shmem_t));
+    chans->fd = fd;
+    chans->map_addr = map_addr;
+    chans->map_size = map_size;
+    chans->head = NULL;
+
+    // Initialize shared-memory data
+    recorder_shmem_shp chansp = map_addr;
+    chansp->magic = RECORDER_CHAN_MAGIC;
+    chansp->version = RECORDER_CHAN_VERSION;
+    chansp->head = 0;
+    chansp->free_list = 0;
+    chansp->offset = sizeof(recorder_shmem_sh);
+
+    return chans;
+}
+
+
+void recorder_shmem_delete(recorder_shmem_p chans)
+// ----------------------------------------------------------------------------
+//   Delete the local recorder_shmem
+// ----------------------------------------------------------------------------
+{
+    recorder_chan_p next = NULL;
+    for (recorder_chan_p chan = chans->head; chan; chan = next)
+    {
+        next = chan->next;
+        recorder_chan_delete(chan);
+    }
+
+    munmap(chans->map_addr, chans->map_size);
+    close(chans->fd);
+    free(chans);
+}
+
+
+recorder_chan_p recorder_chan_new(recorder_shmem_p shmem,
+                                  recorder_type    type,
+                                  size_t           size,
+                                  const char *     name,
+                                  const char *     description,
+                                  const char *     unit,
+                                  recorder_data    min,
+                                  recorder_data    max)
+// ----------------------------------------------------------------------------
+//    Allocate and create a new recorder_chan
+// ----------------------------------------------------------------------------
+{
+    recorder_shmem_shp shmemp      = shmem->map_addr;
+    size_t             offset      = shmemp->offset;
+    size_t             item_size   = sizeof(recorder_data);
+
+    size_t             name_len    = strlen(name);
+    size_t             descr_len   = strlen(description);
+    size_t             unit_len    = strlen(unit);
+
+    size_t             name_offs   = sizeof(recorder_chan_t) + size*item_size;
+    size_t             descr_offs  = name_offs + name_len + 1;
+    size_t             unit_offs   = descr_offs + descr_len + 1;
+
+    size_t             alloc       = unit_offs + unit_len + 1;
+
+    // TODO: Find one from the free list if there is one
+
+    size_t align = sizeof(long double);
+    size_t new_offset = (offset + alloc + align-1) & ~(align-1);
+    if (new_offset >= shmem->map_size)
+    {
+        size_t map_size = ((shmemp->offset / MAP_SIZE) + 1) * MAP_SIZE;
+        if (!recorder_chan_file_extend(shmem->fd, map_size))
+            return NULL;
+        void *map_addr = mmap(shmem->map_addr, map_size,
+                              PROT_READ | PROT_WRITE,
+                              MAP_FILE | MAP_SHARED | MAP_FIXED,
+                              shmem->fd, 0);
+        if (map_addr == MAP_FAILED)
+            return NULL;
+
+        // Note that if the new mapping address is different,
+        // all recorder_chan_p become invalid
+        shmem->map_size = map_size;
+        shmem->map_addr = map_addr;
+    }
+    shmemp->offset = new_offset;
+
+    // Initialize recorder_chan fields
+    recorder_chan_shp chanp = (recorder_chan_shp)
+        ((char *) shmem->map_addr + offset);
+    chanp->type = type;
+    chanp->next = shmemp->head;
+    chanp->name = name_offs;
+    chanp->description = descr_offs;
+    chanp->unit = unit_offs;
+    chanp->min = min;
+    chanp->min = max;
+    memcpy((char *) chanp + name_offs, name, name_len + 1);
+    memcpy((char *) chanp + descr_offs, description, descr_len + 1);
+    memcpy((char *) chanp + unit_offs, unit, unit_len + 1);
+
+    // Initialize ring fields
+    ring_p ring = &chanp->ring;
+    ring->size = size;
+    ring->item_size = item_size;
+    ring->reader = 0;
+    ring->writer = 0;
+    ring->commit = 0;
+    ring->overflow = 0;
+
+    // Link recorder_chan in recorder_shmem list
+    shmemp->head = offset;
+
+    // Create recorder_chan access
+    recorder_chan_p chan = malloc(sizeof(recorder_chan_t));
+    chan->recorder_shmem = shmem;
+    chan->offset = offset;
+    chan->next = shmem->head;
+    shmem->head = chan;
+
+    // Return recorder_chan pointer (which is only valid until next recorder_chan_new)
+    return chan;
+}
+
+
+void recorder_chan_delete(recorder_chan_p chan)
+// ----------------------------------------------------------------------------
+//   Delete a recorder_chan
+// ----------------------------------------------------------------------------
+{
+    recorder_shmem_p    shmem       = chan->recorder_shmem;
+    intptr_t            chan_offset = chan->offset;
+    char               *map_addr    = shmem->map_addr;
+    recorder_shmem_shp  shmemp      = (recorder_shmem_shp) map_addr;
+    off_t              *last        = &shmemp->head;
+
+    for (off_t offset = *last; offset; offset = *last)
+    {
+        recorder_chan_shp chanp = (recorder_chan_shp) (map_addr + offset);
+        if (*last == chan_offset)
+        {
+            *last = chanp->next;
+            chanp->next = shmemp->free_list;
+            shmemp->free_list = chan->offset;
+            break;
+        }
+        last = &chanp->next;
+    }
+
+    free(chan);
+}
+
+
+size_t recorder_chan_write(recorder_chan_p chan, const void *ptr, size_t count)
+// ----------------------------------------------------------------------------
+//   Write some data in the recorder_chan
+// ----------------------------------------------------------------------------
+{
+    recorder_chan_shp chanp = recorder_chan_shared(chan);
+    return ring_write(&chanp->ring, ptr, count, NULL, NULL, NULL);
+}
+
+
+size_t recorder_chan_writable(recorder_chan_p chan)
+// ----------------------------------------------------------------------------
+//    Return number of items that can be written in ring
+// ----------------------------------------------------------------------------
+{
+    recorder_chan_shp chanp = recorder_chan_shared(chan);
+    return ring_writable(&chanp->ring);
+}
+
+
+ringidx_t recorder_chan_writer(recorder_chan_p chan)
+// ----------------------------------------------------------------------------
+//    Return current writer index
+// ----------------------------------------------------------------------------
+{
+    recorder_chan_shp chanp = recorder_chan_shared(chan);
+    return chanp->ring.writer;
+}
+
+
+
+// ============================================================================
+//
+//    Subscribing to recorder_shmem in a remote process
+//
+// ============================================================================
+
+recorder_shmem_p recorder_shmem_open(const char *file)
+// ----------------------------------------------------------------------------
+//    Map the file in memory, and scan its structure
+// ----------------------------------------------------------------------------
+{
+    int fd = open(file, O_RDWR);
+    if (fd == -1)
+        return NULL;
+    struct stat stat;
+    if (fstat(fd, &stat) != 0)
+        return NULL;
+
+    // Map space for the recorder_shmem
+    size_t  map_size = stat.st_size;
+    off_t   offset   = 0;
+    void   *map_addr = mmap(NULL, map_size,
+                            PROT_READ|PROT_WRITE,
+                            MAP_FILE | MAP_SHARED,
+                            fd, offset);
+    recorder_shmem_shp shmemp = map_addr;
+    if (map_addr == MAP_FAILED                  ||
+        shmemp->magic != RECORDER_CHAN_MAGIC          ||
+        shmemp->version != RECORDER_CHAN_VERSION)
+    {
+        close(fd);
+        return NULL;
+    }
+
+    // Successful: Initialize with recorder_chan descriptor
+    recorder_shmem_p shmem = malloc(sizeof(recorder_shmem_t));
+    shmem->fd = fd;
+    shmem->map_addr = map_addr;
+    shmem->map_size = map_size;
+    shmem->head = NULL;
+
+    // Create recorder_shmem for all recorder_shmem in shared memory
+    recorder_chan_shp chanp;
+    for (off_t off = shmemp->head; off; off = chanp->next)
+    {
+        chanp = (recorder_chan_shp) ((char *) map_addr + off);
+        recorder_chan_p chan = malloc(sizeof(recorder_chan_t));
+        chan->recorder_shmem = shmem;
+        chan->offset = off;
+        chan->next = shmem->head;
+        shmem->head = chan;
+    }
+
+    return shmem;
+}
+
+
+void recorder_shmem_close(recorder_shmem_p shmem)
+// ----------------------------------------------------------------------------
+//   Close shared memory recorder_shmem
+// ----------------------------------------------------------------------------
+{
+    recorder_shmem_delete(shmem);
+}
+
+
+recorder_chan_p recorder_chan_find(recorder_shmem_p  shmem,
+                                   const char       *pattern,
+                                   recorder_chan_p   after)
+// ----------------------------------------------------------------------------
+//   Find a recorder_chan with the given name in the recorder_chan list
+// ----------------------------------------------------------------------------
+{
+    regex_t re;
+    int     status = regcomp(&re, pattern, REG_EXTENDED|REG_NOSUB|REG_ICASE);
+    recorder_chan_p first = after ? after->next : shmem->head;
+    recorder_chan_p chan = NULL;;
+
+    if (status == 0)
+        for (chan = first; chan; chan = chan->next)
+            if (regexec(&re, pattern, 0, NULL, 0) == 0)
+                break;
+
+    regfree(&re);
+    return chan;
+}
+
+
+const char *recorder_chan_name(recorder_chan_p chan)
+// ----------------------------------------------------------------------------
+//   Return the name for a given recorder_chan
+// ----------------------------------------------------------------------------
+{
+    recorder_chan_shp chanp = recorder_chan_shared(chan);
+    return (const char *) chanp + chanp->name;
+}
+
+
+const char *recorder_chan_description(recorder_chan_p chan)
+// ----------------------------------------------------------------------------
+//   Return the description for a given recorder_chan
+// ----------------------------------------------------------------------------
+{
+    recorder_chan_shp chanp = recorder_chan_shared(chan);
+    return (const char *) chanp + chanp->description;
+}
+
+
+const char *recorder_chan_unit(recorder_chan_p chan)
+// ----------------------------------------------------------------------------
+//   Return the measurement unit for a given recorder_chan
+// ----------------------------------------------------------------------------
+{
+    recorder_chan_shp chanp = recorder_chan_shared(chan);
+    return (const char *) chanp + chanp->unit;
+}
+
+
+recorder_type recorder_chan_type(recorder_chan_p chan)
+// ----------------------------------------------------------------------------
+//   Return the element type for a given recorder_chan
+// ----------------------------------------------------------------------------
+{
+    recorder_chan_shp chanp = recorder_chan_shared(chan);
+    return chanp->type;
+}
+
+
+size_t recorder_chan_size(recorder_chan_p chan)
+// ----------------------------------------------------------------------------
+//   Return the ring size for a given recorder_chan
+// ----------------------------------------------------------------------------
+{
+    recorder_chan_shp chanp = recorder_chan_shared(chan);
+    return chanp->ring.size;
+}
+
+
+size_t recorder_chan_item_size(recorder_chan_p chan)
+// ----------------------------------------------------------------------------
+//   Return the ring item size for a given recorder_chan
+// ----------------------------------------------------------------------------
+{
+    recorder_chan_shp chanp = recorder_chan_shared(chan);
+    return chanp->ring.item_size;
+}
+
+
+size_t recorder_chan_readable(recorder_chan_p chan)
+// ----------------------------------------------------------------------------
+//   Return number of readable elements in ring
+// ----------------------------------------------------------------------------
+{
+    recorder_chan_shp chanp = recorder_chan_shared(chan);
+    return ring_readable(&chanp->ring);
+}
+
+
+size_t recorder_chan_read(recorder_chan_p chan,
+                          recorder_data *ptr, size_t count)
+// ----------------------------------------------------------------------------
+//   Read data from the ring
+// ----------------------------------------------------------------------------
+{
+    recorder_chan_shp chanp = recorder_chan_shared(chan);
+    return ring_read(&chanp->ring, ptr, count, NULL, NULL, NULL);
+}
+
+
+ringidx_t recorder_chan_reader(recorder_chan_p chan)
+// ----------------------------------------------------------------------------
+//   Return current reader index for recorder_chan
+// ----------------------------------------------------------------------------
+{
+    recorder_chan_shp chanp = recorder_chan_shared(chan);
+    return chanp->ring.reader;
+}
+
+
+void recorder_export(recorder_shmem_p  shmem,
+                     recorder_info    *info,
+                     unsigned          index,
+                     recorder_type     type,
+                     size_t            size,
+                     const char       *name,
+                     const char       *descr,
+                     const char       *unit,
+                     recorder_data     min,
+                     recorder_data     max)
+// ----------------------------------------------------------------------------
+//    Export the given recorder recorder_chan to a shared-memory ring
+// ----------------------------------------------------------------------------
+{
+    if (index < 4)
+    {
+        recorder_chan_p chan = info->exported[index];
+        if (chan)
+            recorder_chan_delete(chan);
+        chan = recorder_chan_new(shmem, type, size,
+                                 name, descr, unit, min, max);
+        info->exported[index] = chan;
+    }
+}
+
+
+void recorder_trace_entry(recorder_info *info, recorder_entry *entry)
 // ----------------------------------------------------------------------------
 //   Show a recorder entry when a trace is enabled
 // ----------------------------------------------------------------------------
 {
-    recorder_dump_entry(label, entry,
-                        recorder_format, recorder_show, recorder_output);
+    unsigned i;
+    if (info->trace != INTPTR_MAX)
+        recorder_dump_entry(info->name, entry,
+                            recorder_format, recorder_show, recorder_output);
+    for (i = 0; i < 4; i++)
+    {
+        recorder_chan_p exported = info->exported[i];
+        if (exported)
+        {
+            recorder_chan_shp  chanp  = recorder_chan_shared(exported);
+            ring_p             ring   = &chanp->ring;
+            ringidx_t          writer = ring_fetch_add(ring->writer, 1);
+            recorder_data     *data   = (recorder_data *) (ring + 1);
+            size_t             size   = ring->size;
+            data[writer % size].unsigned_value = entry->args[i];
+            ring_fetch_add(ring->commit, 1);
+        }
+    }
 }
 
+
+
+// ============================================================================
+//
+//   Background dump
+//
+// ============================================================================
 
 RECORDER_TWEAK_DEFINE(recorder_dump_sleep, 100,
                       "Sleep time between background dumps (ms)");

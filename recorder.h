@@ -130,7 +130,7 @@ typedef size_t (*recorder_readable_fn)();
 
 typedef struct recorder_info
 ///----------------------------------------------------------------------------
-///   A linked list of the activated recorders.
+///   A linked list of the activated recorders
 ///----------------------------------------------------------------------------
 {
     intptr_t                trace;      ///< Trace this recorder
@@ -142,6 +142,8 @@ typedef struct recorder_info
     recorder_peek_fn        peek;       ///< Peek first readable entry
     recorder_readable_fn    readable;   ///< Count readable entries
     size_t                  size;       ///< Size (maximum number of entries)
+
+    struct recorder_chan *  exported[4];///< Shared-memory ring export
 } recorder_info;
 
 
@@ -164,7 +166,7 @@ extern void recorder_activate(recorder_info *recorder);
 extern void recorder_tweak_activate(recorder_tweak *tweak);
 
 /// Show one recorder entry when a trace is enabled
-extern void recorder_trace_entry(const char *label, recorder_entry *entry);
+extern void recorder_trace_entry(recorder_info *info, recorder_entry *entry);
 
 /// Activate or deactivate traces (e.g. from command line or env variable)
 extern int recorder_trace_set(const char *set);
@@ -230,7 +232,8 @@ recorder_info recorder_##Name##_info =                                  \
     (recorder_read_fn) recorder_##Name##_read,                          \
     (recorder_peek_fn) recorder_##Name##_peek,                          \
     (recorder_readable_fn) recorder_##Name##_readable,                  \
-    Size                                                                \
+    Size,                                                               \
+    { NULL, NULL, NULL, NULL }                                          \
 };                                                                      \
                                                                         \
                                                                         \
@@ -266,7 +269,7 @@ ringidx_t recorder_##Name##_record(const char *where,                   \
     entry->args[3] = a3;                                                \
     ring_fetch_add(recorder_##Name.ring.commit, 1);                     \
     if (recorder_##Name##_info.trace)                                   \
-        recorder_trace_entry(#Name, entry);                             \
+        recorder_trace_entry(&recorder_##Name##_info, entry);           \
     return writer;                                                      \
 }                                                                       \
                                                                         \
@@ -293,7 +296,7 @@ ringidx_t recorder_##Name##_recfast(const char *where,                  \
     entry->args[3] = a3;                                                \
     ring_fetch_add(recorder_##Name.ring.commit, 1);                     \
     if (recorder_##Name##_info.trace)                                   \
-        recorder_trace_entry(#Name, entry);                             \
+        recorder_trace_entry(&recorder_##Name##_info, entry);           \
     return writer;                                                      \
 }
 
@@ -370,6 +373,104 @@ static void recorder_##Name##_tweak_activate()                          \
 
 RECORDER_DECLARE(signals);
 RECORDER_DECLARE(recorder_trace_set);
+
+
+
+// ============================================================================
+//
+//    Data export from recorders
+//
+// ============================================================================
+
+typedef enum recorder_type
+// ----------------------------------------------------------------------------
+//    Type of data exported
+// ----------------------------------------------------------------------------
+{
+    RECORDER_NONE,              // Nothing exported (end of list)
+    RECORDER_SIGNED,            // Signed value
+    RECORDER_UNSIGNED,          // Unsigned value
+    RECORDER_REAL               // Real number
+} recorder_type;
+
+
+typedef union recorder_data
+// ----------------------------------------------------------------------------
+//    Data exported
+// ----------------------------------------------------------------------------
+{
+    intptr_t    signed_value;
+    uintptr_t   unsigned_value;
+#if INTPTR_MAX < 0x8000000
+    float       real_value;
+#else // Large enough intptr_t
+    double      real_value;
+#endif // INTPTR_MAX
+} recorder_data;
+
+// A collection of data recorder_shmem in memory
+typedef struct recorder_shmem *recorder_shmem_p;
+typedef struct recorder_chan  *recorder_chan_p;
+
+#define RECORDER_CHAN_MAGIC           0xC0DABABE // Historical reference
+#define RECORDER_CHAN_VERSION         0x010000   // Version 1.0.0
+
+
+
+// ============================================================================
+//
+//    Interface for the local process
+//
+// ============================================================================
+
+// Creating recorder_shmem for the local process to write into
+extern recorder_shmem_p recorder_shmem_new(const char *file);
+extern void             recorder_shmem_delete(recorder_shmem_p);
+
+extern recorder_chan_p  recorder_chan_new(recorder_shmem_p shmem,
+                                          recorder_type    type,
+                                          size_t           size,
+                                          const char *     name,
+                                          const char *     description,
+                                          const char *     unit,
+                                          recorder_data    min,
+                                          recorder_data    max);
+extern void             recorder_chan_delete(recorder_chan_p chan);
+
+
+
+// ============================================================================
+//
+//    Subscribing to recorder_shmem in a remote process
+//
+// ============================================================================
+
+// Subscribing to recorder_shmem from another process
+extern recorder_shmem_p recorder_shmem_open(const char *file);
+extern void             recorder_shmem_close(recorder_shmem_p chans);
+
+extern recorder_chan_p  recorder_chan_find(recorder_shmem_p chans,
+                                           const char *pattern,
+                                           recorder_chan_p after);
+extern const char *     recorder_chan_name(recorder_chan_p chan);
+extern const char *     recorder_chan_description(recorder_chan_p chan);
+extern const char *     recorder_chan_unit(recorder_chan_p chan);
+extern recorder_type    recorder_chan_type(recorder_chan_p chan);
+extern size_t           recorder_chan_size(recorder_chan_p chan);
+extern size_t           recorder_chan_readable(recorder_chan_p chan);
+extern size_t           recorder_chan_read(recorder_chan_p chan,
+                                           recorder_data *ptr, size_t count);
+
+extern void recorder_export(recorder_shmem_p  shmem,
+                            recorder_info    *info,
+                            unsigned          index,
+                            recorder_type     type,
+                            size_t            size,
+                            const char       *name,
+                            const char       *descr,
+                            const char       *unit,
+                            recorder_data     min,
+                            recorder_data     max);
 
 
 
