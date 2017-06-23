@@ -293,8 +293,13 @@ but none on `SIGSEGV` or `SIGBUS`, you can use:
 The flight recorder `RECORD` statement is designed to cost so little
 that you should be able to use it practically anywhere, and in
 practically any context, including in signal handlers, interrupt
-handlers, etc. The cost of a `RECORD` call is typically two to ten
-times smaller than a single call to `snprintf` or `malloc`.
+handlers, etc.
+
+As shown in the data below, the cost of a `RECORD` call is faster than
+a corresponding call to`snprintf`, because text formatting is only
+done at dump time. It is comparable to the cost of a best-case
+`malloc` (directly from the free list), and faster than the cost of a
+typical `malloc` (with random size).
 
 Most of the cost is actually from keeping track of time, i.e. updating
 the `timestamp` field. If you need to instrument the tightest loops in
