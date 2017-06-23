@@ -30,47 +30,47 @@ Here is what a recorder dump can look like:
 
     recorder.c:518: [0 0.000000] signals: Activating dump for signal mask 0xE3001C58
     recorder_test.c:126: [1 0.000008] MAIN: Launching 16 normal recorder threads
-    recorder_test.c:128: [2 0.000046] MAIN: Starting normal speed test for 10s with 16 threads
-    recorder_test.c:137: [2477 0.000236] MAIN: Normal recorder testing in progress, please wait about 10s
-    recorder_test.c:141: [186882846 10.004211] MAIN: Normal recorder testing completed, stopping threads
-    recorder_test.c:98: [186883148 10.004228] SpeedTest: [10] Recording 11692891 thread 0
-    recorder_test.c:98: [186883149 10.004228] SpeedTest: [2] Recording 11598777 thread 0
-    recorder_test.c:98: [186883150 10.004228] SpeedTest: [5] Recording 11726545 thread 0
-    recorder_test.c:98: [186883151 10.004228] SpeedTest: [1] Recording 11751857 thread 0
-    recorder_test.c:98: [186883152 10.004228] SpeedTest: [14] Recording 11584014 thread 0
-    recorder_test.c:98: [186883153 10.004228] SpeedTest: [3] Recording 11688026 thread 0
-    recorder_test.c:98: [186883154 10.004228] SpeedTest: [10] Recording 11692892 thread 0
-    recorder_test.c:98: [186883155 10.004228] SpeedTest: [11] Recording 11709061 thread 0
-    recorder_test.c:98: [186883156 10.004228] SpeedTest: [2] Recording 11598778 thread 0
-    recorder_test.c:98: [186883157 10.004228] SpeedTest: [1] Recording 11751858 thread 0
-    recorder_test.c:98: [186883158 10.004228] SpeedTest: [3] Recording 11688027 thread 0
-    recorder_test.c:98: [186883159 10.004229] SpeedTest: [14] Recording 11584015 thread 0
-    recorder_test.c:98: [186693974 10.004269] SpeedTest: [15] Recording 11681594 thread 0
-    recorder_test.c:98: [186881080 10.004325] SpeedTest: [4] Recording 11711794 thread 0
-    recorder_test.c:98: [186883161 10.004229] SpeedTest: [3] Recording 11688028 thread 0
-    recorder_test.c:98: [186883163 10.004229] SpeedTest: [11] Recording 11709062 thread 0
-    recorder_test.c:98: [186760922 10.004275] SpeedTest: [9] Recording 11709856 thread 0
-    recorder_test.c:98: [186883165 10.004229] SpeedTest: [1] Recording 11751859 thread 0
-    recorder_test.c:98: [186883167 10.004229] SpeedTest: [10] Recording 11692894 thread 0
-    recorder_test.c:98: [186815805 10.004321] SpeedTest: [12] Recording 11649639 thread 0
-    recorder_test.c:98: [186883168 10.004229] SpeedTest: [14] Recording 11584017 thread 0
-    recorder_test.c:98: [186883169 10.004229] SpeedTest: [11] Recording 11709063 thread 0
-    recorder_test.c:147: [186883179 10.004230] Pauses: Waiting for recorder threads to stop, 16 remaining
-    recorder_test.c:89: [186883180 10.004247] Pauses: Pausing #0 2401.618us
-    recorder_test.c:98: [186883181 10.004274] SpeedTest: [7] Recording 11626151 thread 0
-    recorder_test.c:98: [186797697 10.004275] SpeedTest: [13] Recording 11715007 thread 0
-    recorder_test.c:98: [186883172 10.004229] SpeedTest: [10] Recording 11692895 thread 0
-    recorder_test.c:98: [186883171 10.004229] SpeedTest: [14] Recording 11584018 thread 0
-    recorder_test.c:98: [186883173 10.004229] SpeedTest: [3] Recording 11688030 thread 0
-    recorder_test.c:98: [186883175 10.004230] SpeedTest: [1] Recording 11751861 thread 0
-    recorder_test.c:98: [186883177 10.004230] SpeedTest: [11] Recording 11709064 thread 0
-    recorder_test.c:98: [186883176 10.004230] SpeedTest: [14] Recording 11584019 thread 0
-    recorder_test.c:98: [186883178 10.004230] SpeedTest: [10] Recording 11692896 thread 0
-    recorder_test.c:151: [186883182 10.007298] MAIN: Normal test: all threads have stopped, 186883175 iterations
-    recorder_test.c:165: [186883183 10.007320] MAIN: Recorder test complete (Normal version), 16 threads.
-    recorder_test.c:166: [186883184 10.007331] MAIN:   Iterations      =  186883175
-    recorder_test.c:167: [186883185 10.007332] MAIN:   Iterations / ms =      18688
-    recorder_test.c:169: [186883186 10.007333] MAIN:   Record cost     =         53n
+    recorder_test.c:128: [2 0.000045] MAIN: Starting normal speed test for 10s with 16 threads
+    recorder_test.c:137: [2392 0.000230] MAIN: Normal recorder testing in progress, please wait about 10s
+    recorder_test.c:141: [198750457 9.999914] MAIN: Normal recorder testing completed, stopping threads
+    recorder_test.c:98: [198750757 9.999929] SpeedTest: [thread 3] Recording 12448096
+    recorder_test.c:98: [198750760 9.999955] SpeedTest: [thread 7] Recording 12527067
+    recorder_test.c:98: [198750758 9.999929] SpeedTest: [thread 15] Recording 12379912
+    recorder_test.c:98: [198750759 9.999929] SpeedTest: [thread 8] Recording 12446846
+    recorder_test.c:98: [198750761 9.999929] SpeedTest: [thread 5] Recording 12429933
+    recorder_test.c:147: [198750785 9.999930] Pauses: Waiting for recorder threads to stop, 16 remaining
+    recorder_test.c:89: [198750787 9.999946] Pauses: Pausing #0 2401.618us
+    recorder_test.c:98: [198750789 10.000008] SpeedTest: [thread 11] Recording 12385726
+    recorder_test.c:98: [198750763 9.999929] SpeedTest: [thread 3] Recording 12448097
+    recorder_test.c:98: [198750765 9.999929] SpeedTest: [thread 13] Recording 12336853
+    recorder_test.c:98: [198750764 9.999929] SpeedTest: [thread 15] Recording 12379913
+    recorder_test.c:98: [198750767 9.999929] SpeedTest: [thread 8] Recording 12446847
+    recorder_test.c:98: [198750766 9.999929] SpeedTest: [thread 5] Recording 12429934
+    recorder_test.c:98: [198738706 10.000035] SpeedTest: [thread 9] Recording 12423995
+    recorder_test.c:98: [198750769 9.999929] SpeedTest: [thread 15] Recording 12379914
+    recorder_test.c:98: [198750770 9.999929] SpeedTest: [thread 3] Recording 12448098
+    recorder_test.c:98: [198750771 9.999929] SpeedTest: [thread 13] Recording 12336854
+    recorder_test.c:98: [198750772 9.999929] SpeedTest: [thread 8] Recording 12446848
+    recorder_test.c:98: [198750773 9.999929] SpeedTest: [thread 5] Recording 12429935
+    recorder_test.c:98: [198750774 9.999929] SpeedTest: [thread 10] Recording 12481275
+    recorder_test.c:98: [198750775 9.999929] SpeedTest: [thread 15] Recording 12379915
+    recorder_test.c:98: [198750776 9.999929] SpeedTest: [thread 3] Recording 12448099
+    recorder_test.c:98: [198750777 9.999929] SpeedTest: [thread 13] Recording 12336855
+    recorder_test.c:98: [198750778 9.990261] SpeedTest: [thread 2] Recording 12374034
+    recorder_test.c:98: [198750780 9.999930] SpeedTest: [thread 8] Recording 12446849
+    recorder_test.c:98: [198750779 9.999930] SpeedTest: [thread 15] Recording 12379916
+    recorder_test.c:98: [198750781 9.999930] SpeedTest: [thread 10] Recording 12481276
+    recorder_test.c:98: [198750782 9.999930] SpeedTest: [thread 5] Recording 12429937
+    recorder_test.c:98: [198750784 9.999930] SpeedTest: [thread 3] Recording 12448100
+    recorder_test.c:98: [198750783 9.999930] SpeedTest: [thread 15] Recording 12379917
+    recorder_test.c:98: [198750786 9.999930] SpeedTest: [thread 13] Recording 12336856
+    recorder_test.c:98: [198750788 9.999971] SpeedTest: [thread 12] Recording 12356775
+    recorder_test.c:98: [198750790 10.000029] SpeedTest: [thread 4] Recording 12412805
+    recorder_test.c:151: [198750791 10.003075] MAIN: Normal test: all threads have stopped, 198750784 iterations
+    recorder_test.c:165: [198750792 10.003117] MAIN: Recorder test complete (Normal version), 16 threads.
+    recorder_test.c:166: [198750793 10.003119] MAIN:   Iterations      =  198750784
+    recorder_test.c:167: [198750794 10.003121] MAIN:   Iterations / ms =      19875
+    recorder_test.c:169: [198750795 10.003122] MAIN:   Record cost     =         50ns
 
 Lines begin with the source code location in the program where the
 record was taken. The number following the source location is the
@@ -401,19 +401,19 @@ The example of recorder dump given at the beginning of this document
 shows record entries that are printed out of order, and with
 non-monotonic time stamps.
 
-Here is an example of non-monotonic timestamp (notice that time goes
-backwards):
+Here is an example of non-monotonic timestamp (notice that time for
+thread 7 is ahead of time for thread 3 and thread 15):
 
-    recorder_test.c:98: [186797697 10.004275] SpeedTest: [13] Recording 11715007 thread 0
-    recorder_test.c:98: [186883172 10.004229] SpeedTest: [10] Recording 11692895 thread 0
+    recorder_test.c:98: [198750757 9.999929] SpeedTest: [thread 3] Recording 12448096
+    recorder_test.c:98: [198750760 9.999955] SpeedTest: [thread 7] Recording 12527067
+    recorder_test.c:98: [198750758 9.999929] SpeedTest: [thread 15] Recording 12379912
 
 Here is an example of the entries being out of order (notice that the
-order ending in 76 is between those ending in 77 and 78):
+order ending in 80 is between those ending in 78 and 79):
 
-    recorder_test.c:98: [186883175 10.004230] SpeedTest: [1] Recording 11751861 thread 0
-    recorder_test.c:98: [186883177 10.004230] SpeedTest: [11] Recording 11709064 thread 0
-    recorder_test.c:98: [186883176 10.004230] SpeedTest: [14] Recording 11584019 thread 0
-    recorder_test.c:98: [186883178 10.004230] SpeedTest: [10] Recording 11692896 thread 0
+    recorder_test.c:98: [198750778 9.990261] SpeedTest: [thread 2] Recording 12374034
+    recorder_test.c:98: [198750780 9.999930] SpeedTest: [thread 8] Recording 12446849
+    recorder_test.c:98: [198750779 9.999930] SpeedTest: [thread 15] Recording 12379916
 
 
 This is normal behaviour under heavy load, but requires an
