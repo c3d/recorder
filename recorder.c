@@ -302,8 +302,6 @@ unsigned recorder_sort(const char *what,
 //   Dump all entries, sorted by their global 'order' field
 // ----------------------------------------------------------------------------
 {
-    ring_fetch_add(recorder_blocked, 1);
-
     recorder_entry entry;
     regex_t        re;
     unsigned       dumped = 0;
@@ -346,7 +344,6 @@ unsigned recorder_sort(const char *what,
     }
 
     regfree(&re);
-    ring_fetch_add(recorder_blocked, -1);
 
     return dumped;
 }
@@ -415,6 +412,8 @@ void recorder_background_dump(const char *what)
 {
     pthread_t tid;
     background_dump_running = true;
+    if (strcmp(what, "all") == 0)
+        what = ".*";
     pthread_create(&tid, NULL, background_dump, (void *) what);
 }
 
@@ -576,6 +575,11 @@ void recorder_dump_on_common_signals(unsigned add, unsigned remove)
     // Normally, this is called after constructors have run, so this is
     // a good time to check environment settings
     recorder_trace_set(getenv("RECORDER_TRACES"));
+    recorder_trace_set(getenv("RECORDER_TWEAKS"));
+
+    const char *dump_pattern = getenv("RECORDER_DUMP");
+    if (dump_pattern)
+        recorder_background_dump(dump_pattern);
 
     unsigned sig;
     unsigned signals = (add | RECORDER_TWEAK(recorder_signals)) & ~remove;

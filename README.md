@@ -240,11 +240,12 @@ Three values for the trace specification have special meaning:
   regular expression.
 
 
-## Using the RECORDER_TRACES environment variables
+## Using the RECORDER_TRACES and RECORDER_DUMP environment variables
 
 If your application calls `recorder_dump_on_common_signals` (see below),
  then traces will be activated or deactivated according to the
-`RECORDER_TRACES` environment variable.
+`RECORDER_TRACES` environment variable, and background dump can be
+ activated according to the `RECORDER_DUMP` environment variable.
 
 Your application can define traces from another application-specific
 environment variable with code like:

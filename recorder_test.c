@@ -192,8 +192,6 @@ void flight_recorder_test(int argc, char **argv)
 int main(int argc, char **argv)
 {
     recorder_dump_on_common_signals(0, 0);
-    if (getenv("BACKGROUND_DUMP"))
-        recorder_background_dump("MAIN|Special");
     flight_recorder_test(argc, argv);
     return failed;
 }
