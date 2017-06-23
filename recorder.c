@@ -669,7 +669,8 @@ int recorder_trace_set(const char *param_spec)
         printf("List of available tweaks:\n");
         for (tweak = tweaks; tweak; tweak = tweak->next)
             printf("%20s : %s = %ld (0x%lX) \n",
-                   tweak->name, tweak->description, tweak->tweak, tweak->tweak);
+                   tweak->name, tweak->description,
+                   (long) tweak->tweak, (long) tweak->tweak);
 
         return 0;
     }
