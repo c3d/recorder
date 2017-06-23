@@ -47,6 +47,9 @@ unsigned        recorder_blocked = 0;
 /// List of the currently active flight recorders (ring buffers)
 recorder_info * recorders        = NULL;
 
+/// List of the currently active tweaks
+recorder_tweak *tweaks           = NULL;
+
 
 static void recorder_dump_entry(const char         *label,
                                 recorder_entry     *entry,
@@ -462,6 +465,56 @@ void recorder_dump_on_signal(int sig)
 #endif // HAVE_STRUCT_SIGACTION
 
 
+enum
+{
+    RECORDER_SIGNALS_MASK = 0
+#ifdef SIGQUIT
+    | (1U << SIGQUIT)
+#endif // SIGQUIT
+#ifdef SIGILL
+    | (1U << SIGILL)
+#endif // SIGILL
+#ifdef SIGABRT
+    | (1U << SIGABRT)
+#endif // SIGABRT
+#ifdef SIGBUS
+    | (1U << SIGBUS)
+#endif // SIGBUS
+#ifdef SIGSEGV
+    | (1U << SIGSEGV)
+#endif // SIGSEGV
+#ifdef SIGSYS
+    | (1U << SIGSYS)
+#endif // SIGSYS
+#ifdef SIGXCPU
+    | (1U << SIGXCPU)
+#endif // SIGXCPU
+#ifdef SIGXFSZ
+    | (1U << SIGXFSZ)
+#endif // SIGXFSZ
+#ifdef SIGINFO
+    | (1U << SIGINFO)
+#endif // SIGINFO
+#ifdef SIGUSR1
+    | (1U << SIGUSR1)
+#endif // SIGUSR1
+#ifdef SIGUSR2
+    | (1U << SIGUSR2)
+#endif // SIGUSR2
+#ifdef SIGSTKFLT
+    | (1U << SIGSTKFLT)
+#endif // SIGSTKFLT
+#ifdef SIGPWR
+    | (1U << SIGPWR)
+#endif // SIGPWR
+};
+
+
+RECORDER_TWEAK_DEFINE(recorder_signals,
+                      RECORDER_SIGNALS_MASK,
+                      "Default mask for signals");
+
+
 void recorder_dump_on_common_signals(unsigned add, unsigned remove)
 // ----------------------------------------------------------------------------
 //    Easy interface to dump on the most common signals
@@ -472,48 +525,7 @@ void recorder_dump_on_common_signals(unsigned add, unsigned remove)
     recorder_trace_set(getenv("RECORDER_TRACES"));
 
     unsigned sig;
-    unsigned signals = add
-#ifdef SIGQUIT
-        | (1U << SIGQUIT)
-#endif // SIGQUIT
-#ifdef SIGILL
-        | (1U << SIGILL)
-#endif // SIGILL
-#ifdef SIGABRT
-        | (1U << SIGABRT)
-#endif // SIGABRT
-#ifdef SIGBUS
-        | (1U << SIGBUS)
-#endif // SIGBUS
-#ifdef SIGSEGV
-        | (1U << SIGSEGV)
-#endif // SIGSEGV
-#ifdef SIGSYS
-        | (1U << SIGSYS)
-#endif // SIGSYS
-#ifdef SIGXCPU
-        | (1U << SIGXCPU)
-#endif // SIGXCPU
-#ifdef SIGXFSZ
-        | (1U << SIGXFSZ)
-#endif // SIGXFSZ
-#ifdef SIGINFO
-        | (1U << SIGINFO)
-#endif // SIGINFO
-#ifdef SIGUSR1
-        | (1U << SIGUSR1)
-#endif // SIGUSR1
-#ifdef SIGUSR2
-        | (1U << SIGUSR2)
-#endif // SIGUSR2
-#ifdef SIGSTKFLT
-        | (1U << SIGSTKFLT)
-#endif // SIGSTKFLT
-#ifdef SIGPWR
-        | (1U << SIGPWR)
-#endif // SIGPWR
-        ;
-    signals &= ~remove;
+    unsigned signals = (add | RECORDER_TWEAK(recorder_signals)) & ~remove;
 
     RECORD(signals, "Activating dump for signal mask 0x%X", signals);
     for (sig = 0; signals; sig++)
@@ -559,10 +571,20 @@ void recorder_activate (recorder_info *recorder)
 //   Activate the given recorder by putting it in linked list
 // ----------------------------------------------------------------------------
 {
-    /* This was the first write in this recorder, put it in list */
     recorder_info  *head = recorders;
     do { recorder->next = head; }
     while (!ring_compare_exchange(recorders, head, recorder));
+}
+
+
+void recorder_tweak_activate (recorder_tweak *tweak)
+// ----------------------------------------------------------------------------
+//   Activate the given recorder by putting it in linked list
+// ----------------------------------------------------------------------------
+{
+    recorder_tweak  *head = tweaks;
+    do { tweak->next = head; }
+    while (!ring_compare_exchange(tweaks, head, tweak));
 }
 
 
@@ -573,12 +595,13 @@ int recorder_trace_set(const char *param_spec)
 //   Activate given traces
 // ----------------------------------------------------------------------------
 {
-    const char    *next = param_spec;
-    char           buffer[128];
-    int            rc   = RECORDER_TRACE_OK;
-    recorder_info *rec;
-    regex_t        re;
-    static char    error[128];
+    const char     *next = param_spec;
+    char            buffer[128];
+    int             rc   = RECORDER_TRACE_OK;
+    recorder_info  *rec;
+    recorder_tweak *tweak;
+    regex_t         re;
+    static char     error[128];
 
     // Facilitate usage such as: recorder_trace_set(getenv("RECORDER_TRACES"))
     if (!param_spec)
@@ -588,7 +611,13 @@ int recorder_trace_set(const char *param_spec)
     {
         printf("List of available recorders:\n");
         for (rec = recorders; rec; rec = rec->next)
-            printf("%15s : %s\n", rec->name, rec->description);
+            printf("%20s : %s\n", rec->name, rec->description);
+
+        printf("List of available tweaks:\n");
+        for (tweak = tweaks; tweak; tweak = tweak->next)
+            printf("%20s : %s = %ld (0x%lX) \n",
+                   tweak->name, tweak->description, tweak->tweak, tweak->tweak);
+
         return 0;
     }
     if (strcmp(param_spec, "all") == 0)
@@ -660,13 +689,21 @@ int recorder_trace_set(const char *param_spec)
             for (rec = recorders; rec; rec = rec->next)
             {
                 int re_result = regexec(&re, rec->name, 0, NULL, 0);
-                RECORD(recorder_trace_set, "Testing %s: re_result=%d",
-                       rec->name, re_result);
                 if (re_result == 0)
                 {
                     RECORD(recorder_trace_set, "Set %s from %ld to %ld",
                            rec->name, rec->trace, value);
                     rec->trace = value;
+                }
+            }
+            for (tweak = tweaks; tweak; tweak = tweak->next)
+            {
+                int re_result = regexec(&re, tweak->name, 0, NULL, 0);
+                if (re_result == 0)
+                {
+                    RECORD(recorder_trace_set, "Set tweak %s from %ld to %ld",
+                           tweak->name, tweak->tweak, value);
+                    tweak->tweak = value;
                 }
             }
         }

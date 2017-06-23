@@ -23,7 +23,7 @@ capture events from different subsystems. When a recorder dump occurs,
 events from different recorders are sorted so that you get a picture
 of how the systems interacted. Different recorders can have different
 size and different refresh rates, but a very fast recorder will not
-push away data from a slower one. This ensure you can record
+push away data from a slower one. This ensures that you can record
 important, but slow, events, as well as much more frequent ones.
 
 Here is what a recorder dump can look like:
@@ -281,6 +281,15 @@ While this is less-often useful, it is also possible to assign to a
 recorder trace value, for example:
 
     RECORDER_TRACE(foo_loops) = 1000;
+
+A given instrumentation or program behavior may require multiple
+configurable options, or *tweaks*. The `RECORDER_TWEAK_DEFINE` defines
+a tweak adn its initial value. The `RECORDER_TWEAK` macro accesses the
+value of a tweak (at a cost comparable to accessing a global
+variable).
+
+    RECORDER_TWEAK_DEFINE(foo_loop, 600, "Number of foo iterations");
+    for (int i = 0; i < RECORDER_TWEAK(foo_loops); i++) { foo(); }
 
 
 ## Reacting to signals
