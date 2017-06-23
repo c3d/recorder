@@ -195,14 +195,16 @@ regular expression given as an argument:
     recorder_dump_for(".*TIMING.*"); // Dumps "TIMING", but also "MY_TIMING_2"
 
 During a dump, events are sorted according to the global event order.
-
 Note that sorting only happens across recorders. Within a single
-recorder, events may be out of order. For example, CPU1 may get order
-1, CPU2 then gets order 2, then CPU2 writes its record entry, then
-CPU1. In that case, the recorder will contain entry 2, then entry 1.
+recorder, events may be out of order, see *Multithreading
+considerations* below.
 
-In other words, recorder entries are only sorted across different
-recorders, but may be out of order within the same recorder.
+The function `recorder_background_dump(pattern)` launches a background
+thread that dumps the recorders selected by `pattern` at regular
+interval. The sleep time in milliseconds between recorder dumps is
+configured by a recorder tweak named `recorder_dump_sleep`, which
+defaults to 100 ms. The background dump can be stopped by calling the
+`recorder_background_stop` function.
 
 
 ## Recorder tracing

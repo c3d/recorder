@@ -28,6 +28,7 @@
 #include <unistd.h>
 #include <signal.h>
 #include <regex.h>
+#include <pthread.h>
 #include <sys/time.h>
 
 
@@ -294,9 +295,9 @@ recorder_format_fn recorder_configure_format(recorder_format_fn format)
 }
 
 
-void recorder_sort(const char *what,
-                   recorder_format_fn format,
-                   recorder_show_fn show, void *output)
+unsigned recorder_sort(const char *what,
+                       recorder_format_fn format,
+                       recorder_show_fn show, void *output)
 // ----------------------------------------------------------------------------
 //   Dump all entries, sorted by their global 'order' field
 // ----------------------------------------------------------------------------
@@ -305,6 +306,7 @@ void recorder_sort(const char *what,
 
     recorder_entry entry;
     regex_t        re;
+    unsigned       dumped = 0;
 
     int status = regcomp(&re, what, REG_EXTENDED|REG_NOSUB|REG_ICASE);
 
@@ -340,28 +342,31 @@ void recorder_sort(const char *what,
             continue;
 
         recorder_dump_entry(lowest->name, &entry, format, show, output);
+        dumped++;
     }
 
     regfree(&re);
     ring_fetch_add(recorder_blocked, -1);
+
+    return dumped;
 }
 
 
-void recorder_dump(void)
+unsigned recorder_dump(void)
 // ----------------------------------------------------------------------------
 //   Dump all entries, sorted by their global 'order' field
 // ----------------------------------------------------------------------------
 {
-    recorder_sort(".*", recorder_format, recorder_show, recorder_output);
+    return recorder_sort(".*", recorder_format,recorder_show,recorder_output);
 }
 
 
-void recorder_dump_for(const char *what)
+unsigned recorder_dump_for(const char *what)
 // ----------------------------------------------------------------------------
 //   Dump all entries for recorder with names matching 'what'
 // ----------------------------------------------------------------------------
 {
-    recorder_sort(what, recorder_format, recorder_show, recorder_output);
+    return recorder_sort(what, recorder_format,recorder_show,recorder_output);
 }
 
 
@@ -372,6 +377,54 @@ void recorder_trace_entry(const char *label, recorder_entry *entry)
 {
     recorder_dump_entry(label, entry,
                         recorder_format, recorder_show, recorder_output);
+}
+
+
+RECORDER_TWEAK_DEFINE(recorder_dump_sleep, 100,
+                      "Sleep time between background dumps (ms)");
+
+static bool background_dump_running = false;
+
+
+static void *background_dump(void *pattern)
+// ----------------------------------------------------------------------------
+//    Dump the recorder (background thread)
+// ----------------------------------------------------------------------------
+{
+    const char *what = pattern;
+    while (background_dump_running)
+    {
+        unsigned dumped = recorder_sort(what, recorder_format,
+                                        recorder_show, recorder_output);
+        if (dumped == 0)
+        {
+            struct timespec tm;
+            tm.tv_sec  = 0;
+            tm.tv_nsec = 1000000 * RECORDER_TWEAK(recorder_dump_sleep);
+            nanosleep(&tm, NULL);
+        }
+    }
+    return pattern;
+}
+
+
+void recorder_background_dump(const char *what)
+// ----------------------------------------------------------------------------
+//   Dump the selected recorders, sleeping sleep_ms if nothing to dump
+// ----------------------------------------------------------------------------
+{
+    pthread_t tid;
+    background_dump_running = true;
+    pthread_create(&tid, NULL, background_dump, (void *) what);
+}
+
+
+void recorder_background_dump_stop(void)
+// ----------------------------------------------------------------------------
+//   Stop the background dump task
+// ----------------------------------------------------------------------------
+{
+    background_dump_running = false;
 }
 
 

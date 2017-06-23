@@ -82,8 +82,8 @@ unsigned threads_to_stop = 0;
 void dawdle(unsigned minimumMs)
 {
     struct timespec tm;
-    tm.tv_sec = 0;
-    tm.tv_nsec =  + minimumMs * (1000 * 1000 + lrand48() % 2000000);
+    tm.tv_sec  = 0;
+    tm.tv_nsec = minimumMs * (1000 * 1000 + lrand48() % 2000000);
     RECORD(Pauses, "Pausing #%u %ld.%03dus",
            ring_fetch_add(pauses_count, 1),
            tm.tv_nsec / 1000, tm.tv_nsec % 1000);
@@ -192,6 +192,8 @@ void flight_recorder_test(int argc, char **argv)
 int main(int argc, char **argv)
 {
     recorder_dump_on_common_signals(0, 0);
+    if (getenv("BACKGROUND_DUMP"))
+        recorder_background_dump("MAIN|Special");
     flight_recorder_test(argc, argv);
     return failed;
 }

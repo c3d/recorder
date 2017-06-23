@@ -40,10 +40,10 @@ extern "C" {
 //  happened in your program until this point
 
 // Dump all recorder entries for all recorders, sorted between recorders
-extern void recorder_dump(void);
+extern unsigned recorder_dump(void);
 
 // Dump all recorder entries with a name matching regular expression 'what'
-extern void recorder_dump_for(const char *what);
+extern unsigned recorder_dump_for(const char *what);
 
 // Dump recorder entries on signal
 extern void recorder_dump_on_signal(int signal);
@@ -72,9 +72,13 @@ extern recorder_show_fn   recorder_configure_show(recorder_show_fn show);
 extern recorder_format_fn recorder_configure_format(recorder_format_fn format);
 
 // Sort recorder entries with specific format and output functions
-extern void recorder_sort(const char *what,
-                          recorder_format_fn format,
-                          recorder_show_fn show, void *show_arg);
+extern unsigned recorder_sort(const char *what,
+                              recorder_format_fn format,
+                              recorder_show_fn show, void *show_arg);
+
+// Background recorder dump thread
+extern void recorder_background_dump(const char *what);
+extern void recorder_background_dump_stop(void);
 
 
 
