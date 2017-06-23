@@ -28,33 +28,68 @@ important, but slow, events, as well as much more frequent ones.
 
 Here is what a recorder dump can look like:
 
-     recorder_test.c:95: [64944745 10.001962] SpeedTest: Recording 64944741
-     recorder_test.c:88: [64944746 10.001979] Pauses: Pausing #0 2401.618us
-     recorder_test.c:95: [64944747 10.001986] SpeedTest: Recording 64944729
-     recorder_test.c:95: [64944540 10.001940] SpeedTest: Recording 64944537
-     recorder_test.c:95: [64944523 10.001998] SpeedTest: Recording 64944520
-     recorder_test.c:95: [64885029 9.992381] SpeedTest: Recording 64885026
-     recorder_test.c:95: [64883353 9.992112] SpeedTest: Recording 64883349
-     recorder_test.c:95: [64936311 10.002076] SpeedTest: Recording 64936306
-     recorder_test.c:95: [64944748 10.002082] SpeedTest: Recording 64938309
-     recorder_test.c:125: [64944749 10.005009] MAIN: All threads have stopped.
-     recorder_test.c:137: [64944750 10.005034] MAIN: Recorder test complete, 16 threads.
-     recorder_test.c:138: [64944751 10.005035] MAIN:   Iterations           =   64944742
-     recorder_test.c:139: [64944752 10.005037] MAIN:   Iterations / ms      =       6494
-     recorder_test.c:141: [64944753 10.005038] MAIN:   Duration per record  =        153ns
+    recorder.c:518: [0 0.000000] signals: Activating dump for signal mask 0xE3001C58
+    recorder_test.c:126: [1 0.000008] MAIN: Launching 16 normal recorder threads
+    recorder_test.c:128: [2 0.000046] MAIN: Starting normal speed test for 10s with 16 threads
+    recorder_test.c:137: [2477 0.000236] MAIN: Normal recorder testing in progress, please wait about 10s
+    recorder_test.c:141: [186882846 10.004211] MAIN: Normal recorder testing completed, stopping threads
+    recorder_test.c:98: [186883148 10.004228] SpeedTest: [10] Recording 11692891 thread 0
+    recorder_test.c:98: [186883149 10.004228] SpeedTest: [2] Recording 11598777 thread 0
+    recorder_test.c:98: [186883150 10.004228] SpeedTest: [5] Recording 11726545 thread 0
+    recorder_test.c:98: [186883151 10.004228] SpeedTest: [1] Recording 11751857 thread 0
+    recorder_test.c:98: [186883152 10.004228] SpeedTest: [14] Recording 11584014 thread 0
+    recorder_test.c:98: [186883153 10.004228] SpeedTest: [3] Recording 11688026 thread 0
+    recorder_test.c:98: [186883154 10.004228] SpeedTest: [10] Recording 11692892 thread 0
+    recorder_test.c:98: [186883155 10.004228] SpeedTest: [11] Recording 11709061 thread 0
+    recorder_test.c:98: [186883156 10.004228] SpeedTest: [2] Recording 11598778 thread 0
+    recorder_test.c:98: [186883157 10.004228] SpeedTest: [1] Recording 11751858 thread 0
+    recorder_test.c:98: [186883158 10.004228] SpeedTest: [3] Recording 11688027 thread 0
+    recorder_test.c:98: [186883159 10.004229] SpeedTest: [14] Recording 11584015 thread 0
+    recorder_test.c:98: [186693974 10.004269] SpeedTest: [15] Recording 11681594 thread 0
+    recorder_test.c:98: [186881080 10.004325] SpeedTest: [4] Recording 11711794 thread 0
+    recorder_test.c:98: [186883161 10.004229] SpeedTest: [3] Recording 11688028 thread 0
+    recorder_test.c:98: [186883163 10.004229] SpeedTest: [11] Recording 11709062 thread 0
+    recorder_test.c:98: [186760922 10.004275] SpeedTest: [9] Recording 11709856 thread 0
+    recorder_test.c:98: [186883165 10.004229] SpeedTest: [1] Recording 11751859 thread 0
+    recorder_test.c:98: [186883167 10.004229] SpeedTest: [10] Recording 11692894 thread 0
+    recorder_test.c:98: [186815805 10.004321] SpeedTest: [12] Recording 11649639 thread 0
+    recorder_test.c:98: [186883168 10.004229] SpeedTest: [14] Recording 11584017 thread 0
+    recorder_test.c:98: [186883169 10.004229] SpeedTest: [11] Recording 11709063 thread 0
+    recorder_test.c:147: [186883179 10.004230] Pauses: Waiting for recorder threads to stop, 16 remaining
+    recorder_test.c:89: [186883180 10.004247] Pauses: Pausing #0 2401.618us
+    recorder_test.c:98: [186883181 10.004274] SpeedTest: [7] Recording 11626151 thread 0
+    recorder_test.c:98: [186797697 10.004275] SpeedTest: [13] Recording 11715007 thread 0
+    recorder_test.c:98: [186883172 10.004229] SpeedTest: [10] Recording 11692895 thread 0
+    recorder_test.c:98: [186883171 10.004229] SpeedTest: [14] Recording 11584018 thread 0
+    recorder_test.c:98: [186883173 10.004229] SpeedTest: [3] Recording 11688030 thread 0
+    recorder_test.c:98: [186883175 10.004230] SpeedTest: [1] Recording 11751861 thread 0
+    recorder_test.c:98: [186883177 10.004230] SpeedTest: [11] Recording 11709064 thread 0
+    recorder_test.c:98: [186883176 10.004230] SpeedTest: [14] Recording 11584019 thread 0
+    recorder_test.c:98: [186883178 10.004230] SpeedTest: [10] Recording 11692896 thread 0
+    recorder_test.c:151: [186883182 10.007298] MAIN: Normal test: all threads have stopped, 186883175 iterations
+    recorder_test.c:165: [186883183 10.007320] MAIN: Recorder test complete (Normal version), 16 threads.
+    recorder_test.c:166: [186883184 10.007331] MAIN:   Iterations      =  186883175
+    recorder_test.c:167: [186883185 10.007332] MAIN:   Iterations / ms =      18688
+    recorder_test.c:169: [186883186 10.007333] MAIN:   Record cost     =         53n
 
+Lines begin with the source code location in the program where the
+record was taken. The number following the source location is the
+*order* of records, a global sequence number that helps relate records
+made in different recorders or from different threads.
+The order is followed by a *timestamp*, which counds the number of
+seconds since the start of the program. On 32-bit machines,
+the timestamp is precise to the ms. On 64-bit machines, it is precise to the
+microsecond. Finally, the rest of the record is a printout of what was
+recorded.
 
-The first column is the *order* of records, a sequence number that
-helps relate records made from different threads. The second column is
-the time stamp in seconds from the first record. On 32-bit machines,
-it is precise to the ms. On 64-bit machines, it is precise to the
-microsecond. The third column is the location in the program where the
-record was taken, which you can use in a debugger to identify the code
-that was recording. The last part of the record is what was recorded.
+The recorder dump is generally sorted according to order and should
+show time stamps in increasing order. However, as the example above
+shows, this may not always be the case. See *Multithreading
+considerations* below for an explanation of what this means.
 
-See
-[this blog article](https://grenouillebouillie.wordpress.com/2016/12/09/a-real-time-lock-free-multi-cpu-flight-recorder)
+See [this blog article](https://grenouillebouillie.wordpress.com/2016/12/09/a-real-time-lock-free-multi-cpu-flight-recorder)
 for a more extensive description of the design and rationale.
+
 
 ## Building the recorder library
 
@@ -358,3 +393,39 @@ The platforms that were tested are:
 
 * Pi-2: Second generation Raspberry Pi, 4-way ARMv7 CPU, running
   Raspbian Linux with kernel 4.4.50, GCC 4.9.2
+
+
+## Multithreading considerations
+
+The example of recorder dump given at the beginning of this document
+shows record entries that are printed out of order, and with
+non-monotonic time stamps.
+
+Here is an example of non-monotonic timestamp (notice that time goes
+backwards):
+
+    recorder_test.c:98: [186797697 10.004275] SpeedTest: [13] Recording 11715007 thread 0
+    recorder_test.c:98: [186883172 10.004229] SpeedTest: [10] Recording 11692895 thread 0
+
+Here is an example of the entries being out of order (notice that the
+order ending in 76 is between those ending in 77 and 78):
+
+    recorder_test.c:98: [186883175 10.004230] SpeedTest: [1] Recording 11751861 thread 0
+    recorder_test.c:98: [186883177 10.004230] SpeedTest: [11] Recording 11709064 thread 0
+    recorder_test.c:98: [186883176 10.004230] SpeedTest: [14] Recording 11584019 thread 0
+    recorder_test.c:98: [186883178 10.004230] SpeedTest: [10] Recording 11692896 thread 0
+
+
+This is normal behaviour under heavy load, but requires an
+explanation. The `RECORD` statements can be performed simultaneously
+from multiple threads. If there is "contention", i.e. if multiple CPUs
+are attempting to write at the same time, one CPU may acquire its
+order and timestamp *before* another CPU, but may end up writing the
+record *after* that other CPU. The same thing may also happen if the
+operating system suspends a thread while it is writing the record, in
+which case a timestamp discrepancy of several milliseconds may appear
+between nearby records.
+
+In general, this should have a minimal impact on the understanding of
+what is happening, and may help you pinpoint risks of race condition
+in your code.

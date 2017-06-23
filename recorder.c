@@ -300,7 +300,6 @@ void recorder_sort(const char *what,
 {
     ring_fetch_add(recorder_blocked, 1);
 
-    uintptr_t      nextOrder = 0;
     recorder_entry entry;
     regex_t        re;
 
@@ -319,25 +318,14 @@ void recorder_sort(const char *what,
                 continue;
 
             // Loop while this recorder is readable and we can find next order
-            while (rec->readable())
+            if (rec->readable())
             {
                 rec->peek(&entry);
-                if (entry.order != nextOrder)
+                if (entry.order < lowestOrder)
                 {
-                    if (entry.order < lowestOrder)
-                    {
-                        lowest = rec;
-                        lowestOrder = entry.order;
-                    }
-                    break;
+                    lowest = rec;
+                    lowestOrder = entry.order;
                 }
-
-                // We may have one read that fails due to overflow/catchup
-                if (!rec->read(&entry, 1))
-                    continue;
-
-                recorder_dump_entry(rec->name, &entry, format, show, output);
-                nextOrder++;
             }
         }
 
@@ -349,7 +337,6 @@ void recorder_sort(const char *what,
             continue;
 
         recorder_dump_entry(lowest->name, &entry, format, show, output);
-        nextOrder = entry.order + 1;
     }
 
     regfree(&re);

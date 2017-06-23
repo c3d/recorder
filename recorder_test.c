@@ -33,10 +33,11 @@
 
 int failed = 0;
 
-RECORDER(MAIN,       64, "Global operations in 'main()'");
-RECORDER(Pauses,    256, "Pauses during blocking operations");
-RECORDER(Special,    64, "Special operations to the recorder");
-RECORDER(SpeedTest,  32, "Recorder speed test");
+RECORDER(MAIN,          64, "Global operations in 'main()'");
+RECORDER(Pauses,        256, "Pauses during blocking operations");
+RECORDER(Special,        64, "Special operations to the recorder");
+RECORDER(SpeedTest,      32, "Recorder speed test");
+RECORDER(FastSpeedTest,  32, "Fast recorder speed test");
 
 
 
@@ -89,21 +90,23 @@ void dawdle(unsigned minimumMs)
     nanosleep(&tm, NULL);
 }
 
-void *recorder_thread(void *unused)
+void *recorder_thread(void *thread)
 {
     uintptr_t i = 0;
+    unsigned tid = (unsigned) thread;
     while (!threads_to_stop)
-        RECORD(SpeedTest, "Recording %u", i++);
+        RECORD(SpeedTest, "[%u] Recording %u thread %u", tid, i++);
     ring_fetch_add(recorder_count, i);
     ring_fetch_add(threads_to_stop, -1);
     return NULL;
 }
 
-void *recorder_fast_thread(void *unused)
+void *recorder_fast_thread(void *thread)
 {
     uintptr_t i = 0;
+    unsigned tid = (unsigned) thread;
     while (!threads_to_stop)
-        RECORD_FAST(SpeedTest, "Fast recording %u", i++);
+        RECORD_FAST(FastSpeedTest, "[%u] Fast recording %u", tid, i++);
     ring_fetch_add(recorder_count, i);
     ring_fetch_add(threads_to_stop, -1);
     return NULL;
@@ -128,7 +131,7 @@ void flight_recorder_test(int argc, char **argv)
         for (j = 0; j < count; j++)
             pthread_create(&tid, NULL,
                            i ? recorder_fast_thread : recorder_thread,
-                           NULL);
+                           (void *) (intptr_t) j);
 
         INFO("%s recorder testing in progress, please wait about %ds",
              i ? "Fast" : "Normal", howLong);
