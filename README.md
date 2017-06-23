@@ -307,18 +307,18 @@ or printed was the same, `"Speed test %u", i`:
 
 Function                    | Xeon  | Mac   | Pi    | Pi-2  |
 ----------------------------|-------|-------|-------|-------|
-`RECORD_FAST`               |  20ns |  20ns | 129ns | 152ns |
-`RECORD`                    |  35ns |  64ns |1070ns | 224ns |
-`gettimeofday`              |  16ns |  36ns | 913ns |       |
-`memcpy` (512 bytes)        |  26ns |  15ns |1669ns |       |
-`malloc` (512 bytes)        |  40ns |  61ns | 603ns |       |
-`snprintf`                  |  64ns |  98ns |2530ns |       |
-`fprintf`                   |  64ns |  14ns |4840ns |       |
-Flushed `fprintf`           | 751ns |1334ns |4509ns |       |
-`malloc` (512-4K jigsaw)    | 508ns | 483   |3690ns |       |
-Hanoi 20 (printing | wc)    | 320ms | 180ms | 19.7s |       |
-Hanoi 20 (recording)        |  60ms |  60ms |  1.55s|       |
-Hanoi 20 (fast recording)   |  23ms |  24ms |  0.26s|       |
+`RECORD_FAST`               |  20ns |  20ns | 129ns |  124ns|
+`RECORD`                    |  35ns |  64ns |1070ns |  726ns|
+`gettimeofday`              |  16ns |  36ns | 913ns |  675ns|
+`memcpy` (512 bytes)        |  26ns |  15ns |1669ns |  499ns|
+`malloc` (512 bytes)        |  40ns |  61ns | 603ns |  499ns|
+`snprintf`                  |  64ns |  98ns |2530ns | 1071ns|
+`fprintf`                   |  64ns |  14ns |4840ns | 2318ns|
+Flushed `fprintf`           | 751ns |1334ns |4509ns |14730ns|
+`malloc` (512-4K jigsaw)    | 508ns | 483   |3690ns | 5466ns|
+Hanoi 20 (printing | wc)    | 320ms | 180ms |19337ms| 7110ms|
+Hanoi 20 (recording)        |  60ms |  60ms | 1203ms|  834ms|
+Hanoi 20 (fast recording)   |  23ms |  24ms |  262ms|  175ms|
 
 
 Scalability depending on number of threads
