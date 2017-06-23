@@ -295,11 +295,11 @@ that you should be able to use it practically anywhere, and in
 practically any context, including in signal handlers, interrupt
 handlers, etc.
 
-As shown in the data below, the cost of a `RECORD` call is faster than
-a corresponding call to`snprintf`, because text formatting is only
-done at dump time. It is comparable to the cost of a best-case
-`malloc` (directly from the free list), and faster than the cost of a
-typical `malloc` (with random size).
+As shown in the data below, a `RECORD` call is faster than a
+corresponding call to`snprintf`, because text formatting is only done
+at dump time. It is comparable to the cost of a best-case `malloc`
+(directly from the free list), and faster than the cost of a typical
+`malloc` (with random size).
 
 Most of the cost is actually from keeping track of time, i.e. updating
 the `timestamp` field. If you need to instrument the tightest loops in
