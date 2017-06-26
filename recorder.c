@@ -542,7 +542,7 @@ recorder_chan_p recorder_chan_new(recorder_shmem_p shmem,
 {
     recorder_shmem_shp shmemp      = shmem->map_addr;
     size_t             offset      = shmemp->offset;
-    size_t             item_size   = sizeof(recorder_data);
+    size_t             item_size   = 2 * sizeof(recorder_data);
 
     size_t             name_len    = strlen(name);
     size_t             descr_len   = strlen(description);
@@ -897,6 +897,8 @@ void recorder_export(recorder_shmem_p  shmem,
         chan = recorder_chan_new(shmem, type, size,
                                  name, descr, unit, min, max);
         info->exported[index] = chan;
+        if (info->trace == 0)
+            info->trace = INTPTR_MAX;
     }
 }
 
@@ -920,7 +922,9 @@ void recorder_trace_entry(recorder_info *info, recorder_entry *entry)
             ringidx_t          writer = ring_fetch_add(ring->writer, 1);
             recorder_data     *data   = (recorder_data *) (ring + 1);
             size_t             size   = ring->size;
-            data[writer % size].unsigned_value = entry->args[i];
+            data += 2 * (writer % size);
+            data[0].unsigned_value = entry->timestamp;
+            data[1].unsigned_value = entry->args[i];
             ring_fetch_add(ring->commit, 1);
         }
     }

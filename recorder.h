@@ -423,6 +423,19 @@ typedef struct recorder_chan  *recorder_chan_p;
 //
 // ============================================================================
 
+// Export a data channel from the recorder
+extern void recorder_export(recorder_shmem_p  shmem,
+                            recorder_info    *info,
+                            unsigned          index,
+                            recorder_type     type,
+                            size_t            size,
+                            const char       *name,
+                            const char       *descr,
+                            const char       *unit,
+                            recorder_data     min,
+                            recorder_data     max);
+
+
 // Creating recorder_shmem for the local process to write into
 extern recorder_shmem_p recorder_shmem_new(const char *file);
 extern void             recorder_shmem_delete(recorder_shmem_p);
@@ -462,17 +475,6 @@ extern size_t           recorder_chan_size(recorder_chan_p chan);
 extern size_t           recorder_chan_readable(recorder_chan_p chan);
 extern size_t           recorder_chan_read(recorder_chan_p chan,
                                            recorder_data *ptr, size_t count);
-
-extern void recorder_export(recorder_shmem_p  shmem,
-                            recorder_info    *info,
-                            unsigned          index,
-                            recorder_type     type,
-                            size_t            size,
-                            const char       *name,
-                            const char       *descr,
-                            const char       *unit,
-                            recorder_data     min,
-                            recorder_data     max);
 
 
 
