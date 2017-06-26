@@ -455,6 +455,8 @@ extern recorder_chan_p  recorder_chan_find(recorder_shmem_p chans,
 extern const char *     recorder_chan_name(recorder_chan_p chan);
 extern const char *     recorder_chan_description(recorder_chan_p chan);
 extern const char *     recorder_chan_unit(recorder_chan_p chan);
+extern recorder_data    recorder_chan_min(recorder_chan_p chan);
+extern recorder_data    recorder_chan_max(recorder_chan_p chan);
 extern recorder_type    recorder_chan_type(recorder_chan_p chan);
 extern size_t           recorder_chan_size(recorder_chan_p chan);
 extern size_t           recorder_chan_readable(recorder_chan_p chan);

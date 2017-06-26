@@ -794,6 +794,26 @@ const char *recorder_chan_unit(recorder_chan_p chan)
 }
 
 
+recorder_data recorder_chan_min(recorder_chan_p chan)
+// ----------------------------------------------------------------------------
+//   Return the min value specified for the given channel
+// ----------------------------------------------------------------------------
+{
+    recorder_chan_shp chanp = recorder_chan_shared(chan);
+    return chanp->min;
+}
+
+
+recorder_data recorder_chan_max(recorder_chan_p chan)
+// ----------------------------------------------------------------------------
+//   Return the max value specified for the given channel
+// ----------------------------------------------------------------------------
+{
+    recorder_chan_shp chanp = recorder_chan_shared(chan);
+    return chanp->max;
+}
+
+
 recorder_type recorder_chan_type(recorder_chan_p chan)
 // ----------------------------------------------------------------------------
 //   Return the element type for a given recorder_chan
