@@ -435,6 +435,35 @@ extern void recorder_export(recorder_shmem_p  shmem,
                             recorder_data     min,
                             recorder_data     max);
 
+extern void recorder_export_s(recorder_shmem_p  shmem,
+                              recorder_info    *info,
+                              unsigned          index,
+                              size_t            size,
+                              const char       *name,
+                              const char       *descr,
+                              const char       *unit,
+                              intptr_t         min,
+                              intptr_t         max);
+
+extern void recorder_export_u(recorder_shmem_p  shmem,
+                              recorder_info    *info,
+                              unsigned          index,
+                              size_t            size,
+                              const char       *name,
+                              const char       *descr,
+                              const char       *unit,
+                              uintptr_t         min,
+                              uintptr_t         max);
+
+extern void recorder_export_r(recorder_shmem_p  shmem,
+                              recorder_info    *info,
+                              unsigned          index,
+                              size_t            size,
+                              const char       *name,
+                              const char       *descr,
+                              const char       *unit,
+                              double            min,
+                              double            max);
 
 // Creating recorder_shmem for the local process to write into
 extern recorder_shmem_p recorder_shmem_new(const char *file);

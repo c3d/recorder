@@ -560,7 +560,7 @@ recorder_chan_p recorder_chan_new(recorder_shmem_p shmem,
     size_t new_offset = (offset + alloc + align-1) & ~(align-1);
     if (new_offset >= shmem->map_size)
     {
-        size_t map_size = ((shmemp->offset / MAP_SIZE) + 1) * MAP_SIZE;
+        size_t map_size = (new_offset / MAP_SIZE + 1) * MAP_SIZE;
         if (!recorder_chan_file_extend(shmem->fd, map_size))
             return NULL;
         void *map_addr = mmap(shmem->map_addr, map_size,
@@ -900,6 +900,69 @@ void recorder_export(recorder_shmem_p  shmem,
         if (info->trace == 0)
             info->trace = INTPTR_MAX;
     }
+}
+
+
+void recorder_export_u(recorder_shmem_p  shmem,
+                       recorder_info    *info,
+                       unsigned          index,
+                       size_t            size,
+                       const char       *name,
+                       const char       *descr,
+                       const char       *unit,
+                       uintptr_t         min,
+                       uintptr_t         max)
+// ----------------------------------------------------------------------------
+//   Export unsigned channel
+// ----------------------------------------------------------------------------
+{
+    recorder_data mindata, maxdata;
+    mindata.unsigned_value = min;
+    maxdata.unsigned_value = max;
+    recorder_export(shmem, info, index, RECORDER_UNSIGNED, size,
+                    name, descr, unit, mindata, maxdata);
+}
+
+
+void recorder_export_s(recorder_shmem_p  shmem,
+                       recorder_info    *info,
+                       unsigned          index,
+                       size_t            size,
+                       const char       *name,
+                       const char       *descr,
+                       const char       *unit,
+                       intptr_t          min,
+                       intptr_t          max)
+// ----------------------------------------------------------------------------
+//   Export signed channel
+// ----------------------------------------------------------------------------
+{
+    recorder_data mindata, maxdata;
+    mindata.signed_value = min;
+    maxdata.signed_value = max;
+    recorder_export(shmem, info, index, RECORDER_SIGNED, size,
+                    name, descr, unit, mindata, maxdata);
+}
+
+
+void recorder_export_r(recorder_shmem_p  shmem,
+                       recorder_info    *info,
+                       unsigned          index,
+                       size_t            size,
+                       const char       *name,
+                       const char       *descr,
+                       const char       *unit,
+                       double            min,
+                       double            max)
+// ----------------------------------------------------------------------------
+//   Export real (floating-point) channel
+// ----------------------------------------------------------------------------
+{
+    recorder_data mindata, maxdata;
+    mindata.real_value = min;
+    maxdata.real_value = max;
+    recorder_export(shmem, info, index, RECORDER_REAL, size,
+                    name, descr, unit, mindata, maxdata);
 }
 
 
