@@ -56,7 +56,10 @@ extern size_t ring_readable(ring_p ring)
 //   Return number of elements readable in the ring
 // ----------------------------------------------------------------------------
 {
-    return ring->commit - ring->reader;
+    size_t readable = ring->commit - ring->reader;
+    if (readable > ring->size)
+        readable = ring->size;
+    return readable;
 }
 
 
@@ -133,7 +136,7 @@ ringidx_t ring_read(ring_p ring,
 
         // Check if we want to copy more than available
         if (to_copy > available)
-            if (read_block && !read_block(ring, reader, reader + to_copy))
+            if (!read_block || !read_block(ring, reader, reader + to_copy))
                 to_copy = available;
 
         // Check if write may have overwritten beyond our read point
