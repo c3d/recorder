@@ -409,7 +409,7 @@ typedef union recorder_data
 } recorder_data;
 
 // A collection of data recorder_shmem in memory
-typedef struct recorder_shmem *recorder_shmem_p;
+typedef struct recorder_chans *recorder_chans_p;
 typedef struct recorder_chan  *recorder_chan_p;
 
 #define RECORDER_CHAN_MAGIC           0xC0DABABE // Historical reference
@@ -425,7 +425,7 @@ typedef struct recorder_chan  *recorder_chan_p;
 // ============================================================================
 
 // Export a data channel from the recorder
-extern void recorder_export(recorder_shmem_p  shmem,
+extern void recorder_export(recorder_chans_p  chans,
                             recorder_info    *info,
                             size_t            size,
                             unsigned          index,
@@ -436,7 +436,7 @@ extern void recorder_export(recorder_shmem_p  shmem,
                             recorder_data     min,
                             recorder_data     max);
 
-extern void recorder_export_s(recorder_shmem_p  shmem,
+extern void recorder_export_s(recorder_chans_p  chans,
                               recorder_info    *info,
                               size_t            size,
                               unsigned          index,
@@ -446,7 +446,7 @@ extern void recorder_export_s(recorder_shmem_p  shmem,
                               intptr_t         min,
                               intptr_t         max);
 
-extern void recorder_export_u(recorder_shmem_p  shmem,
+extern void recorder_export_u(recorder_chans_p  chans,
                               recorder_info    *info,
                               size_t            size,
                               unsigned          index,
@@ -456,7 +456,7 @@ extern void recorder_export_u(recorder_shmem_p  shmem,
                               uintptr_t         min,
                               uintptr_t         max);
 
-extern void recorder_export_r(recorder_shmem_p  shmem,
+extern void recorder_export_r(recorder_chans_p  chans,
                               recorder_info    *info,
                               size_t            size,
                               unsigned          index,
@@ -466,11 +466,11 @@ extern void recorder_export_r(recorder_shmem_p  shmem,
                               double            min,
                               double            max);
 
-// Creating recorder_shmem for the local process to write into
-extern recorder_shmem_p recorder_shmem_new(const char *file);
-extern void             recorder_shmem_delete(recorder_shmem_p);
+// Creating recorder_chans for the local process to write into
+extern recorder_chans_p recorder_chans_new(const char *file);
+extern void             recorder_chans_delete(recorder_chans_p);
 
-extern recorder_chan_p  recorder_chan_new(recorder_shmem_p shmem,
+extern recorder_chan_p  recorder_chan_new(recorder_chans_p chans,
                                           recorder_type    type,
                                           size_t           size,
                                           const char *     name,
@@ -484,15 +484,15 @@ extern void             recorder_chan_delete(recorder_chan_p chan);
 
 // ============================================================================
 //
-//    Subscribing to recorder_shmem in a remote process
+//    Subscribing to recorder_chans in a remote process
 //
 // ============================================================================
 
-// Subscribing to recorder_shmem from another process
-extern recorder_shmem_p recorder_shmem_open(const char *file);
-extern void             recorder_shmem_close(recorder_shmem_p chans);
+// Subscribing to recorder_chans from another process
+extern recorder_chans_p recorder_chans_open(const char *file);
+extern void             recorder_chans_close(recorder_chans_p chans);
 
-extern recorder_chan_p  recorder_chan_find(recorder_shmem_p chans,
+extern recorder_chan_p  recorder_chan_find(recorder_chans_p chans,
                                            const char *pattern,
                                            recorder_chan_p after);
 extern const char *     recorder_chan_name(recorder_chan_p chan);

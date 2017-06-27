@@ -95,7 +95,10 @@ void *recorder_thread(void *thread)
     uintptr_t i = 0;
     unsigned tid = (unsigned) (uintptr_t) thread;
     while (!threads_to_stop)
-        RECORD(SpeedTest, "[thread %u] Recording %u", tid, i++);
+    {
+        i++;
+        RECORD(SpeedTest, "[thread %u] Recording %u, mod %u", tid, i, i % 500);
+    }
     ring_fetch_add(recorder_count, i);
     ring_fetch_add(threads_to_stop, -1);
     return NULL;
@@ -106,7 +109,11 @@ void *recorder_fast_thread(void *thread)
     uintptr_t i = 0;
     unsigned tid = (unsigned) (uintptr_t) thread;
     while (!threads_to_stop)
-        RECORD_FAST(FastSpeedTest, "[thread %u] Fast recording %u", tid, i++);
+    {
+        i++;
+        RECORD_FAST(FastSpeedTest, "[thread %u] Fast recording %u mod %u",
+                    tid, i, i % 700);
+    }
     ring_fetch_add(recorder_count, i);
     ring_fetch_add(threads_to_stop, -1);
     return NULL;
@@ -117,6 +124,17 @@ void flight_recorder_test(int argc, char **argv)
     int i, j;
     uintptr_t count = argc >= 2 ? atoi(argv[1]) : 16;
     unsigned howLong = argc >= 3 ? atoi(argv[2]) : 10;
+
+    recorder_chans_p chans = recorder_chans_new("/tmp/recorder_test");
+    recorder_export_u(chans, &recorder_SpeedTest_info, RECORDER_EXPORT_SIZE,
+                      0, "TaskID", "Task ID for the event being written", "",
+                      0, 16);
+    recorder_export_u(chans, &recorder_SpeedTest_info, RECORDER_EXPORT_SIZE,
+                      2, "Modulo", "Modulo value for input", "units",
+                      0, 700);
+    recorder_export_u(chans, &recorder_SpeedTest_info, RECORDER_EXPORT_SIZE,
+                      1, "Raw", "Raw value for input", "units",
+                      0, 1000000);
 
     for (i = 0; i < 2; i++)
     {
@@ -150,6 +168,7 @@ void flight_recorder_test(int argc, char **argv)
         INFO("%s test: all threads have stopped, %lu iterations",
              i ? "Fast" : "Normal", recorder_count);
 
+        recorder_count += (recorder_count == 0);
         printf("Recorder test analysis (%s):\n"
                "  Iterations            = %8lu\n"
                "  Iterations / ms       = %8lu\n"
@@ -177,8 +196,24 @@ void flight_recorder_test(int argc, char **argv)
     RECORD(Special, "Double     3.1415 = %f", 3.1415);
     RECORD(Special, "Double   X 3.1415 = %x", 3.1415);
 
+
     recorder_dump_for("Special");
     recorder_dump();
+
+    if (getenv("KEEP_RUNNING"))
+    {
+        uintptr_t k = 0;
+        unsigned tid = 0;
+        while(true)
+        {
+            k++;
+            RECORD(SpeedTest, "[thread %u] Recording %u, mod %u",
+                   tid, k, k % 627);
+            dawdle(5);
+        }
+    }
+
+    recorder_chans_delete(chans);
 }
 
 
