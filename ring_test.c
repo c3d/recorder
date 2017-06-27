@@ -287,6 +287,7 @@ void *reader_thread(void *data)
 {
     char buf[256];
     unsigned tid = ring_fetch_add(thread_id, 1);
+    ringidx_t rd = 0;
 
     RECORD(MAIN, "Entering reader thread tid %u", tid);
 
@@ -295,7 +296,6 @@ void *reader_thread(void *data)
         // Read initial byte, the capital at beginning of message
         unsigned overflow = buffer.ring.overflow;
         unsigned readable = buffer_readable();
-        ringidx_t rd = 0;
 
         if (overflow)
         {
@@ -361,6 +361,7 @@ void *reader_thread(void *data)
                  size, ptr, test);
             exit(-4);
         }
+        buffer.ring.reader = rd;
 
         ptr[size] = 0;
         VERBOSE("Read #%02d '%s' %u bytes", tid, ptr, testLen);
