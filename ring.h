@@ -334,7 +334,7 @@ extern ringidx_t ring_write(ring_p ring, const void *data, size_t count,
                                                                         \
     struct Name##_ring Name =                                           \
     {                                                                   \
-        { Size, sizeof(Type), 0 }                                       \
+        { Size, sizeof(Type), 0, 0, 0, 0 }                              \
     };
 
 
