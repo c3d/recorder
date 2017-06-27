@@ -447,7 +447,7 @@ RING_DECLARE(speed_test, recorder_entry, 512);
 RING_DEFINE(speed_test, recorder_entry, 512);
 
 
-inline ringidx_t special_ring_write(ring_p ring,
+static inline ringidx_t special_ring_write(ring_p ring,
                                     recorder_entry *source)
 // ----------------------------------------------------------------------------
 //   Optimized version
