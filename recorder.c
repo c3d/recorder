@@ -514,6 +514,16 @@ void recorder_shmem_delete(recorder_shmem_p shmem)
 //   Delete the local recorder_shmem
 // ----------------------------------------------------------------------------
 {
+    int i;
+    recorder_info *rec;
+    for (rec = recorders; rec; rec = rec->next)
+    {
+        if (rec->trace == INTPTR_MAX)
+            rec->trace = 0;
+        for (i = 0; i < 4; i++)
+            rec->exported[i] = NULL;
+    }
+
     recorder_chan_p next = NULL;
     recorder_chan_p chan;
     for (chan = shmem->head; chan; chan = next)
