@@ -208,7 +208,7 @@ void flight_recorder_test(int argc, char **argv)
         {
             k++;
             RECORD(SpeedTest, "[thread %u] Recording %u, mod %u",
-                   tid, k, k % 627);
+                   (unsigned) (200 * sin(k)), k, k % 627);
             dawdle(5);
         }
     }
