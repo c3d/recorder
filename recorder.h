@@ -414,6 +414,7 @@ typedef struct recorder_chan  *recorder_chan_p;
 
 #define RECORDER_CHAN_MAGIC           0xC0DABABE // Historical reference
 #define RECORDER_CHAN_VERSION         0x010000   // Version 1.0.0
+#define RECORDER_EXPORT_SIZE          2048
 
 
 
@@ -426,9 +427,9 @@ typedef struct recorder_chan  *recorder_chan_p;
 // Export a data channel from the recorder
 extern void recorder_export(recorder_shmem_p  shmem,
                             recorder_info    *info,
+                            size_t            size,
                             unsigned          index,
                             recorder_type     type,
-                            size_t            size,
                             const char       *name,
                             const char       *descr,
                             const char       *unit,
@@ -437,8 +438,8 @@ extern void recorder_export(recorder_shmem_p  shmem,
 
 extern void recorder_export_s(recorder_shmem_p  shmem,
                               recorder_info    *info,
-                              unsigned          index,
                               size_t            size,
+                              unsigned          index,
                               const char       *name,
                               const char       *descr,
                               const char       *unit,
@@ -447,8 +448,8 @@ extern void recorder_export_s(recorder_shmem_p  shmem,
 
 extern void recorder_export_u(recorder_shmem_p  shmem,
                               recorder_info    *info,
-                              unsigned          index,
                               size_t            size,
+                              unsigned          index,
                               const char       *name,
                               const char       *descr,
                               const char       *unit,
@@ -457,8 +458,8 @@ extern void recorder_export_u(recorder_shmem_p  shmem,
 
 extern void recorder_export_r(recorder_shmem_p  shmem,
                               recorder_info    *info,
-                              unsigned          index,
                               size_t            size,
+                              unsigned          index,
                               const char       *name,
                               const char       *descr,
                               const char       *unit,

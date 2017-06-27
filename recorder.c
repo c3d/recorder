@@ -509,22 +509,22 @@ recorder_shmem_p recorder_shmem_new(const char *file)
 }
 
 
-void recorder_shmem_delete(recorder_shmem_p chans)
+void recorder_shmem_delete(recorder_shmem_p shmem)
 // ----------------------------------------------------------------------------
 //   Delete the local recorder_shmem
 // ----------------------------------------------------------------------------
 {
     recorder_chan_p next = NULL;
     recorder_chan_p chan;
-    for (chan = chans->head; chan; chan = next)
+    for (chan = shmem->head; chan; chan = next)
     {
         next = chan->next;
         recorder_chan_delete(chan);
     }
 
-    munmap(chans->map_addr, chans->map_size);
-    close(chans->fd);
-    free(chans);
+    munmap(shmem->map_addr, shmem->map_size);
+    close(shmem->fd);
+    free(shmem);
 }
 
 
@@ -548,7 +548,7 @@ recorder_chan_p recorder_chan_new(recorder_shmem_p shmem,
     size_t             descr_len   = strlen(description);
     size_t             unit_len    = strlen(unit);
 
-    size_t             name_offs   = sizeof(recorder_chan_t) + size*item_size;
+    size_t             name_offs   = sizeof(recorder_chan_sh) + size*item_size;
     size_t             descr_offs  = name_offs + name_len + 1;
     size_t             unit_offs   = descr_offs + descr_len + 1;
 
@@ -586,7 +586,7 @@ recorder_chan_p recorder_chan_new(recorder_shmem_p shmem,
     chanp->description = descr_offs;
     chanp->unit = unit_offs;
     chanp->min = min;
-    chanp->min = max;
+    chanp->max = max;
     memcpy((char *) chanp + name_offs, name, name_len + 1);
     memcpy((char *) chanp + descr_offs, description, descr_len + 1);
     memcpy((char *) chanp + unit_offs, unit, unit_len + 1);
@@ -610,7 +610,6 @@ recorder_chan_p recorder_chan_new(recorder_shmem_p shmem,
     chan->next = shmem->head;
     shmem->head = chan;
 
-    // Return recorder_chan pointer (which is only valid until next recorder_chan_new)
     return chan;
 }
 
@@ -877,9 +876,9 @@ ringidx_t recorder_chan_reader(recorder_chan_p chan)
 
 void recorder_export(recorder_shmem_p  shmem,
                      recorder_info    *info,
+                     size_t            size,
                      unsigned          index,
                      recorder_type     type,
-                     size_t            size,
                      const char       *name,
                      const char       *descr,
                      const char       *unit,
@@ -905,8 +904,8 @@ void recorder_export(recorder_shmem_p  shmem,
 
 void recorder_export_u(recorder_shmem_p  shmem,
                        recorder_info    *info,
-                       unsigned          index,
                        size_t            size,
+                       unsigned          index,
                        const char       *name,
                        const char       *descr,
                        const char       *unit,
@@ -926,8 +925,8 @@ void recorder_export_u(recorder_shmem_p  shmem,
 
 void recorder_export_s(recorder_shmem_p  shmem,
                        recorder_info    *info,
-                       unsigned          index,
                        size_t            size,
+                       unsigned          index,
                        const char       *name,
                        const char       *descr,
                        const char       *unit,
@@ -947,8 +946,8 @@ void recorder_export_s(recorder_shmem_p  shmem,
 
 void recorder_export_r(recorder_shmem_p  shmem,
                        recorder_info    *info,
-                       unsigned          index,
                        size_t            size,
+                       unsigned          index,
                        const char       *name,
                        const char       *descr,
                        const char       *unit,
