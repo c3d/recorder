@@ -51,12 +51,14 @@ void ring_delete(ring_p ring)
 }
 
 
-extern size_t ring_readable(ring_p ring)
+extern size_t ring_readable(ring_p ring, ringidx_t *reader)
 // ----------------------------------------------------------------------------
 //   Return number of elements readable in the ring
 // ----------------------------------------------------------------------------
 {
-    size_t readable = ring->commit - ring->reader;
+    if (!reader)
+        reader = &ring->reader;
+    size_t readable = ring->commit - *reader;
     if (readable > ring->size)
         readable = ring->size;
     return readable;
@@ -107,9 +109,9 @@ ringidx_t ring_peek(ring_p ring, void *ptr)
 ringidx_t ring_read(ring_p ring,
                     void *destination,
                     size_t count,
+                    ringidx_t *reader_ptr,
                     ring_block_fn read_block,
-                    ring_block_fn read_overflow,
-                    ringidx_t *reader_ptr)
+                    ring_block_fn read_overflow)
 // ----------------------------------------------------------------------------
 //   Ring up to 'count' elements, return number of elements read
 // ----------------------------------------------------------------------------
@@ -125,10 +127,13 @@ ringidx_t ring_read(ring_p ring,
     ringidx_t     idx, to_end;
     size_t        this_round, byte_count;
 
+    if (!reader_ptr)
+        reader_ptr = &ring->reader;
+
     // First commit to reading a given amount of contiguous data
     do
     {
-        reader = ring->reader;
+        reader = *reader_ptr;
         commit = ring->commit;
         writer = ring->writer;
         available = commit - reader;
@@ -148,13 +153,10 @@ ringidx_t ring_read(ring_p ring,
             {
                 ringidx_t skip = first_valid - reader;
                 ring_add_fetch(ring->overflow, skip);
-                ring_add_fetch(ring->reader, skip);
+                ring_add_fetch(*reader_ptr, skip);
                 reader = first_valid;
             }
         }
-
-        if (reader_ptr)
-            *reader_ptr = reader;
 
         // Then copy data in contiguous memcpy chunks (normally at most two)
         ptr = destination;
@@ -174,7 +176,7 @@ ringidx_t ring_read(ring_p ring,
             to_copy -= this_round;
             reader += this_round;
         }
-    } while (!ring_compare_exchange(ring->reader, first_reader, next_reader));
+    } while (!ring_compare_exchange(*reader_ptr, first_reader, next_reader));
 
     // Return number of items effectively read
     return count - to_copy;

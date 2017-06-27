@@ -502,9 +502,11 @@ extern recorder_data    recorder_chan_min(recorder_chan_p chan);
 extern recorder_data    recorder_chan_max(recorder_chan_p chan);
 extern recorder_type    recorder_chan_type(recorder_chan_p chan);
 extern size_t           recorder_chan_size(recorder_chan_p chan);
-extern size_t           recorder_chan_readable(recorder_chan_p chan);
+extern size_t           recorder_chan_readable(recorder_chan_p chan,
+                                               ringidx_t *readerID);
 extern size_t           recorder_chan_read(recorder_chan_p chan,
-                                           recorder_data *ptr, size_t count);
+                                           recorder_data *ptr, size_t count,
+                                           ringidx_t *readerID);
 
 
 

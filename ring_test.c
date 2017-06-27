@@ -309,8 +309,7 @@ void *reader_thread(void *data)
         if (readable)
         {
             // Reported that we can't read. Check if it's overflow
-            size = buffer_block_read(buf, 1,
-                                     reader_block, reader_overflow, &rd);
+            size = buffer_block_read(buf, 1, &rd,reader_block,reader_overflow);
             if (size == 0)
             {
                 FAIL("Blocking read did not get data");
@@ -342,8 +341,8 @@ void *reader_thread(void *data)
         // Read the rest of the buffer based on input length
         VERBOSE("Reading #%02d '%c' %u bytes", tid, initial, testLen);
         ring_fetch_add(count_reads, 1);
-        size += buffer_block_read(buf + size, testLen - size,
-                                  reader_block, reader_overflow, &rd);
+        size += buffer_block_read(buf + size, testLen - size, &rd,
+                                  reader_block, reader_overflow);
         ring_fetch_add(count_read, 1);
         RECORD(Reads, "Index %u: Read %u bytes out of %u at index %u",
                rd, size, testLen);

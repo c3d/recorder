@@ -170,12 +170,13 @@ typedef bool (*ring_block_fn)(ring_p, ringidx_t from, ringidx_t to);
 
 extern ring_p    ring_new(size_t size, size_t item_size);
 extern void      ring_delete(ring_p ring);
-extern size_t    ring_readable(ring_p ring);
+extern size_t    ring_readable(ring_p ring, ringidx_t *reader);
 extern size_t    ring_writable(ring_p ring);
-extern size_t    ring_read(ring_p ring, void *data, size_t count,
+extern size_t    ring_read(ring_p ring,
+                           void *data, size_t count,
+                           ringidx_t *reader,
                            ring_block_fn read_block,
-                           ring_block_fn read_overflow,
-                           ringidx_t *reader);
+                           ring_block_fn read_overflow);
 extern ringidx_t ring_peek(ring_p ring, void *data);
 extern ringidx_t ring_write(ring_p ring, const void *data, size_t count,
                             ring_block_fn write_block,
@@ -219,14 +220,13 @@ extern ringidx_t ring_write(ring_p ring, const void *data, size_t count,
     size_t Ring##_read(Ring *rb,                                        \
                        Type *ptr,                                       \
                        size_t count,                                    \
+                       ringidx_t *reader,                               \
                        Ring##_block_fn read_block,                      \
-                       Ring##_block_fn read_overflow,                   \
-                       ringidx_t *reader)                               \
+                       Ring##_block_fn read_overflow)                   \
     {                                                                   \
-        return ring_read(&rb->ring, ptr, count,                         \
+        return ring_read(&rb->ring, ptr, count, reader,                 \
                          (ring_block_fn) read_block,                    \
-                         (ring_block_fn) read_overflow,                 \
-                         reader);                                       \
+                         (ring_block_fn) read_overflow);                \
     }                                                                   \
                                                                         \
     static inline RING_MAYBE_UNUSED                                     \
@@ -278,7 +278,7 @@ extern ringidx_t ring_write(ring_p ring, const void *data, size_t count,
     static inline RING_MAYBE_UNUSED                                     \
     size_t Name##_readable()                                            \
     {                                                                   \
-        return ring_readable(&Name.ring);                               \
+        return ring_readable(&Name.ring, NULL);                         \
     }                                                                   \
                                                                         \
     static inline RING_MAYBE_UNUSED                                     \
@@ -308,11 +308,11 @@ extern ringidx_t ring_write(ring_p ring, const void *data, size_t count,
     static inline RING_MAYBE_UNUSED                                     \
     size_t Name##_block_read(Type *ptr,                                 \
                              size_t count,                              \
+                             ringidx_t *reader,                         \
                              ring_block_fn block,                       \
-                             ring_block_fn overflow,                    \
-                             ringidx_t *pos)                            \
+                             ring_block_fn overflow)                    \
     {                                                                   \
-        return ring_read(&Name.ring, ptr, count, block, overflow, pos); \
+        return ring_read(&Name.ring, ptr,count,reader,block,overflow);  \
     }                                                                   \
                                                                         \
     static inline RING_MAYBE_UNUSED                                     \

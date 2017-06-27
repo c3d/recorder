@@ -83,6 +83,7 @@ RecorderView::RecorderView(recorder_chans_p chans,
             seriesList.append(series);
             data.append(Points());
             chanList.append(chan);
+            readerIndex.append(0);
 
             series->setPen(QPen(QBrush(QColor(colors[colorIndex])), 1.0));
             series->setUseOpenGL(true);
@@ -97,6 +98,7 @@ RecorderView::RecorderView(recorder_chans_p chans,
     dataUpdater.setSingleShot(true);
     QObject::connect(&dataUpdater, &QTimer::timeout,
                      this, &RecorderView::updateSeries);
+    chart->setTheme(QChart::ChartThemeBlueCerulean);
 }
 
 
@@ -125,7 +127,8 @@ void RecorderView::updateSeries()
     for (size_t s = 0; s < numSeries; s++)
     {
         recorder_chan_p chan = chanList[s];
-        size_t readable = recorder_chan_readable(chan);
+        ringidx_t &ridx = readerIndex[s];
+        size_t readable = recorder_chan_readable(chan, &ridx);
         if (readable)
         {
             QLineSeries *series = seriesList[s];
@@ -144,7 +147,7 @@ void RecorderView::updateSeries()
 
             recorder_data *rbuf = recorderDataRead.data();
             QPointF *pbuf = pointsRead.data();
-            size_t count = recorder_chan_read(chan, rbuf, readable);
+            size_t count = recorder_chan_read(chan, rbuf, readable, &ridx);
 
             Q_ASSERT(count <= readable);
             double scale = 1.0 / RECORDER_HZ;

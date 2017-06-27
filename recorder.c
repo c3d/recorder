@@ -750,9 +750,6 @@ recorder_chans_p recorder_chans_open(const char *file)
         chan->offset = off;
         chan->next = chans->head;
         chans->head = chan;
-
-        recorder_shan_p shan = recorder_shared(chan);
-        shan->ring.reader = 0;
     }
 
     return chans;
@@ -880,24 +877,25 @@ size_t recorder_chan_item_size(recorder_chan_p chan)
 }
 
 
-size_t recorder_chan_readable(recorder_chan_p chan)
+size_t recorder_chan_readable(recorder_chan_p chan, ringidx_t *reader)
 // ----------------------------------------------------------------------------
 //   Return number of readable elements in ring
 // ----------------------------------------------------------------------------
 {
     recorder_shan_p shan = recorder_shared(chan);
-    return ring_readable(&shan->ring);
+    return ring_readable(&shan->ring, reader);
 }
 
 
 size_t recorder_chan_read(recorder_chan_p chan,
-                          recorder_data *ptr, size_t count)
+                          recorder_data *ptr, size_t count,
+                          ringidx_t *reader)
 // ----------------------------------------------------------------------------
 //   Read data from the ring
 // ----------------------------------------------------------------------------
 {
     recorder_shan_p shan = recorder_shared(chan);
-    return ring_read(&shan->ring, ptr, count, NULL, NULL, NULL);
+    return ring_read(&shan->ring, ptr, count, reader, NULL, NULL);
 }
 
 

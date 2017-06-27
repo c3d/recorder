@@ -58,6 +58,7 @@ private:
     QVector<Points>          data;
     QVector<QLineSeries *>   seriesList;
     QVector<recorder_chan_p> chanList;
+    QVector<ringidx_t>       readerIndex;
 
     QChart *                 chart;
     QValueAxis *             xAxis;

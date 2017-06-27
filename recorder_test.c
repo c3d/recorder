@@ -22,13 +22,14 @@
 #include "ring.h"
 #include "recorder.h"
 
-#include <stdio.h>
+#include <math.h>
 #include <pthread.h>
+#include <signal.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
 #include <unistd.h>
-#include <signal.h>
 
 
 int failed = 0;
@@ -208,7 +209,7 @@ void flight_recorder_test(int argc, char **argv)
         {
             k++;
             RECORD(SpeedTest, "[thread %u] Recording %u, mod %u",
-                   (unsigned) (200 * sin(k)), k, k % 627);
+                   (unsigned) (200 * sin(0.03 * k) * sin (0.000718231*k) + 200), k, k % 627);
             dawdle(5);
         }
     }
