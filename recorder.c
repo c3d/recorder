@@ -750,6 +750,9 @@ recorder_chans_p recorder_chans_open(const char *file)
         chan->offset = off;
         chan->next = chans->head;
         chans->head = chan;
+
+        recorder_shan_p shan = recorder_shared(chan);
+        shan->ring.reader = 0;
     }
 
     return chans;
@@ -784,10 +787,14 @@ recorder_chan_p recorder_chan_find(recorder_chans_p  chans,
     recorder_chan_p chan = NULL;;
 
     if (status == 0)
+    {
         for (chan = first; chan; chan = chan->next)
-            if (regexec(&re, pattern, 0, NULL, 0) == 0)
+        {
+            const char *name = recorder_chan_name(chan);
+            if (regexec(&re, name, 0, NULL, 0) == 0)
                 break;
-
+        }
+    }
     regfree(&re);
     return chan;
 }
@@ -1351,7 +1358,7 @@ int recorder_trace_set(const char *param_spec)
         next = strpbrk(param, ": ");
         if (next)
         {
-            if (next - param < sizeof(buffer)-1)
+            if (next - param < sizeof(buffer)-1U)
             {
                 memcpy(buffer, param, next - param);
                 param = buffer;
@@ -1371,7 +1378,7 @@ int recorder_trace_set(const char *param_spec)
         {
             if (param == buffer)
             {
-                if (value_ptr - buffer < sizeof(buffer)-1)
+                if (value_ptr - buffer < sizeof(buffer)-1U)
                 {
                     memcpy(buffer, param, value_ptr - param);
                     param = buffer;
