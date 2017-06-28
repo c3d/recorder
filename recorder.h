@@ -387,7 +387,8 @@ typedef enum recorder_type
 //    Type of data exported
 // ----------------------------------------------------------------------------
 {
-    RECORDER_NONE,              // Nothing exported (end of list)
+    RECORDER_NONE,              // Nothing exported (pending format)
+    RECORDER_INVALID,           // Invalid data
     RECORDER_SIGNED,            // Signed value
     RECORDER_UNSIGNED,          // Unsigned value
     RECORDER_REAL               // Real number
@@ -416,6 +417,7 @@ typedef struct recorder_chan  *recorder_chan_p;
 #define RECORDER_CHAN_VERSION         0x010000   // Version 1.0.0
 #define RECORDER_EXPORT_SIZE          2048
 
+extern const char *recorder_export_file();
 
 
 // ============================================================================
@@ -423,48 +425,6 @@ typedef struct recorder_chan  *recorder_chan_p;
 //    Interface for the local process
 //
 // ============================================================================
-
-// Export a data channel from the recorder
-extern void recorder_export(recorder_chans_p  chans,
-                            recorder_info    *info,
-                            size_t            size,
-                            unsigned          index,
-                            recorder_type     type,
-                            const char       *name,
-                            const char       *descr,
-                            const char       *unit,
-                            recorder_data     min,
-                            recorder_data     max);
-
-extern void recorder_export_s(recorder_chans_p  chans,
-                              recorder_info    *info,
-                              size_t            size,
-                              unsigned          index,
-                              const char       *name,
-                              const char       *descr,
-                              const char       *unit,
-                              intptr_t         min,
-                              intptr_t         max);
-
-extern void recorder_export_u(recorder_chans_p  chans,
-                              recorder_info    *info,
-                              size_t            size,
-                              unsigned          index,
-                              const char       *name,
-                              const char       *descr,
-                              const char       *unit,
-                              uintptr_t         min,
-                              uintptr_t         max);
-
-extern void recorder_export_r(recorder_chans_p  chans,
-                              recorder_info    *info,
-                              size_t            size,
-                              unsigned          index,
-                              const char       *name,
-                              const char       *descr,
-                              const char       *unit,
-                              double            min,
-                              double            max);
 
 // Creating recorder_chans for the local process to write into
 extern recorder_chans_p recorder_chans_new(const char *file);

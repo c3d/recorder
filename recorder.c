@@ -21,6 +21,8 @@
 
 #include "recorder.h"
 #include "config.h"
+
+#include <ctype.h>
 #include <fcntl.h>
 #include <pthread.h>
 #include <regex.h>
@@ -465,6 +467,9 @@ recorder_chans_p recorder_chans_new(const char *file)
 //   Create a new mmap'd file
 // ----------------------------------------------------------------------------
 {
+    if (!file)
+        return NULL;
+
     // Open the file
     int fd = open(file, O_RDWR|O_CREAT|O_TRUNC, (mode_t) 0600);
     if (fd == -1)
@@ -521,7 +526,7 @@ void recorder_chans_delete(recorder_chans_p chans)
     for (rec = recorders; rec; rec = rec->next)
     {
         RECORD(deleting, "Recorder %s %p trace %x", rec->name, rec, rec->trace);
-        if (rec->trace == INTPTR_MAX)
+        if (rec->trace == RECORDER_CHAN_MAGIC)
             rec->trace = 0;
         for (i = 0; i < 4; i++)
             rec->exported[i] = NULL;
@@ -909,94 +914,81 @@ ringidx_t recorder_chan_reader(recorder_chan_p chan)
 }
 
 
-void recorder_export(recorder_chans_p  chans,
-                     recorder_info    *info,
-                     size_t            size,
-                     unsigned          index,
-                     recorder_type     type,
-                     const char       *name,
-                     const char       *descr,
-                     const char       *unit,
-                     recorder_data     min,
-                     recorder_data     max)
+static recorder_type recorder_type_from_format(const char *format,
+                                               unsigned index)
 // ----------------------------------------------------------------------------
-//    Export the given recorder recorder_chan to a shared-memory ring
+//   Analyze format string to figure out the type of export
 // ----------------------------------------------------------------------------
 {
-    if (index < 4)
+    char          c;
+    bool          in_format = false;
+    recorder_type result    = RECORDER_NONE;
+
+    for (c = *format++; c; c = *format++)
     {
-        recorder_chan_p chan = info->exported[index];
-        if (chan)
-            recorder_chan_delete(chan);
-        chan = recorder_chan_new(chans, type, size,
-                                 name, descr, unit, min, max);
-        info->exported[index] = chan;
-        if (info->trace == 0)
-            info->trace = INTPTR_MAX;
+        if (c == '%')
+        {
+            in_format = !in_format;
+            continue;
+        }
+        if (!in_format)
+            continue;
+
+        switch (c)
+        {
+        case 'f': case 'F':  // Floating point formatting
+        case 'g': case 'G':
+        case 'e': case 'E':
+        case 'a': case 'A':
+            result = RECORDER_REAL;
+            break;
+
+        case 'b':           // Integer formatting
+        case 'd': case 'D':
+        case 'i':
+            result = RECORDER_SIGNED;
+            break;
+
+        case 'c': case 'C':
+        case 's': case 'S':
+        case 'o': case 'O':
+        case 'u': case 'U':
+        case 'x':
+        case 'X':
+        case 'p':
+            result = RECORDER_UNSIGNED;
+            break;
+
+            // GCC: case '0' ... '9', not supported on IAR
+        case '0': case '1': case '2': case '3': case '4':
+        case '5': case '6': case '7': case '8': case '9':
+        case '.':
+        case '+':
+        case '-':
+        case 'l': case 'L':
+        case 'h':
+        case 'j':
+        case 't':
+        case 'z':
+        case 'q':
+        case 'v':
+            break;
+        case 'n':           // Expect two args
+        case '*':
+        default:
+            result = RECORDER_INVALID;
+            break;
+        }
+
+        if (result != RECORDER_NONE)
+        {
+            if (!index)
+                return result;
+            index--;
+            result = RECORDER_NONE;
+        }
     }
-}
-
-
-void recorder_export_u(recorder_chans_p  chans,
-                       recorder_info    *info,
-                       size_t            size,
-                       unsigned          index,
-                       const char       *name,
-                       const char       *descr,
-                       const char       *unit,
-                       uintptr_t         min,
-                       uintptr_t         max)
-// ----------------------------------------------------------------------------
-//   Export unsigned channel
-// ----------------------------------------------------------------------------
-{
-    recorder_data mindata, maxdata;
-    mindata.unsigned_value = min;
-    maxdata.unsigned_value = max;
-    recorder_export(chans, info, size, index, RECORDER_UNSIGNED,
-                    name, descr, unit, mindata, maxdata);
-}
-
-
-void recorder_export_s(recorder_chans_p  chans,
-                       recorder_info    *info,
-                       size_t            size,
-                       unsigned          index,
-                       const char       *name,
-                       const char       *descr,
-                       const char       *unit,
-                       intptr_t          min,
-                       intptr_t          max)
-// ----------------------------------------------------------------------------
-//   Export signed channel
-// ----------------------------------------------------------------------------
-{
-    recorder_data mindata, maxdata;
-    mindata.signed_value = min;
-    maxdata.signed_value = max;
-    recorder_export(chans, info, size, index, RECORDER_SIGNED,
-                    name, descr, unit, mindata, maxdata);
-}
-
-
-void recorder_export_r(recorder_chans_p  chans,
-                       recorder_info    *info,
-                       size_t            size,
-                       unsigned          index,
-                       const char       *name,
-                       const char       *descr,
-                       const char       *unit,
-                       double            min,
-                       double            max)
-// ----------------------------------------------------------------------------
-//   Export real (floating-point) channel
-// ----------------------------------------------------------------------------
-{
-    recorder_data mindata, maxdata;
-    mindata.real_value = min;
-    maxdata.real_value = max;
-    recorder_export(chans, info, size, index, RECORDER_REAL,
-                    name, descr, unit, mindata, maxdata);
+    return RECORDER_INVALID;
 }
 
 
@@ -1006,7 +998,7 @@ void recorder_trace_entry(recorder_info *info, recorder_entry *entry)
 // ----------------------------------------------------------------------------
 {
     unsigned i;
-    if (info->trace != INTPTR_MAX)
+    if (info->trace != RECORDER_CHAN_MAGIC)
         recorder_dump_entry(info->name, entry,
                             recorder_format, recorder_show, recorder_output);
     for (i = 0; i < 4; i++)
@@ -1019,6 +1011,10 @@ void recorder_trace_entry(recorder_info *info, recorder_entry *entry)
             ringidx_t          writer = ring_fetch_add(ring->writer, 1);
             recorder_data     *data   = (recorder_data *) (ring + 1);
             size_t             size   = ring->size;
+
+            if (shan->type == RECORDER_NONE)
+                shan->type = recorder_type_from_format(entry->format, i);
+
             data += 2 * (writer % size);
             data[0].unsigned_value = entry->timestamp;
             data[1].unsigned_value = entry->args[i];
@@ -1303,8 +1299,107 @@ void recorder_tweak_activate (recorder_tweak *tweak)
 }
 
 
-RECORDER(recorder_trace_set, 64, "Setting recorder traces");
 
+
+// ============================================================================
+//
+//    Recorder sharing
+//
+// ============================================================================
+
+RECORDER_TWEAK_DEFINE(recorder_export_size, 2048,
+                      "Number of samples stored when exporting records");
+
+const char *recorder_export_file()
+// ----------------------------------------------------------------------------
+//    Return the name of the file used for sharing data across processes
+// ----------------------------------------------------------------------------
+{
+    const char *result = getenv("RECORDER_SHARE");
+    if (!result)
+        result = "/tmp/recorder_share";
+    return result;
+}
+
+
+static recorder_chans_p chans = NULL;
+static void recorder_atexit_cleanup()
+// ----------------------------------------------------------------------------
+//   Cleanup when exiting the program
+// ----------------------------------------------------------------------------
+{
+    recorder_chans_delete(chans);
+}
+
+
+static void recorder_share(const char *path)
+// ----------------------------------------------------------------------------
+//   Share to the given name
+// ----------------------------------------------------------------------------
+{
+    bool had_chans = chans != NULL;
+    if (chans)
+        recorder_chans_delete(chans);
+    chans = recorder_chans_new(path);
+    if (!had_chans && chans)
+        atexit(recorder_atexit_cleanup);
+}
+
+
+static void recorder_export(recorder_info *rec, const char *value, bool multi)
+// ----------------------------------------------------------------------------
+//   Export channels in the given recorder with the given names
+// ----------------------------------------------------------------------------
+{
+    if (!chans)
+    {
+        recorder_share(recorder_export_file());
+        if (!chans)
+            return;
+    }
+
+    char *names = strdup(value);
+    char *next  = names;
+    int   t;
+    for (t = 0; next && t < 4; t++)
+    {
+        char *name = next;
+        next = strchr(next, ',');
+        if (next)
+        {
+            *next = 0;
+            next++;
+        }
+
+        recorder_chan_p chan = rec->exported[t];
+        if (chan)
+            recorder_chan_delete(chan);
+        size_t size = RECORDER_TWEAK(recorder_export_size);
+        recorder_data min, max;
+        min.signed_value = 0;
+        max.signed_value = 0;
+
+        char *chan_name = name;
+        if (multi)
+        {
+            chan_name = malloc(strlen(rec->name) + strlen(name) + 2);
+            sprintf(chan_name, "%s.%s", rec->name, name);
+        }
+
+        chan = recorder_chan_new(chans, RECORDER_NONE, size,
+                                 chan_name, rec->description, "", min, max);
+        rec->exported[t] = chan;
+        if (multi)
+            free(chan_name);
+        if (rec->trace == 0)
+            rec->trace = RECORDER_CHAN_MAGIC;
+    }
+
+    free(names);
+}
+
+
+RECORDER(recorder_traces, 64, "Setting recorder traces");
 int recorder_trace_set(const char *param_spec)
 // ----------------------------------------------------------------------------
 //   Activate given traces
@@ -1322,35 +1417,19 @@ int recorder_trace_set(const char *param_spec)
     if (!param_spec)
         return 0;
 
-    if (strcmp(param_spec, "help") == 0 || strcmp(param_spec, "list") == 0)
-    {
-        printf("List of available recorders:\n");
-        for (rec = recorders; rec; rec = rec->next)
-            printf("%20s : %s\n", rec->name, rec->description);
-
-        printf("List of available tweaks:\n");
-        for (tweak = tweaks; tweak; tweak = tweak->next)
-            printf("%20s : %s = %ld (0x%lX) \n",
-                   tweak->name, tweak->description,
-                   (long) tweak->tweak, (long) tweak->tweak);
-
-        return 0;
-    }
-    if (strcmp(param_spec, "all") == 0)
-        next = param_spec = ".*";
-
-    RECORD(recorder_trace_set, "Setting traces to %s", param_spec);
+    RECORD(recorder_traces, "Setting traces to %s", param_spec);
 
     // Loop splitting input at ':' and ' ' boundaries
     do
     {
         // Default value is 1 if not specified
-        int value = 1;
-        char *param = (char *) next;
-        const char *original = param;
+        int         value     = 1;
+        char       *param     = (char *) next;
+        const char *original  = param;
         const char *value_ptr = NULL;
-        char *alloc = NULL;
-        char *end = NULL;
+        char       *alloc     = NULL;
+        char       *end       = NULL;
+        bool        numerical = false;
 
         // Split foo:bar:baz so that we consider only foo in this loop
         next = strpbrk(param, ": ");
@@ -1388,47 +1467,104 @@ int recorder_trace_set(const char *param_spec)
                 }
             }
             param[value_ptr - param] = 0;
-            value = strtol(value_ptr + 1, &end, 0);
-            if (*end != 0)
+            value_ptr++;
+            if (isdigit(*value_ptr))
             {
-                rc = RECORDER_TRACE_INVALID_VALUE;
-                RECORD(recorder_trace_set,
-                       "Invalid numerical value %s (ends with %c)",
-                       original + (value_ptr + 1 - param),
-                       *end);
+                numerical = true;
+                value = strtol(value_ptr, &end, 0);
+                if (*end != 0)
+                {
+                    rc = RECORDER_TRACE_INVALID_VALUE;
+                    RECORD(recorder_traces,
+                           "Invalid numerical value %s (ends with %c)",
+                           original + (value_ptr - param),
+                           *end);
+                }
             }
         }
 
-        int status = regcomp(&re, param, REG_EXTENDED|REG_NOSUB|REG_ICASE);
-        if (status == 0)
+        // Check special names
+        if (strcmp(param, "help") == 0 || strcmp(param, "list") == 0)
         {
+            printf("List of available recorders:\n");
             for (rec = recorders; rec; rec = rec->next)
-            {
-                int re_result = regexec(&re, rec->name, 0, NULL, 0);
-                if (re_result == 0)
-                {
-                    RECORD(recorder_trace_set, "Set %s from %ld to %ld",
-                           rec->name, rec->trace, value);
-                    rec->trace = value;
-                }
-            }
+                printf("%20s%s: %s\n",
+                       rec->name, rec->trace ? "*" : " ",
+                       rec->description);
+
+            printf("List of available tweaks:\n");
             for (tweak = tweaks; tweak; tweak = tweak->next)
-            {
-                int re_result = regexec(&re, tweak->name, 0, NULL, 0);
-                if (re_result == 0)
-                {
-                    RECORD(recorder_trace_set, "Set tweak %s from %ld to %ld",
-                           tweak->name, tweak->tweak, value);
-                    tweak->tweak = value;
-                }
-            }
+                printf("%20s : %s = %ld (0x%lX) \n",
+                       tweak->name, tweak->description,
+                       (long) tweak->tweak, (long) tweak->tweak);
+        }
+        else if (strcmp(param, "share") == 0)
+        {
+            recorder_share(value_ptr);
         }
         else
         {
-            rc = RECORDER_TRACE_INVALID_NAME;
-            regerror(status, &re, error, sizeof(error));
-            RECORD(recorder_trace_set, "regcomp returned %d: %s",
-                   status, error);
+            if (strcmp(param, "all") == 0)
+                param = ".*";
+
+            int status = regcomp(&re, param, REG_EXTENDED|REG_NOSUB|REG_ICASE);
+            if (status == 0)
+            {
+                if (numerical)
+                {
+                    // Numerical value: set the corresponding trace
+                    for (rec = recorders; rec; rec = rec->next)
+                    {
+                        int re_result = regexec(&re, rec->name, 0, NULL, 0);
+                        if (re_result == 0)
+                        {
+                            RECORD(recorder_traces,
+                                   "Set %s from %ld to %ld",
+                                   rec->name, rec->trace, value);
+                            rec->trace = value;
+                        }
+                    }
+                    for (tweak = tweaks; tweak; tweak = tweak->next)
+                    {
+                        int re_result = regexec(&re, tweak->name, 0, NULL, 0);
+                        if (re_result == 0)
+                        {
+                            RECORD(recorder_traces,
+                                   "Set tweak %s from %ld to %ld",
+                                   tweak->name, tweak->tweak, value);
+                            tweak->tweak = value;
+                        }
+                    }
+                }
+                else
+                {
+                    // Non-numerical: Activate corresponding exports
+                    unsigned matches = 0;
+                    for (rec = recorders; rec; rec = rec->next)
+                        if (regexec(&re, rec->name, 0, NULL, 0) == 0)
+                            matches++;
+
+                    for (rec = recorders; rec; rec = rec->next)
+                    {
+                        int re_result = regexec(&re, rec->name, 0, NULL, 0);
+                        if (re_result == 0)
+                        {
+                            RECORD(recorder_traces,
+                                   "Share %s under name %s",
+                                   rec->name, value_ptr);
+                            recorder_export(rec, value_ptr, matches > 1);
+                        }
+                    }
+                }
+                regfree(&re);
+            }
+            else
+            {
+                rc = RECORDER_TRACE_INVALID_NAME;
+                regerror(status, &re, error, sizeof(error));
+                RECORD(recorder_traces, "regcomp returned %d: %s",
+                       status, error);
+            }
         }
 
         if (alloc)

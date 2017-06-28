@@ -126,17 +126,6 @@ void flight_recorder_test(int argc, char **argv)
     uintptr_t count = argc >= 2 ? atoi(argv[1]) : 16;
     unsigned howLong = argc >= 3 ? atoi(argv[2]) : 10;
 
-    recorder_chans_p chans = recorder_chans_new("/tmp/recorder_test");
-    recorder_export_u(chans, &recorder_SpeedTest_info, RECORDER_EXPORT_SIZE,
-                      0, "TaskID", "Task ID for the event being written", "",
-                      0, 16);
-    recorder_export_u(chans, &recorder_SpeedTest_info, RECORDER_EXPORT_SIZE,
-                      2, "Modulo", "Modulo value for input", "units",
-                      0, 700);
-    recorder_export_u(chans, &recorder_SpeedTest_info, RECORDER_EXPORT_SIZE,
-                      1, "Raw", "Raw value for input", "units",
-                      0, 1000000);
-
     for (i = 0; i < 2; i++)
     {
         recorder_count = 0;
@@ -213,8 +202,6 @@ void flight_recorder_test(int argc, char **argv)
             dawdle(5);
         }
     }
-
-    recorder_chans_delete(chans);
 }
 
 
