@@ -123,16 +123,18 @@ void RecorderView::updateSeries()
     size_t width = this->width();
     double minX = -1.0, maxX = 1.0, minY = -1.0, maxY = 1.0;
     bool first = true;
+    bool updated = false;
 
     for (size_t s = 0; s < numSeries; s++)
     {
         recorder_chan_p chan = chanList[s];
         ringidx_t &ridx = readerIndex[s];
         size_t readable = recorder_chan_readable(chan, &ridx);
+        QLineSeries *series = seriesList[s];
+        Points &dataPoints = data[s];
+
         if (readable)
         {
-            QLineSeries *series = seriesList[s];
-            Points &dataPoints = data[s];
             size_t dataLen = dataPoints.size();
             if (dataLen > width)
             {
@@ -216,12 +218,21 @@ void RecorderView::updateSeries()
                 }
 
                 series->replace(dataPoints);
+                updated = true;
             }
         }
     }
 
-    xAxis->setRange(minX, maxX);
-    yAxis->setRange(minY, maxY);
+    if (updated)
+    {
+        xAxis->setRange(minX, maxX);
+        yAxis->setRange(minY, maxY);
+    }
+    else
+    {
+        dataUpdater.setInterval(30);
+        dataUpdater.start();
+    }
 }
 
 
@@ -230,5 +241,6 @@ void RecorderView::sceneChanged()
 //   Trigger a data update when a scene change occured
 // ----------------------------------------------------------------------------
 {
+    dataUpdater.setInterval(0);
     dataUpdater.start();
 }
