@@ -579,7 +579,7 @@ recorder_chan_p recorder_chan_new(recorder_chans_p chans,
             return NULL;
         void *map_addr = mmap(chans->map_addr, map_size,
                               PROT_READ | PROT_WRITE,
-                              MAP_FILE | MAP_SHARED | MAP_FIXED,
+                              MAP_FILE | MAP_SHARED,
                               chans->fd, 0);
         if (map_addr == MAP_FAILED)
             return NULL;
