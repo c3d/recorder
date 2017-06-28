@@ -1383,7 +1383,7 @@ static void recorder_export(recorder_info *rec, const char *value, bool multi)
         if (multi)
         {
             chan_name = malloc(strlen(rec->name) + strlen(name) + 2);
-            sprintf(chan_name, "%s.%s", rec->name, name);
+            sprintf(chan_name, "%s/%s", rec->name, name);
         }
 
         chan = recorder_chan_new(chans, RECORDER_NONE, size,
