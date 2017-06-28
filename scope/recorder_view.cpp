@@ -38,6 +38,7 @@ RecorderView::RecorderView(recorder_chans_p chans,
     // Widget construction
     const char *colors[] = { "red", "blue", "green", "black" };
     const unsigned numColors = sizeof(colors) / sizeof(colors[0]);
+    bool hasGL = getenv ("RECORDER_NOGL") == NULL;
 
     xAxis = new QValueAxis;
     yAxis = new QValueAxis; // Or QLogValueAxis?
@@ -86,7 +87,7 @@ RecorderView::RecorderView(recorder_chans_p chans,
             readerIndex.append(0);
 
             series->setPen(QPen(QBrush(QColor(colors[colorIndex])), 1.0));
-            series->setUseOpenGL(true);
+            series->setUseOpenGL(hasGL);
             series->attachAxis(xAxis);
             series->attachAxis(yAxis);
             series->setName(name);
