@@ -306,9 +306,10 @@ unsigned recorder_sort(const char *what,
 {
     recorder_entry entry;
     regex_t        re;
+    regmatch_t     rm;
     unsigned       dumped = 0;
 
-    int status = regcomp(&re, what, REG_EXTENDED|REG_NOSUB|REG_ICASE);
+    int status = regcomp(&re, what, REG_EXTENDED|REG_ICASE);
 
     while (status == 0)
     {
@@ -319,7 +320,8 @@ unsigned recorder_sort(const char *what,
         for (rec = recorders; rec; rec = rec->next)
         {
             // Skip recorders that don't match the pattern
-            if (regexec(&re, rec->name, 0, NULL, 0) != 0)
+            if (regexec(&re, rec->name, 1, &rm, 0) != 0 ||
+                rm.rm_so != 0 || rec->name[rm.rm_eo] != 0)
                 continue;
 
             // Loop while this recorder is readable and we can find next order
@@ -783,17 +785,19 @@ recorder_chan_p recorder_chan_find(recorder_chans_p  chans,
 //   Find a recorder_chan with the given name in the recorder_chan list
 // ----------------------------------------------------------------------------
 {
-    regex_t re;
-    int     status = regcomp(&re, pattern, REG_EXTENDED|REG_NOSUB|REG_ICASE);
-    recorder_chan_p first = after ? after->next : chans->head;
-    recorder_chan_p chan = NULL;;
+    regex_t         re;
+    regmatch_t      rm;
+    int             status = regcomp(&re, pattern, REG_EXTENDED|REG_ICASE);
+    recorder_chan_p first  = after ? after->next : chans->head;
+    recorder_chan_p chan   = NULL;;
 
     if (status == 0)
     {
         for (chan = first; chan; chan = chan->next)
         {
             const char *name = recorder_chan_name(chan);
-            if (regexec(&re, name, 0, NULL, 0) == 0)
+            if (regexec(&re, name, 1, &rm, 0) == 0 &&
+                rm.rm_so == 0 && name[rm.rm_eo] == 0)
                 break;
         }
     }
@@ -933,7 +937,7 @@ static recorder_type recorder_type_from_format(const char *format,
         }
         if (!in_format)
             continue;
-
+        in_format = false;
         switch (c)
         {
         case 'f': case 'F':  // Floating point formatting
@@ -1012,7 +1016,8 @@ void recorder_trace_entry(recorder_info *info, recorder_entry *entry)
             recorder_data     *data   = (recorder_data *) (ring + 1);
             size_t             size   = ring->size;
 
-            if (shan->type == RECORDER_NONE)
+            recorder_type      none   = RECORDER_NONE;
+            if (ring_compare_exchange(shan->type, none, RECORDER_INVALID))
                 shan->type = recorder_type_from_format(entry->format, i);
 
             data += 2 * (writer % size);
@@ -1386,6 +1391,8 @@ static void recorder_export(recorder_info *rec, const char *value, bool multi)
             sprintf(chan_name, "%s/%s", rec->name, name);
         }
 
+        printf("Exporting recorder channel %s for index %u in %s\n",
+               chan_name, t, rec->name);
         chan = recorder_chan_new(chans, RECORDER_NONE, size,
                                  chan_name, rec->description, "", min, max);
         rec->exported[t] = chan;
@@ -1411,6 +1418,7 @@ int recorder_trace_set(const char *param_spec)
     recorder_info  *rec;
     recorder_tweak *tweak;
     regex_t         re;
+    regmatch_t      rm;
     static char     error[128];
 
     // Facilitate usage such as: recorder_trace_set(getenv("RECORDER_TRACES"))
@@ -1507,7 +1515,7 @@ int recorder_trace_set(const char *param_spec)
             if (strcmp(param, "all") == 0)
                 param = ".*";
 
-            int status = regcomp(&re, param, REG_EXTENDED|REG_NOSUB|REG_ICASE);
+            int status = regcomp(&re, param, REG_EXTENDED|REG_ICASE);
             if (status == 0)
             {
                 if (numerical)
@@ -1515,8 +1523,9 @@ int recorder_trace_set(const char *param_spec)
                     // Numerical value: set the corresponding trace
                     for (rec = recorders; rec; rec = rec->next)
                     {
-                        int re_result = regexec(&re, rec->name, 0, NULL, 0);
-                        if (re_result == 0)
+                        int re_result = regexec(&re, rec->name, 1, &rm, 0);
+                        if (re_result == 0 &&
+                            rm.rm_so == 0 && rec->name[rm.rm_eo] == 0)
                         {
                             RECORD(recorder_traces,
                                    "Set %s from %ld to %ld",
@@ -1526,8 +1535,9 @@ int recorder_trace_set(const char *param_spec)
                     }
                     for (tweak = tweaks; tweak; tweak = tweak->next)
                     {
-                        int re_result = regexec(&re, tweak->name, 0, NULL, 0);
-                        if (re_result == 0)
+                        int re_result = regexec(&re, tweak->name, 1, &rm, 0);
+                        if (re_result == 0 &&
+                            rm.rm_so == 0 && tweak->name[rm.rm_eo] == 0)
                         {
                             RECORD(recorder_traces,
                                    "Set tweak %s from %ld to %ld",
@@ -1541,13 +1551,15 @@ int recorder_trace_set(const char *param_spec)
                     // Non-numerical: Activate corresponding exports
                     unsigned matches = 0;
                     for (rec = recorders; rec; rec = rec->next)
-                        if (regexec(&re, rec->name, 0, NULL, 0) == 0)
+                        if (regexec(&re, rec->name, 1, &rm, 0) == 0 &&
+                            rm.rm_so == 0 && rec->name[rm.rm_eo] == 0)
                             matches++;
 
                     for (rec = recorders; rec; rec = rec->next)
                     {
-                        int re_result = regexec(&re, rec->name, 0, NULL, 0);
-                        if (re_result == 0)
+                        int re_result = regexec(&re, rec->name, 1, &rm, 0);
+                        if (re_result == 0 &&
+                            rm.rm_so == 0 && rec->name[rm.rm_eo] == 0)
                         {
                             RECORD(recorder_traces,
                                    "Share %s under name %s",
