@@ -80,11 +80,11 @@ unsigned threads_to_stop = 0;
 #define lrand48() rand()
 #endif // CONFIG_MINGW
 
-void dawdle(unsigned minimumMs)
+void dawdle(unsigned minimumMs, unsigned deltaMs)
 {
     struct timespec tm;
     tm.tv_sec  = 0;
-    tm.tv_nsec = minimumMs * (1000 * 1000 + lrand48() % 2000000);
+    tm.tv_nsec = (minimumMs + drand48() * deltaMs) * 1000000;
     RECORD(Pauses, "Pausing #%u %ld.%03dus",
            ring_fetch_add(pauses_count, 1),
            tm.tv_nsec / 1000, tm.tv_nsec % 1000);
@@ -153,7 +153,7 @@ void flight_recorder_test(int argc, char **argv)
         {
             RECORD(Pauses, "Waiting for recorder threads to stop, %u remaining",
                    threads_to_stop);
-            dawdle(1);
+            dawdle(1, 0);
         }
         INFO("%s test: all threads have stopped, %lu iterations",
              i ? "Fast" : "Normal", recorder_count);
@@ -193,13 +193,14 @@ void flight_recorder_test(int argc, char **argv)
     if (getenv("KEEP_RUNNING"))
     {
         uintptr_t k = 0;
-        unsigned tid = 0;
         while(true)
         {
             k++;
             RECORD(SpeedTest, "[thread %u] Recording %u, mod %u",
-                   (unsigned) (200 * sin(0.03 * k) * sin (0.000718231*k) + 200), k, k % 627);
-            dawdle(5);
+                   (unsigned) (200 * sin(0.03 * k) * sin (0.000718231*k) + 200),
+                   k,
+                   k % 627);
+            dawdle(1, 3);
         }
     }
 }
