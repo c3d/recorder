@@ -32,9 +32,7 @@ int main(int argc, char *argv[])
 //   Create the main widget for the oscilloscope and display it
 // ----------------------------------------------------------------------------
 {
-    const char *path = getenv("RECORDER_PATH");
-    if (!path)
-        path = "/tmp/recorder_test";
+    const char *path = recorder_export_file();
     recorder_chans_p chans = recorder_chans_open(path);
     if (!chans)
     {
@@ -44,29 +42,20 @@ int main(int argc, char *argv[])
 
     QApplication a(argc, argv);
     QMainWindow window;
-
+    QWidget *widget = new QWidget;
+    QVBoxLayout *layout = new QVBoxLayout;
     if (argc <= 1)
     {
         RecorderView *recorderView = new RecorderView(chans, ".*");
-        window.setCentralWidget(recorderView);
+        layout->addWidget(recorderView);
     }
-    else if (argc == 2)
+    else for (int arg = 1; arg < argc; arg++)
     {
-        RecorderView *recorderView = new RecorderView(chans, argv[1]);
-        window.setCentralWidget(recorderView);
+        RecorderView *recorderView = new RecorderView(chans, argv[arg]);
+        layout->addWidget(recorderView);
     }
-    else
-    {
-        QWidget *widget = new QWidget;
-        QVBoxLayout *layout = new QVBoxLayout;
-        for (int arg = 1; arg < argc; arg++)
-        {
-            RecorderView *recorderView = new RecorderView(chans, argv[arg]);
-            layout->addWidget(recorderView);
-        }
-        widget->setLayout(layout);
-        window.setCentralWidget(widget);
-    }
+    widget->setLayout(layout);
+    window.setCentralWidget(widget);
     window.resize(600, 400);
     window.show();
 

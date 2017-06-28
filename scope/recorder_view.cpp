@@ -158,6 +158,11 @@ void RecorderView::updateSeries()
                 case RECORDER_NONE:
                     Q_ASSERT(!"Recorder channel has invalid type NONE");
                     break;
+                case RECORDER_INVALID:
+                    // Recorder format is invalid, put some fake data
+                    for (size_t p = 0; p < count; p++)
+                        pbuf[p] = QPointF(p, p % 32);
+                    break;
                 case RECORDER_SIGNED:
                     for (size_t p = 0; p < count; p++)
                         pbuf[p] = QPointF(rbuf[2*p].unsigned_value * scale,
