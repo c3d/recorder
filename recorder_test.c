@@ -38,6 +38,7 @@ RECORDER(MAIN,          64, "Global operations in 'main()'");
 RECORDER(Pauses,        256, "Pauses during blocking operations");
 RECORDER(Special,        64, "Special operations to the recorder");
 RECORDER(SpeedTest,      32, "Recorder speed test");
+RECORDER(SpeedInfo,      32, "Recorder information during speed test");
 RECORDER(FastSpeedTest,  32, "Fast recorder speed test");
 
 
@@ -193,14 +194,25 @@ void flight_recorder_test(int argc, char **argv)
     if (getenv("KEEP_RUNNING"))
     {
         uintptr_t k = 0;
+        uintptr_t last_k = 0;
+        uintptr_t last_tick = recorder_tick();
+        double hz = 1.0 / RECORDER_HZ;
         while(true)
         {
             k++;
-            RECORD(SpeedTest, "[thread %u] Recording %u, mod %u",
+            RECORD(FastSpeedTest, "[thread %u] Recording %u, mod %u",
                    (unsigned) (200 * sin(0.03 * k) * sin (0.000718231*k) + 200),
-                   k,
+                   (unsigned) (k * drand48()),
                    k % 627);
-            dawdle(1, 3);
+            // dawdle(1, 3);
+            uintptr_t tick = recorder_tick();
+            if (tick - last_tick > RECORDER_HZ/1000)
+            {
+                RECORD(SpeedInfo, "Iterations per millisecond: %lu (%f ns)",
+                       k - last_k, 1e6 / (k - last_k));
+                last_k = k;
+                last_tick = tick;
+            }
         }
     }
 }
