@@ -937,7 +937,6 @@ static recorder_type recorder_type_from_format(const char *format,
         }
         if (!in_format)
             continue;
-        in_format = false;
         switch (c)
         {
         case 'f': case 'F':  // Floating point formatting
@@ -990,6 +989,7 @@ static recorder_type recorder_type_from_format(const char *format,
                 return result;
             index--;
             result = RECORDER_NONE;
+            in_format = false;
         }
     }
     return RECORDER_INVALID;
