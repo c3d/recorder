@@ -231,18 +231,22 @@ For example, the trace specification `foo:bar=0:b[a-z]z.*=3` sets the
 recorder trace for `foo` to value `1` (enabling tracing for that
 recorder), sets the recorder trace for `bar` to `0`, and sets all
 recorders with a name matching regular expression `b[a-z]z.*` to
-value `3`.
+value `3`, for example `boz` and `bbz`.
 
-Three values for the trace specification have special meaning:
+The following values for the trace specification have special meaning:
 
 * The `list` and `help` values will print the list of available
-  recorders on `stderr`.
+  recorders on `stdout`.
 
 * The `all` value will be turned into the catch-all `.*`
   regular expression.
 
+* The `share` value can be used to set the file name used for sharing
+  information in real-time between a recorder appplication and an
+  application using that data.
 
-## Using the RECORDER_TRACES and RECORDER_DUMP environment variables
+
+## Using the `RECORDER_TRACES` and `RECORDER_DUMP` environment variables
 
 If your application calls `recorder_dump_on_common_signals` (see below),
  then traces will be activated or deactivated according to the
@@ -253,6 +257,56 @@ Your application can define traces from another application-specific
 environment variable with code like:
 
     recorder_trace_set(getenv("MY_APP_TRACES"));
+
+
+## Recorder channels
+
+If the specification of the trace is non-numerical, then it defines a
+comma-separated list of names of *exported channels*. Data from
+exported channels is made available to an external application,
+e.g. for real-time display using the `recorder_scope` application.
+
+For example, consider the following `RECORD` statement, taken from the
+`recorder_test.c` example:
+
+    RECORD(SpeedInfo, "Iterations per millisecond: %lu (%f ns)",
+           k - last_k, 1e6 / (k - last_k));
+
+This `RECORD` statements stores two data elements in the `SpeedInfo`
+recorder each time it is executed, a long unsigned value, and a
+floating-point value.
+
+It is then possible to cause to export two data channels holding the
+values being recorded, under then names `iter` and `duration`, by
+using a trace specification such as `SpeedInfo=iter,duration`. For
+exampe, you could run the `recorder_test` program as follows (the
+`KEEP_RUNNING` environment variable being used to keep the program
+running for a long time):
+
+    export KEEP_RUNNING=1
+    export RECORDER_TRACES='SpeedInfo=iter,duration'
+    export RECORDER_SHARE=/tmp/recorder_share
+    ./build/objects/linux/opt/recorder_test 1 1
+
+The data is exported in file `/tmp/recorder_share`. Another program
+can be used to display the data exported in that file in
+real-time. The `recorder_scope` program in subdirectory `scope` is an
+example of such a program. You would run it as follows:
+
+    export RECORDER_SHARE=/tmp/recorder_share
+    ./recorder_scope iter duration
+
+The result should be something like the picture below:
+
+![Recorder scope](scope/Scope.png)
+
+While multiple `RECORD` statements can write to the same recorder, if
+you intend to export data to channels, the data being exported must
+be positionally consistent between record statements, both in terms of
+the data type (e.g. integer, floating-point) and in what it
+represents. Otherwise, the graphs will not make sense. The data type
+for the graphs is taken from the format string for the first `RECORD`
+statement exporting data to that channel.
 
 
 ## Recorder trace value
