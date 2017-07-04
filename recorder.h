@@ -322,7 +322,8 @@ static void recorder_##Name##_tweak_activate()                          \
 //
 // ============================================================================
 
-#define RECORD(Name, Format, ...)                                       \
+#define RECORD(Name, ...)      RECORD_(Name, __VA_ARGS__);
+#define RECORD_(Name, Format, ...)                                      \
     recorder_##Name##_record(RECORDER_SOURCE_LOCATION,                  \
                              Format,                                    \
                              RECORDER_ARG(0,0,0,0, ## __VA_ARGS__,0),   \
@@ -331,7 +332,8 @@ static void recorder_##Name##_tweak_activate()                          \
                              RECORDER_ARG(0,## __VA_ARGS__,0,0,0,0))
 
 // Faster version that does not record time, about 2x faster on x86
-#define RECORD_FAST(Name, Format, ...)                                  \
+#define RECORD_FAST(Name, ...)      RECORD_FAST_(Name, __VA_ARGS__)
+#define RECORD_FAST_(Name, Format, ...)                                 \
     recorder_##Name##_recfast(RECORDER_SOURCE_LOCATION,                 \
                               Format,                                   \
                               RECORDER_ARG(0,0,0,0,##__VA_ARGS__,0),    \
