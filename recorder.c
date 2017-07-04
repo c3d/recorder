@@ -1437,7 +1437,7 @@ int recorder_trace_set(const char *param_spec)
         const char *value_ptr = NULL;
         char       *alloc     = NULL;
         char       *end       = NULL;
-        bool        numerical = false;
+        bool        numerical = true;
 
         // Split foo:bar:baz so that we consider only foo in this loop
         next = strpbrk(param, ": ");
@@ -1476,9 +1476,10 @@ int recorder_trace_set(const char *param_spec)
             }
             param[value_ptr - param] = 0;
             value_ptr++;
-            if (isdigit(*value_ptr))
+            numerical = isdigit(*value_ptr);
+            if (numerical)
             {
-                numerical = true;
+
                 value = strtol(value_ptr, &end, 0);
                 if (*end != 0)
                 {
@@ -1508,7 +1509,10 @@ int recorder_trace_set(const char *param_spec)
         }
         else if (strcmp(param, "share") == 0)
         {
-            recorder_share(value_ptr);
+            if (value_ptr)
+                recorder_share(value_ptr);
+            else
+                RECORD(recorder_traces, "No argument to 'share', ignored");
         }
         else
         {
