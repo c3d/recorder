@@ -366,7 +366,7 @@ unsigned recorder_dump_for(const char *what)
 
 void recorder_trace_entry(const char *label, recorder_entry *entry)
 // ----------------------------------------------------------------------------
-//   Show a recorder entry when a traqce is enabled
+//   Show a recorder entry when a trace is enabled
 // ----------------------------------------------------------------------------
 {
     recorder_dump_entry(label, entry,
