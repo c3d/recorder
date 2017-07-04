@@ -138,6 +138,9 @@ name of the recorder:
 
     RECORD(MOVES, "Move disk from %s to %s\n", name[left], name[right]);
 
+The trailing `\n` in the format string is optional. At recorder dump
+time, separate records will always be printed on separate lines.
+
 While a `RECORD` behaves mostly like `printf`, there are important
 caveats and limitations to be aware of, see below.
 
