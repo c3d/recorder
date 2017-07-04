@@ -1,22 +1,40 @@
 # recorder
 A lock-free, real-time flight recorder for your C or C++ programs
 
+* Records information about your program continuously while it's
+  running using simple `printf`-like statements
+* Classify recorded data in different categories to preserve both old
+  important events and recent, rapidly-firing events
+* Dump recorded data on demand, notably in response to signals or from debugger
+* Can trace specific categories of records, i.e. print them as they happen
+* Can export specific data to shared memory channels for external visualization
+* A simple Qt5.9-based visualization tool shows content of data
+  channels in real-time
 
 ## Instrumentation that is always there when you need it
 
 The flight recorder is designed to help you debug complex, real-time,
 multi-CPU programs. It lets you instrument their execution with
 non-intrusive `printf`-like *record statements*, that capture what is
-happening in your program. These record statements are very
-inexpensive, so you can leave them in your code all the time, even for
-optimized code. See *Performance considerations* at end of this
-document for details.
+happening in your program. Here is what a `RECORD` statement looks like:
 
-Then, when something bad happens or from within a debugger, you can
-*dump the recorder*, which gives you a very detailed account of recent
-events, helping you figure out how you came there. The recorder dump
-also contains highly detailed ordering and timing information, which
-can be very precious in multi-CPU systems.
+    RECORD(main, "Program %s started with %d arguments", argv[0], argc);
+
+These `RECORD` statements are very inexpensive, so you can leave them
+in your code all the time, even for optimized code. See *Performance
+considerations* at end of this document for details.
+
+In that example, `main` is the name of the recorder holding the
+data. We can declare it to hold 32 entries with a declaration like:
+
+    RECORDER(main, 32, "This is 'main', used in the example above");
+
+When something bad happens or from within a debugger, you can
+*dump the recorder* by calling the `recorder_dump()` function. This
+gives you a very detailed account of recent events, helping you figure
+out how you came there. The recorder dump also contains highly
+detailed ordering and timing information, which can be very precious
+in multi-CPU systems.
 
 Multiple recorders can be active simultaneously, for example to
 capture events from different subsystems. When a recorder dump occurs,
@@ -26,7 +44,7 @@ size and different refresh rates, but a very fast recorder will not
 push away data from a slower one. This ensures that you can record
 important, but slow, events, as well as much more frequent ones.
 
-Here is what a recorder dump can look like:
+Here is what a recorder dump can look like (lines omitted for brevity):
 
     recorder.c:518: [0 0.000000] signals: Activating dump for signal mask 0xE3001C58
     recorder_test.c:126: [1 0.000008] MAIN: Launching 16 normal recorder threads
@@ -35,35 +53,10 @@ Here is what a recorder dump can look like:
     recorder_test.c:141: [198750457 9.999914] MAIN: Normal recorder testing completed, stopping threads
     recorder_test.c:98: [198750757 9.999929] SpeedTest: [thread 3] Recording 12448096
     recorder_test.c:98: [198750760 9.999955] SpeedTest: [thread 7] Recording 12527067
-    recorder_test.c:98: [198750758 9.999929] SpeedTest: [thread 15] Recording 12379912
-    recorder_test.c:98: [198750759 9.999929] SpeedTest: [thread 8] Recording 12446846
-    recorder_test.c:98: [198750761 9.999929] SpeedTest: [thread 5] Recording 12429933
     recorder_test.c:147: [198750785 9.999930] Pauses: Waiting for recorder threads to stop, 16 remaining
     recorder_test.c:89: [198750787 9.999946] Pauses: Pausing #0 2401.618us
     recorder_test.c:98: [198750789 10.000008] SpeedTest: [thread 11] Recording 12385726
     recorder_test.c:98: [198750763 9.999929] SpeedTest: [thread 3] Recording 12448097
-    recorder_test.c:98: [198750765 9.999929] SpeedTest: [thread 13] Recording 12336853
-    recorder_test.c:98: [198750764 9.999929] SpeedTest: [thread 15] Recording 12379913
-    recorder_test.c:98: [198750767 9.999929] SpeedTest: [thread 8] Recording 12446847
-    recorder_test.c:98: [198750766 9.999929] SpeedTest: [thread 5] Recording 12429934
-    recorder_test.c:98: [198738706 10.000035] SpeedTest: [thread 9] Recording 12423995
-    recorder_test.c:98: [198750769 9.999929] SpeedTest: [thread 15] Recording 12379914
-    recorder_test.c:98: [198750770 9.999929] SpeedTest: [thread 3] Recording 12448098
-    recorder_test.c:98: [198750771 9.999929] SpeedTest: [thread 13] Recording 12336854
-    recorder_test.c:98: [198750772 9.999929] SpeedTest: [thread 8] Recording 12446848
-    recorder_test.c:98: [198750773 9.999929] SpeedTest: [thread 5] Recording 12429935
-    recorder_test.c:98: [198750774 9.999929] SpeedTest: [thread 10] Recording 12481275
-    recorder_test.c:98: [198750775 9.999929] SpeedTest: [thread 15] Recording 12379915
-    recorder_test.c:98: [198750776 9.999929] SpeedTest: [thread 3] Recording 12448099
-    recorder_test.c:98: [198750777 9.999929] SpeedTest: [thread 13] Recording 12336855
-    recorder_test.c:98: [198750778 9.990261] SpeedTest: [thread 2] Recording 12374034
-    recorder_test.c:98: [198750780 9.999930] SpeedTest: [thread 8] Recording 12446849
-    recorder_test.c:98: [198750779 9.999930] SpeedTest: [thread 15] Recording 12379916
-    recorder_test.c:98: [198750781 9.999930] SpeedTest: [thread 10] Recording 12481276
-    recorder_test.c:98: [198750782 9.999930] SpeedTest: [thread 5] Recording 12429937
-    recorder_test.c:98: [198750784 9.999930] SpeedTest: [thread 3] Recording 12448100
-    recorder_test.c:98: [198750783 9.999930] SpeedTest: [thread 15] Recording 12379917
-    recorder_test.c:98: [198750786 9.999930] SpeedTest: [thread 13] Recording 12336856
     recorder_test.c:98: [198750788 9.999971] SpeedTest: [thread 12] Recording 12356775
     recorder_test.c:98: [198750790 10.000029] SpeedTest: [thread 4] Recording 12412805
     recorder_test.c:151: [198750791 10.003075] MAIN: Normal test: all threads have stopped, 198750784 iterations
@@ -93,29 +86,29 @@ for a more extensive description of the design and rationale.
 
 ## Building the recorder library
 
-The recorder is normally designed to be included directly in your applications,
-not as a separate library, because it uses a per-application configuration
-file called `recorder.tbl` specifying the recorders and their size.
-However, you can still build and test the library to see how it works. To build
-and test the library on your system, type:
+To build and test the recorder library on your system, type:
 
-`make test`
+    make test
 
-This should build the library itself, which really consists of a
-two headers and a single C file, and then execute three tests that
-perform some operations and record what is happening while they do so.
+This should build the library itself, which really consists of two
+headers (`recorder.h` and `ring.h`) and corresponding C files
+(`recorder.c` and `ring.c`). After building, it will run a few simple
+tests that perform some operations and record what is happening while
+they do so.
 
 
 ## Adding recorders to your own project
 
 In order to add recorders to your own C project, you need to integrate
-three source files:
+four source files:
 
 * The `recorder.h` file is the header, which is designed to work for
-  either C programs.
+  either C programs. That header relies on a supporting `ring.h`
+  header to implement ring buffers.
 
 * The `recorder.c` file is the implementation file, which provides
-  support for C programs.
+  support for C programs. The `ring.c` file implements functions
+  implementing dynamic ring buffers.
 
 To define recorders, you use `RECORDER` statements, which takes
 three arguments: the name of the recorder, the number of entries to
@@ -130,17 +123,18 @@ It is also possible to declare recorders in a header file using the
 
     RECORDER_DECLARE(MOVES)
 
-This allows to share a recorder across multiple C source files.
+This makes it possible to share a recorder across multiple C source
+files. In short, you would typically put `RECORDER` lines in C source
+files, and `RECORDER_DECLARE` statements in C header files.
 
 
 ## Recording events
 
 To record events in C, you use a `printf`-like `RECORD` statement,
-which begins with the name of the recorder as defined in
-`recorder.tbl`.
-
-To record data in C, you replace `printf` statements with a `RECORD`
-statement, specifying the name of the recorder as the first argument:
+which begins with the name of the recorder as declared with
+`RECORDER_DECLARE` or defined with `RECORDER`. The `RECORD` statement
+works mostly like `printf`, but takes a first argument specifying the
+name of the recorder:
 
     RECORD(MOVES, "Move disk from %s to %s\n", name[left], name[right]);
 
@@ -154,13 +148,15 @@ Each record can store up to 4 arguments. Therefore, unlike `printf`,
 you can only pass 4 values to `RECORD`.
 
 You can pass integer values, floating-point values (limited to `float`
-on 32-bit machines for size reasons), pointers or strings as `RECORD` argument.
+on 32-bit machines for size reasons), pointers or strings as `RECORD`
+argument.
 
 However, unlike `printf`, the rendering of the final message is done
-*at the time of the dump*. This is not a problem for integer, pointer or
-floating-point values, but for strings (the `%s` format of `printf`),
-you must make sure that the string is still valid at the time of the
-dump. A good practice is to only record string constants.
+*at the time of the dump*. This is not a problem for integer,
+characters, pointer or floating-point values, but for strings (the
+`%s` format of `printf`), you must make sure that the string is still
+valid at the time of the dump. A good practice is to only record
+string constants.
 
     // OK if 0 <= i and i < 5
     const char *array[5] = { "ONE", "TWO", "THREE", "FOUR", "FIVE" };
@@ -173,6 +169,9 @@ dump. A good practice is to only record string constants.
 
 The `RECORD` macro automatically converts floating point values
 to `uintptr_t` based on their type.
+
+The `printf` formats that take two arguments, for example `%.*s`, do
+not work correctly with `RECORD` statements.
 
 
 ## Dumping recorder events
