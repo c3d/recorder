@@ -325,7 +325,7 @@ static void recorder_##Name##_tweak_activate()                          \
 //
 // ============================================================================
 
-#define RECORD(Name, ...)      RECORD_(Name, __VA_ARGS__);
+#define RECORD(Name, ...)      RECORD_(Name, __VA_ARGS__)
 #define RECORD_(Name, Format, ...)                                      \
     recorder_##Name##_record(RECORDER_SOURCE_LOCATION,                  \
                              Format,                                    \
