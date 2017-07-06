@@ -325,28 +325,73 @@ static void recorder_##Name##_tweak_activate()                          \
 //
 // ============================================================================
 
-#define RECORD(Name, ...)      RECORD_(Name, __VA_ARGS__)
-#define RECORD_(Name, Format, ...)                                      \
+#define RECORD(Name, Format,...)                                        \
+    RECORD_(RECORD,RECORD_COUNT_(__VA_ARGS__),Name,Format,##__VA_ARGS__)
+#define RECORD_(RECORD,RCOUNT,Name,Format,...)                          \
+    RECORD__(RECORD,RCOUNT,Name,Format,## __VA_ARGS__)
+#define RECORD__(RECORD,RCOUNT,Name,Format,...)                         \
+    RECORD##RCOUNT(Name,Format,##__VA_ARGS__)
+#define RECORD_COUNT_(...)      RECORD_COUNT__(Dummy,##__VA_ARGS__,_X,_X,_X,_X,_X,_X,_4,_3,_2,_1,_0)
+#define RECORD_COUNT__(Dummy,_0,_1,_2,_3,_4,_5,_6,_7,_8,_9,_N,...)      _N
+
+#define RECORD_0(Name, Format)                                          \
+    recorder_##Name##_record(RECORDER_SOURCE_LOCATION,                  \
+                             Format, 0, 0, 0, 0)
+#define RECORD_1(Name, Format, a)                                       \
     recorder_##Name##_record(RECORDER_SOURCE_LOCATION,                  \
                              Format,                                    \
-                             RECORDER_ARG(0,0,0,0, ## __VA_ARGS__,0),   \
-                             RECORDER_ARG(0,0,0,## __VA_ARGS__,0,0),    \
-                             RECORDER_ARG(0,0,## __VA_ARGS__,0,0,0),    \
-                             RECORDER_ARG(0,## __VA_ARGS__,0,0,0,0))
+                             RECORDER_ARG(a), 0, 0, 0)
+#define RECORD_2(Name, Format, a,b)                                     \
+    recorder_##Name##_record(RECORDER_SOURCE_LOCATION,                  \
+                             Format,                                    \
+                             RECORDER_ARG(a),                           \
+                             RECORDER_ARG(b), 0, 0)
+#define RECORD_3(Name, Format, a,b,c)                                   \
+    recorder_##Name##_record(RECORDER_SOURCE_LOCATION,                  \
+                             Format,                                    \
+                             RECORDER_ARG(a),                           \
+                             RECORDER_ARG(b),                           \
+                             RECORDER_ARG(c), 0)
+#define RECORD_4(Name, Format, a,b,c,d)                                 \
+    recorder_##Name##_record(RECORDER_SOURCE_LOCATION,                  \
+                             Format,                                    \
+                             RECORDER_ARG(a),                           \
+                             RECORDER_ARG(b),                           \
+                             RECORDER_ARG(c),                           \
+                             RECORDER_ARG(d))
+#define RECORD_X(Name, Format, ...)   RECORD_TOO_MANY_ARGS(printf(Format, __VA_ARGS__))
 
 // Faster version that does not record time, about 2x faster on x86
-#define RECORD_FAST(Name, ...)      RECORD_FAST_(Name, __VA_ARGS__)
-#define RECORD_FAST_(Name, Format, ...)                                 \
+#define RECORD_FAST(Name,Format,...)                                    \
+    RECORD_(RECORD_FAST,RECORD_COUNT_(__VA_ARGS__),Name,Format,##__VA_ARGS__)
+#define RECORD_FAST_0(Name, Format)                                     \
+    recorder_##Name##_recfast(RECORDER_SOURCE_LOCATION,                 \
+                              Format, 0, 0, 0, 0)
+#define RECORD_FAST_1(Name, Format, a)                                  \
     recorder_##Name##_recfast(RECORDER_SOURCE_LOCATION,                 \
                               Format,                                   \
-                              RECORDER_ARG(0,0,0,0,##__VA_ARGS__,0),    \
-                              RECORDER_ARG(0,0,0,##__VA_ARGS__,0,0),    \
-                              RECORDER_ARG(0,0,##__VA_ARGS__,0,0,0),    \
-                              RECORDER_ARG(0,##__VA_ARGS__,0,0,0,0))
+                              RECORDER_ARG(a), 0, 0, 0)
+#define RECORD_FAST_2(Name, Format, a,b)                                \
+    recorder_##Name##_recfast(RECORDER_SOURCE_LOCATION,                 \
+                              Format,                                   \
+                              RECORDER_ARG(a),                          \
+                              RECORDER_ARG(b), 0, 0)
+#define RECORD_FAST_3(Name, Format, a,b,c)                              \
+    recorder_##Name##_recfast(RECORDER_SOURCE_LOCATION,                 \
+                              Format,                                   \
+                              RECORDER_ARG(a),                          \
+                              RECORDER_ARG(b),                          \
+                              RECORDER_ARG(c), 0)
+#define RECORD_FAST_4(Name, Format, a,b,c,d)                            \
+    recorder_##Name##_recfast(RECORDER_SOURCE_LOCATION,                 \
+                              Format,                                   \
+                              RECORDER_ARG(a),                          \
+                              RECORDER_ARG(b),                          \
+                              RECORDER_ARG(c),                          \
+                              RECORDER_ARG(d))
 
-// Some ugly macro drudgery to make things easy to use.
-// Convert types, pad with zeroes.
-#define RECORDER_ARG(_1,_2,_3,_4, arg,...)              \
+// Some ugly macro drudgery to make things easy to use. Adjust type.
+#define RECORDER_ARG(arg)                               \
     _Generic(arg,                                       \
              unsigned char:     _recorder_unsigned,     \
              unsigned short:    _recorder_unsigned,     \
@@ -359,9 +404,9 @@ static void recorder_##Name##_tweak_activate()                          \
              signed:            _recorder_signed,       \
              signed long:       _recorder_signed,       \
              signed long long:  _recorder_signed,       \
-             default:           _recorder_pointer,      \
              float:             _recorder_float,        \
-             double:            _recorder_double) (arg)
+             double:            _recorder_double,       \
+             default:           _recorder_pointer)(arg)
 
 
 
