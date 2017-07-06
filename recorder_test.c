@@ -196,7 +196,6 @@ void flight_recorder_test(int argc, char **argv)
         uintptr_t k = 0;
         uintptr_t last_k = 0;
         uintptr_t last_tick = recorder_tick();
-        double hz = 1.0 / RECORDER_HZ;
         while(true)
         {
             k++;
