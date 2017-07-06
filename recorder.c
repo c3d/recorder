@@ -54,7 +54,7 @@ recorder_info * recorders        = NULL;
 recorder_tweak *tweaks           = NULL;
 
 
-static void recorder_dump_entry(const char         *label,
+static void recorder_dump_entry(recorder_info      *rec,
                                 recorder_entry     *entry,
                                 recorder_format_fn  format,
                                 recorder_show_fn    show,
@@ -63,6 +63,7 @@ static void recorder_dump_entry(const char         *label,
 //  Dump a recorder entry in a buffer between dst and dst_end, return last pos
 // ----------------------------------------------------------------------------
 {
+    const char     *label       = rec->name;
     char            buffer[256];
     char            format_buffer[32];
     char           *dst         = buffer;
@@ -70,6 +71,10 @@ static void recorder_dump_entry(const char         *label,
     const char     *fmt         = entry->format;
     unsigned        argIndex    = 0;
     const unsigned  maxArgIndex = sizeof(entry->args) / sizeof(entry->args[0]);
+
+    // Exit if we get there for a long-format second entry
+    if (!fmt)
+        return;
 
     // Apply formatting. This complicated loop is because
     // we need to detect floating-point values, which are passed
@@ -79,7 +84,7 @@ static void recorder_dump_entry(const char         *label,
     // and call the variadic snprintf passing a double value that will
     // naturally go in the right register. A bit ugly.
     bool finishedInNewline = false;
-    while (dst < dst_end && argIndex < maxArgIndex)
+    while (dst < dst_end)
     {
         char c = *fmt++;
         if (c != '%')
@@ -149,6 +154,17 @@ static void recorder_dump_entry(const char         *label,
                 break;
             int isString = (c == 's' || c == 'S');
             *fmtCopy++ = 0;
+
+            // Check for long entry, need to skip to next entry
+            if (argIndex >= maxArgIndex)
+            {
+                ring_p ring = rec->ring;
+                recorder_entry *base = (recorder_entry *) (ring + 1);
+                ringidx_t idx = entry - base;
+                entry = &base[(idx + 1) % ring->size];
+                argIndex = 0;
+            }
+
             if (floatingPoint)
             {
                 double floatArg;
@@ -304,18 +320,18 @@ unsigned recorder_sort(const char *what,
 //   Dump all entries, sorted by their global 'order' field
 // ----------------------------------------------------------------------------
 {
-    recorder_entry entry;
-    regex_t        re;
-    regmatch_t     rm;
-    unsigned       dumped = 0;
+    recorder_entry *entry;
+    regex_t         re;
+    regmatch_t      rm;
+    unsigned        dumped = 0;
 
     int status = regcomp(&re, what, REG_EXTENDED|REG_ICASE);
-
     while (status == 0)
     {
-        uintptr_t      lowestOrder = ~0UL;
-        recorder_info *lowest      = NULL;
-        recorder_info *rec;
+        uintptr_t       lowest_order = ~0UL;
+        recorder_entry *lowest_entry = NULL;
+        recorder_info  *lowest_rec   = NULL;
+        recorder_info  *rec;
 
         for (rec = recorders; rec; rec = rec->next)
         {
@@ -325,25 +341,24 @@ unsigned recorder_sort(const char *what,
                 continue;
 
             // Loop while this recorder is readable and we can find next order
-            if (rec->readable())
+            entry = rec->peek();
+            if (entry)
             {
-                rec->peek(&entry);
-                if (entry.order < lowestOrder)
+                uintptr_t order = entry->order;
+                if (order < lowest_order)
                 {
-                    lowest = rec;
-                    lowestOrder = entry.order;
+                    lowest_rec = rec;
+                    lowest_order = order;
+                    lowest_entry = entry;
                 }
             }
         }
 
-        if (!lowest)
+        if (!lowest_rec)
             break;
 
-        // The first read may fail due to 'catch up', if so continue
-        if (!lowest->read(&entry, 1))
-            continue;
-
-        recorder_dump_entry(lowest->name, &entry, format, show, output);
+        ring_fetch_add(lowest_rec->ring->reader, 1);
+        recorder_dump_entry(lowest_rec, lowest_entry, format, show, output);
         dumped++;
     }
 
@@ -1003,7 +1018,7 @@ void recorder_trace_entry(recorder_info *info, recorder_entry *entry)
 {
     unsigned i;
     if (info->trace != RECORDER_CHAN_MAGIC)
-        recorder_dump_entry(info->name, entry,
+        recorder_dump_entry(info, entry,
                             recorder_format, recorder_show, recorder_output);
     for (i = 0; i < 4; i++)
     {

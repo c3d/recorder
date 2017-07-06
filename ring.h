@@ -177,7 +177,7 @@ extern size_t    ring_read(ring_p ring,
                            ringidx_t *reader,
                            ring_block_fn read_block,
                            ring_block_fn read_overflow);
-extern ringidx_t ring_peek(ring_p ring, void *data);
+extern void *    ring_peek(ring_p ring);
 extern ringidx_t ring_write(ring_p ring, const void *data, size_t count,
                             ring_block_fn write_block,
                             ring_block_fn commit_block,
@@ -211,9 +211,9 @@ extern ringidx_t ring_write(ring_p ring, const void *data, size_t count,
     }                                                                   \
                                                                         \
     static inline RING_MAYBE_UNUSED                                     \
-    ringidx_t Ring##_peek(Ring *rb, Type *ptr)                          \
+    Type * Ring##_peek(Ring *rb)                                        \
     {                                                                   \
-        return ring_peek(&rb->ring, ptr);                               \
+        return (Type *) ring_peek(&rb->ring);                           \
     }                                                                   \
                                                                         \
     static inline RING_MAYBE_UNUSED                                     \
@@ -288,9 +288,9 @@ extern ringidx_t ring_write(ring_p ring, const void *data, size_t count,
     }                                                                   \
                                                                         \
     static inline RING_MAYBE_UNUSED                                     \
-    ringidx_t Name##_peek(Type *ptr)                                    \
+    Type * Name##_peek()                                                \
     {                                                                   \
-        return ring_peek(&Name.ring, ptr);                              \
+        return (Type *) ring_peek(&Name.ring);                          \
     }                                                                   \
                                                                         \
     static inline RING_MAYBE_UNUSED                                     \

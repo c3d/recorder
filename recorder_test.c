@@ -125,7 +125,7 @@ void flight_recorder_test(int argc, char **argv)
 {
     int i, j;
     uintptr_t count = argc >= 2 ? atoi(argv[1]) : 16;
-    unsigned howLong = argc >= 3 ? atoi(argv[2]) : 10;
+    unsigned howLong = argc >= 3 ? atoi(argv[2]) : 1;
 
     for (i = 0; i < 2; i++)
     {
@@ -186,6 +186,8 @@ void flight_recorder_test(int argc, char **argv)
     RECORD(Special, "Float    X 3.1415 = %x", 3.1415f);
     RECORD(Special, "Double     3.1415 = %f", 3.1415);
     RECORD(Special, "Double   X 3.1415 = %x", 3.1415);
+    RECORD(Special, "Large %d %u %ld %lu %f %s %p %g",
+           1,2u,3l,4lu,5.0,"six",(void *) 7,8.0);
 
 
     recorder_dump_for("Special");

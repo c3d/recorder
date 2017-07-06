@@ -84,34 +84,35 @@ extern size_t ring_writable(ring_p ring)
 }
 
 
-ringidx_t ring_peek(ring_p ring, void *ptr)
+void *ring_peek(ring_p ring)
 // ----------------------------------------------------------------------------
-//   Peek the next entry that would be read in the ring
+//   Peek the next entry that would be read in the ring and advance by 1
 // ----------------------------------------------------------------------------
 {
+    char         *data      = (char *) (ring + 1);
     const size_t  size      = ring->size;
     const size_t  item_size = ring->item_size;
     ringidx_t     reader    = ring->reader;
-    ringidx_t     writer    = ring->writer;
-    char         *data      = (char *) (ring + 1);
-    if (writer - reader >= size)
+    ringidx_t     commit    = ring->commit;
+    size_t        written   = commit - reader;
+    if (written >= size)
     {
-        ringidx_t minR = writer - size + 1;
+        ringidx_t minR = commit - size + 1;
         ringidx_t skip = minR - reader;
         ring_add_fetch(ring->overflow, skip);
         reader = ring_add_fetch(ring->reader, skip);
+        written = commit - reader;
     }
-    memcpy(ptr, data + reader % size * item_size, item_size);
-    return reader;
+    return written ? data + reader % size * item_size : NULL;
 }
 
 
-ringidx_t ring_read(ring_p ring,
-                    void *destination,
-                    size_t count,
-                    ringidx_t *reader_ptr,
-                    ring_block_fn read_block,
-                    ring_block_fn read_overflow)
+ringidx_t ring_read(ring_p         ring,
+                    void          *destination,
+                    size_t         count,
+                    ringidx_t     *reader_ptr,
+                    ring_block_fn  read_block,
+                    ring_block_fn  read_overflow)
 // ----------------------------------------------------------------------------
 //   Ring up to 'count' elements, return number of elements read
 // ----------------------------------------------------------------------------
