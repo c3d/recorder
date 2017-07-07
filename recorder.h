@@ -191,7 +191,7 @@ extern ringidx_t recorder_##Name##_record(const char *where,            \
                                           uintptr_t a2,                 \
                                           uintptr_t a3);                \
                                                                         \
-extern ringidx_t recorder_##Name##_record2(const char *where,            \
+extern ringidx_t recorder_##Name##_record2(const char *where,           \
                                            const char *format,          \
                                            uintptr_t a0,                \
                                            uintptr_t a1,                \
@@ -201,6 +201,21 @@ extern ringidx_t recorder_##Name##_record2(const char *where,            \
                                            uintptr_t a5,                \
                                            uintptr_t a6,                \
                                            uintptr_t a7);               \
+                                                                        \
+extern ringidx_t recorder_##Name##_record3(const char *where,           \
+                                           const char *format,          \
+                                           uintptr_t a0,                \
+                                           uintptr_t a1,                \
+                                           uintptr_t a2,                \
+                                           uintptr_t a3,                \
+                                           uintptr_t a4,                \
+                                           uintptr_t a5,                \
+                                           uintptr_t a6,                \
+                                           uintptr_t a7,                \
+                                           uintptr_t a8,                \
+                                           uintptr_t a9,                \
+                                           uintptr_t a10,               \
+                                           uintptr_t a11);              \
                                                                         \
 extern ringidx_t recorder_##Name##_recfast(const char *where,           \
                                            const char *format,          \
