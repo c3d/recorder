@@ -320,6 +320,59 @@ ringidx_t recorder_##Name##_record2(const char *where,                  \
 }                                                                       \
                                                                         \
                                                                         \
+ringidx_t recorder_##Name##_record3(const char *where,                  \
+                                    const char *format,                 \
+                                    uintptr_t a0,                       \
+                                    uintptr_t a1,                       \
+                                    uintptr_t a2,                       \
+                                    uintptr_t a3,                       \
+                                    uintptr_t a4,                       \
+                                    uintptr_t a5,                       \
+                                    uintptr_t a6,                       \
+                                    uintptr_t a7,                       \
+                                    uintptr_t a8,                       \
+                                    uintptr_t a9,                       \
+                                    uintptr_t a10,                      \
+                                    uintptr_t a11)                      \
+/* ----------------------------------------------------------------*/   \
+/*  Enter a record entry in ring buffer with given set of args     */   \
+/* ----------------------------------------------------------------*/   \
+{                                                                       \
+    ringidx_t writer = ring_fetch_add(recorder_##Name.ring.writer, 3);  \
+    recorder_entry *entry = &recorder_##Name.data[writer % Size];       \
+    entry->format = format;                                             \
+    entry->order = ring_fetch_add(recorder_order, 1);                   \
+    entry->timestamp = recorder_tick();                                 \
+    entry->where = where;                                               \
+    entry->args[0] = a0;                                                \
+    entry->args[1] = a1;                                                \
+    entry->args[2] = a2;                                                \
+    entry->args[3] = a3;                                                \
+    recorder_entry *entry2 = &recorder_##Name.data[(writer+1) % Size];  \
+    entry2->format = NULL;                                              \
+    entry2->order = entry->order;                                       \
+    entry2->timestamp = entry->timestamp;                               \
+    entry2->where = where;                                              \
+    entry2->args[0] = a4;                                               \
+    entry2->args[1] = a5;                                               \
+    entry2->args[2] = a6;                                               \
+    entry2->args[3] = a7;                                               \
+    recorder_entry *entry3 = &recorder_##Name.data[(writer+2) % Size];  \
+    entry3->format = NULL;                                              \
+    entry3->order = entry->order;                                       \
+    entry3->timestamp = entry->timestamp;                               \
+    entry3->where = where;                                              \
+    entry3->args[0] = a8;                                               \
+    entry3->args[1] = a9;                                               \
+    entry3->args[2] = a10;                                              \
+    entry3->args[3] = a11;                                              \
+    ring_fetch_add(recorder_##Name.ring.commit, 3);                     \
+    if (recorder_##Name##_info.trace)                                   \
+        recorder_trace_entry(&recorder_##Name##_info, entry);           \
+    return writer;                                                      \
+}                                                                       \
+                                                                        \
+                                                                        \
 ringidx_t recorder_##Name##_recfast(const char *where,                  \
                                     const char *format,                 \
                                     uintptr_t a0,                       \
@@ -377,8 +430,8 @@ static void recorder_##Name##_tweak_activate()                          \
     RECORD__(RECORD,RCOUNT,Name,Format,## __VA_ARGS__)
 #define RECORD__(RECORD,RCOUNT,Name,Format,...)                         \
     RECORD##RCOUNT(Name,Format,##__VA_ARGS__)
-#define RECORD_COUNT_(...)      RECORD_COUNT__(Dummy,##__VA_ARGS__,_X,_X,_8,_7,_6,_5,_4,_3,_2,_1,_0)
-#define RECORD_COUNT__(Dummy,_0,_1,_2,_3,_4,_5,_6,_7,_8,_9,_N,...)      _N
+#define RECORD_COUNT_(...)      RECORD_COUNT__(Dummy,##__VA_ARGS__,_X,_X,_12,_11,_10,_9,_8,_7,_6,_5,_4,_3,_2,_1,_0)
+#define RECORD_COUNT__(Dummy,_0,_1,_2,_3,_4,_5,_6,_7,_8,_9,_10,_11,_12,_13,_N,...)      _N
 
 #define RECORD_0(Name, Format)                                          \
     recorder_##Name##_record(RECORDER_SOURCE_LOCATION,                  \
@@ -443,6 +496,60 @@ static void recorder_##Name##_tweak_activate()                          \
                               RECORDER_ARG(f),                          \
                               RECORDER_ARG(g),                          \
                               RECORDER_ARG(h))
+#define RECORD_9(Name, Format, a,b,c,d,e,f,g,h,i)                       \
+    recorder_##Name##_record3(RECORDER_SOURCE_LOCATION,                 \
+                              Format,                                   \
+                              RECORDER_ARG(a),                          \
+                              RECORDER_ARG(b),                          \
+                              RECORDER_ARG(c),                          \
+                              RECORDER_ARG(d),                          \
+                              RECORDER_ARG(e),                          \
+                              RECORDER_ARG(f),                          \
+                              RECORDER_ARG(g),                          \
+                              RECORDER_ARG(h),                          \
+                              RECORDER_ARG(i), 0,0,0)
+#define RECORD_10(Name, Format, a,b,c,d,e,f,g,h,i,j)                    \
+    recorder_##Name##_record3(RECORDER_SOURCE_LOCATION,                 \
+                              Format,                                   \
+                              RECORDER_ARG(a),                          \
+                              RECORDER_ARG(b),                          \
+                              RECORDER_ARG(c),                          \
+                              RECORDER_ARG(d),                          \
+                              RECORDER_ARG(e),                          \
+                              RECORDER_ARG(f),                          \
+                              RECORDER_ARG(g),                          \
+                              RECORDER_ARG(h),                          \
+                              RECORDER_ARG(i),                          \
+                              RECORDER_ARG(j), 0,0)
+#define RECORD_11(Name, Format, a,b,c,d,e,f,g,h,i,j,k)                  \
+    recorder_##Name##_record3(RECORDER_SOURCE_LOCATION,                 \
+                              Format,                                   \
+                              RECORDER_ARG(a),                          \
+                              RECORDER_ARG(b),                          \
+                              RECORDER_ARG(c),                          \
+                              RECORDER_ARG(d),                          \
+                              RECORDER_ARG(e),                          \
+                              RECORDER_ARG(f),                          \
+                              RECORDER_ARG(g),                          \
+                              RECORDER_ARG(h),                          \
+                              RECORDER_ARG(i),                          \
+                              RECORDER_ARG(j),                          \
+                              RECORDER_ARG(k),0)
+#define RECORD_12(Name, Format, a,b,c,d,e,f,g,h,i,j,k,l)                \
+    recorder_##Name##_record3(RECORDER_SOURCE_LOCATION,                 \
+                              Format,                                   \
+                              RECORDER_ARG(a),                          \
+                              RECORDER_ARG(b),                          \
+                              RECORDER_ARG(c),                          \
+                              RECORDER_ARG(d),                          \
+                              RECORDER_ARG(e),                          \
+                              RECORDER_ARG(f),                          \
+                              RECORDER_ARG(g),                          \
+                              RECORDER_ARG(h),                          \
+                              RECORDER_ARG(i),                          \
+                              RECORDER_ARG(j),                          \
+                              RECORDER_ARG(k),                          \
+                              RECORDER_ARG(l))
 #define RECORD_X(Name, Format, ...)   RECORD_TOO_MANY_ARGS(printf(Format, __VA_ARGS__))
 
 // Faster version that does not record time, about 2x faster on x86
@@ -511,6 +618,60 @@ static void recorder_##Name##_tweak_activate()                          \
                               RECORDER_ARG(f),                          \
                               RECORDER_ARG(g),                          \
                               RECORDER_ARG(h))
+#define RECORD_FAST_9(Name, Format, a,b,c,d,e,f,g,h,i)                  \
+    recorder_##Name##_record3(RECORDER_SOURCE_LOCATION,                 \
+                              Format,                                   \
+                              RECORDER_ARG(a),                          \
+                              RECORDER_ARG(b),                          \
+                              RECORDER_ARG(c),                          \
+                              RECORDER_ARG(d),                          \
+                              RECORDER_ARG(e),                          \
+                              RECORDER_ARG(f),                          \
+                              RECORDER_ARG(g),                          \
+                              RECORDER_ARG(h),                          \
+                              RECORDER_ARG(i), 0,0,0)
+#define RECORD_FAST_10(Name, Format, a,b,c,d,e,f,g,h,i,j)               \
+    recorder_##Name##_record3(RECORDER_SOURCE_LOCATION,                 \
+                              Format,                                   \
+                              RECORDER_ARG(a),                          \
+                              RECORDER_ARG(b),                          \
+                              RECORDER_ARG(c),                          \
+                              RECORDER_ARG(d),                          \
+                              RECORDER_ARG(e),                          \
+                              RECORDER_ARG(f),                          \
+                              RECORDER_ARG(g),                          \
+                              RECORDER_ARG(h),                          \
+                              RECORDER_ARG(i),                          \
+                              RECORDER_ARG(j), 0,0)
+#define RECORD_FAST_11(Name, Format, a,b,c,d,e,f,g,h,i,j,k)             \
+    recorder_##Name##_record3(RECORDER_SOURCE_LOCATION,                 \
+                              Format,                                   \
+                              RECORDER_ARG(a),                          \
+                              RECORDER_ARG(b),                          \
+                              RECORDER_ARG(c),                          \
+                              RECORDER_ARG(d),                          \
+                              RECORDER_ARG(e),                          \
+                              RECORDER_ARG(f),                          \
+                              RECORDER_ARG(g),                          \
+                              RECORDER_ARG(h),                          \
+                              RECORDER_ARG(i),                          \
+                              RECORDER_ARG(j),                          \
+                              RECORDER_ARG(k),0)
+#define RECORD_FAST_12(Name, Format, a,b,c,d,e,f,g,h,i,j,k,l)           \
+    recorder_##Name##_record3(RECORDER_SOURCE_LOCATION,                 \
+                              Format,                                   \
+                              RECORDER_ARG(a),                          \
+                              RECORDER_ARG(b),                          \
+                              RECORDER_ARG(c),                          \
+                              RECORDER_ARG(d),                          \
+                              RECORDER_ARG(e),                          \
+                              RECORDER_ARG(f),                          \
+                              RECORDER_ARG(g),                          \
+                              RECORDER_ARG(h),                          \
+                              RECORDER_ARG(i),                          \
+                              RECORDER_ARG(j),                          \
+                              RECORDER_ARG(k),                          \
+                              RECORDER_ARG(l))
 #define RECORD_FAST_X(Name, Format, ...)   RECORD_TOO_MANY_ARGS(printf(Format, __VA_ARGS__))
 
 // Some ugly macro drudgery to make things easy to use. Adjust type.
