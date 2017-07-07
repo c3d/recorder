@@ -70,7 +70,7 @@ static void recorder_dump_entry(recorder_info      *rec,
 
     const char     *label         = rec->name;
     char           *dst           = buffer;
-    char           *dst_end       = buffer + sizeof buffer - 2;
+    char           *dst_end       = buffer + sizeof buffer - 1;
     const char     *fmt           = entry->format;
     unsigned        arg_index     = 0;
     const unsigned  max_arg_index = sizeof(entry->args)/sizeof(entry->args[0]);
@@ -87,7 +87,7 @@ static void recorder_dump_entry(recorder_info      *rec,
     // convert intptr_t to float or double depending on its size,
     // and call the variadic snprintf passing a double value that will
     // naturally go in the right register. A bit ugly.
-    bool finishedInNewline = false;
+    bool finished_in_newline = false;
     while (dst < dst_end)
     {
         char c = *fmt++;
@@ -105,7 +105,7 @@ static void recorder_dump_entry(recorder_info      *rec,
             bool      floating_point = false;
             bool      done           = false;
             bool      unsupported    = false;
-            uintptr_t fields[2]      = { 0 };
+            int       fields[2]      = { 0 };
             unsigned  field_cnt      = 0;
             *fmt_copy++ = c;
             while (!done && fmt < fmt_end)
@@ -162,7 +162,7 @@ static void recorder_dump_entry(recorder_info      *rec,
                     }
                     unsupported = field_cnt >= 2;
                     if (!unsupported)
-                        fields[field_cnt++] = entry->args[arg_index++];
+                        fields[field_cnt++] = (int) entry->args[arg_index++];
                     break;
 
                 default:
@@ -238,10 +238,10 @@ static void recorder_dump_entry(recorder_info      *rec,
                 }
             }
         }
-        finishedInNewline = c == '\n';
+        finished_in_newline = c == '\n';
     }
-    if (!finishedInNewline)
-        *dst++ = '\n';
+    if (finished_in_newline)
+        dst--;
     *dst++ = 0;
 
     format(show, output, label,
@@ -274,8 +274,8 @@ static unsigned recorder_print(const char *ptr, size_t len, void *file_arg)
 //   The default printing function - prints to stderr
 // ----------------------------------------------------------------------------
 {
-    FILE *file = file_arg ? file_arg : stderr;
-    return (unsigned) fwrite(ptr, 1, len, file);
+    FILE *file = file_arg ? file_arg : stdout;
+    return (unsigned) fprintf(file, "%.*s\n", (int) len, ptr);
 }
 
 
