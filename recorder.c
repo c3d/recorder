@@ -1464,7 +1464,7 @@ static void recorder_export(recorder_info *rec, const char *value, bool multi)
             sprintf(chan_name, "%s/%s", rec->name, name);
         }
 
-        printf("Exporting recorder channel %s for index %u in %s\n",
+        RECORD(recorders, "Exporting recorder channel %s for index %u in %s\n",
                chan_name, t, rec->name);
         chan = recorder_chan_new(chans, RECORDER_NONE, size,
                                  chan_name, rec->description, "", min, max);
