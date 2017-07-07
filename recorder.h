@@ -245,6 +245,7 @@ extern recorder_tweak recorder_##Name##_tweak;
 /*! \param Name is the C name fo the recorder.                          \
  *! \param Size is the number of entries in the circular buffer. */     \
                                                                         \
+RECORDER_DECLARE(Name);                                                 \
 RING_DECLARE(recorder_##Name, recorder_entry, Size);                    \
 RING_DEFINE (recorder_##Name, recorder_entry, Size);                    \
                                                                         \
