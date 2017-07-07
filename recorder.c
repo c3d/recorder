@@ -54,6 +54,8 @@ recorder_info * recorders        = NULL;
 recorder_tweak *tweaks           = NULL;
 
 
+RECORDER(recorders, 64, "Activation of recorders");
+
 static void recorder_dump_entry(recorder_info      *rec,
                                 recorder_entry     *entry,
                                 recorder_format_fn  format,
@@ -217,6 +219,7 @@ void *recorder_configure_output(void *output)
 //   Configure the output stream
 // ----------------------------------------------------------------------------
 {
+    RECORD(recorders, "Configure output %p from %p", output, recorder_output);
     void *previous = recorder_output;
     recorder_output = output;
     return previous;
@@ -239,6 +242,7 @@ recorder_show_fn  recorder_configure_show(recorder_show_fn show)
 //   Configure the function used to output data to the stream
 // ----------------------------------------------------------------------------
 {
+    RECORD(recorders, "Configure show %p from %p", show, recorder_show);
     recorder_show_fn previous = recorder_show;
     recorder_show = show;
     return previous;
@@ -307,6 +311,7 @@ recorder_format_fn recorder_configure_format(recorder_format_fn format)
 //   Configure the function used to format entries
 // ----------------------------------------------------------------------------
 {
+    RECORD(recorders, "Configure format %p from %p", format, recorder_format);
     recorder_format_fn previous = recorder_format;
     recorder_format = format;
     return previous;
@@ -373,6 +378,7 @@ unsigned recorder_dump(void)
 //   Dump all entries, sorted by their global 'order' field
 // ----------------------------------------------------------------------------
 {
+    RECORD(recorders, "Recorder dump");
     return recorder_sort(".*", recorder_format,recorder_show,recorder_output);
 }
 
@@ -382,6 +388,7 @@ unsigned recorder_dump_for(const char *what)
 //   Dump all entries for recorder with names matching 'what'
 // ----------------------------------------------------------------------------
 {
+    RECORD(recorders, "Recorder dump for %s", what);
     return recorder_sort(what, recorder_format,recorder_show,recorder_output);
 }
 
@@ -484,6 +491,7 @@ recorder_chans_p recorder_chans_new(const char *file)
 //   Create a new mmap'd file
 // ----------------------------------------------------------------------------
 {
+    RECORD(recorders, "Create export channels %s", file);
     if (!file)
         return NULL;
 
@@ -531,8 +539,6 @@ recorder_chans_p recorder_chans_new(const char *file)
 }
 
 
-RECORDER(deleting, 32, "Deleting shared memory operations");
-
 void recorder_chans_delete(recorder_chans_p chans)
 // ----------------------------------------------------------------------------
 //   Delete the list of exported items from the shared memory area
@@ -542,7 +548,6 @@ void recorder_chans_delete(recorder_chans_p chans)
     recorder_info *rec;
     for (rec = recorders; rec; rec = rec->next)
     {
-        RECORD(deleting, "Recorder %s %p trace %x", rec->name, rec, rec->trace);
         if (rec->trace == RECORDER_CHAN_MAGIC)
             rec->trace = 0;
         for (i = 0; i < 4; i++)
@@ -553,7 +558,6 @@ void recorder_chans_delete(recorder_chans_p chans)
     recorder_chan_p chan;
     for (chan = chans->head; chan; chan = next)
     {
-        RECORD(deleting, "Channel %p next %p", chan, chan->next);
         next = chan->next;
         recorder_chan_delete(chan);
     }
@@ -731,6 +735,7 @@ recorder_chans_p recorder_chans_open(const char *file)
 //    Map the file in memory, and scan its structure
 // ----------------------------------------------------------------------------
 {
+    RECORD(recorders, "Open export channels %s", file);
     int fd = open(file, O_RDWR);
     if (fd == -1)
         return NULL;
@@ -939,9 +944,11 @@ static recorder_type recorder_type_from_format(const char *format,
 //   Analyze format string to figure out the type of export
 // ----------------------------------------------------------------------------
 {
-    char          c;
-    bool          in_format = false;
-    recorder_type result    = RECORDER_NONE;
+    char           c;
+    bool           in_format    = false;
+    recorder_type  result       = RECORDER_NONE;
+    unsigned       start_index  = index;
+    const char    *start_format = format;
 
     for (c = *format++; c; c = *format++)
     {
@@ -1001,7 +1008,11 @@ static recorder_type recorder_type_from_format(const char *format,
         if (result != RECORDER_NONE)
         {
             if (!index)
+            {
+                RECORD(recorders, "Export type at index %u in %s is %u",
+                       start_index, start_format, result);
                 return result;
+            }
             index--;
             result = RECORDER_NONE;
             in_format = false;
@@ -1089,6 +1100,8 @@ void recorder_background_dump(const char *what)
     if (strcmp(what, "all") == 0)
         what = ".*";
     pthread_create(&tid, NULL, background_dump, (void *) what);
+    RECORD(recorders, "Activated background dump threads for %s, thread %p",
+           what, (void *) tid);
 }
 
 
@@ -1302,6 +1315,7 @@ void recorder_activate (recorder_info *recorder)
 //   Activate the given recorder by putting it in linked list
 // ----------------------------------------------------------------------------
 {
+    RECORD(recorders, "Activating '%s' (%p)", recorder->name, recorder);
     recorder_info  *head = recorders;
     do { recorder->next = head; }
     while (!ring_compare_exchange(recorders, head, recorder));
@@ -1313,6 +1327,7 @@ void recorder_tweak_activate (recorder_tweak *tweak)
 //   Activate the given recorder by putting it in linked list
 // ----------------------------------------------------------------------------
 {
+    RECORD(recorders, "Activating tweak '%s' (%p)", tweak->name, tweak);
     recorder_tweak  *head = tweaks;
     do { tweak->next = head; }
     while (!ring_compare_exchange(tweaks, head, tweak));
@@ -1543,6 +1558,8 @@ int recorder_trace_set(const char *param_spec)
                     for (rec = recorders; rec; rec = rec->next)
                     {
                         int re_result = regexec(&re, rec->name, 1, &rm, 0);
+                        RECORD(recorder_traces, "Numerical testing %s = %s",
+                               rec->name, re_result ? "NO" : "YES");
                         if (re_result == 0 &&
                             rm.rm_so == 0 && rec->name[rm.rm_eo] == 0)
                         {
@@ -1577,6 +1594,8 @@ int recorder_trace_set(const char *param_spec)
                     for (rec = recorders; rec; rec = rec->next)
                     {
                         int re_result = regexec(&re, rec->name, 1, &rm, 0);
+                        RECORD(recorder_traces, "Textual testing %s = %s",
+                               rec->name, re_result ? "NO" : "YES");
                         if (re_result == 0 &&
                             rm.rm_so == 0 && rec->name[rm.rm_eo] == 0)
                         {

@@ -716,7 +716,8 @@ static void recorder_##Name##_tweak_activate()                          \
 // ============================================================================
 
 RECORDER_DECLARE(signals);
-RECORDER_DECLARE(recorder_trace_set);
+RECORDER_DECLARE(recorders);
+RECORDER_DECLARE(recorder_traces);
 
 
 
