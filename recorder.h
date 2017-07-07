@@ -246,15 +246,15 @@ extern recorder_tweak recorder_##Name##_tweak;
  *! \param Size is the number of entries in the circular buffer. */     \
                                                                         \
 RECORDER_DECLARE(Name);                                                 \
-RING_DECLARE(recorder_##Name, recorder_entry, Size);                    \
-RING_DEFINE (recorder_##Name, recorder_entry, Size);                    \
+RING_DECLARE(recorder_##Name##_r, recorder_entry, Size);                \
+RING_DEFINE (recorder_##Name##_r, recorder_entry, Size);                \
                                                                         \
 /* The entry in linked list for this type */                            \
 recorder_info recorder_##Name##_info =                                  \
 {                                                                       \
     0, #Name, Info, NULL,                                               \
-    &recorder_##Name.ring,                                              \
-    (recorder_peek_fn) recorder_##Name##_peek,                          \
+    &recorder_##Name##_r.ring,                                          \
+    (recorder_peek_fn) recorder_##Name##_r_peek,                        \
     { NULL, NULL, NULL, NULL }                                          \
 };                                                                      \
                                                                         \
@@ -279,8 +279,11 @@ ringidx_t recorder_##Name##_record(const char *where,                   \
 /*  Enter a record entry in ring buffer with given set of args     */   \
 /* ----------------------------------------------------------------*/   \
 {                                                                       \
-    ringidx_t writer = ring_fetch_add(recorder_##Name.ring.writer, 1);  \
-    recorder_entry *entry = &recorder_##Name.data[writer % Size];       \
+    ring_p          ring   = &recorder_##Name##_r.ring;                 \
+    recorder_entry *data   = recorder_##Name##_r.data;                  \
+    ringidx_t       writer = ring_fetch_add(ring->writer, 1);           \
+    recorder_entry *entry  = &data[writer % Size];                      \
+    recorder_info  *rec    = &recorder_##Name##_info;                   \
     entry->format = format;                                             \
     entry->order = ring_fetch_add(recorder_order, 1);                   \
     entry->timestamp = recorder_tick();                                 \
@@ -289,9 +292,9 @@ ringidx_t recorder_##Name##_record(const char *where,                   \
     entry->args[1] = a1;                                                \
     entry->args[2] = a2;                                                \
     entry->args[3] = a3;                                                \
-    ring_fetch_add(recorder_##Name.ring.commit, 1);                     \
-    if (recorder_##Name##_info.trace)                                   \
-        recorder_trace_entry(&recorder_##Name##_info, entry);           \
+    ring_fetch_add(ring->commit, 1);                                    \
+    if (rec->trace)                                                     \
+        recorder_trace_entry(rec, entry);                               \
     return writer;                                                      \
 }                                                                       \
                                                                         \
@@ -307,11 +310,14 @@ ringidx_t recorder_##Name##_record2(const char *where,                  \
                                     uintptr_t a6,                       \
                                     uintptr_t a7)                       \
 /* ----------------------------------------------------------------*/   \
-/*  Enter a record entry in ring buffer with given set of args     */   \
+/*  Enter a double record entry (up to 8 args)                     */   \
 /* ----------------------------------------------------------------*/   \
 {                                                                       \
-    ringidx_t writer = ring_fetch_add(recorder_##Name.ring.writer, 2);  \
-    recorder_entry *entry = &recorder_##Name.data[writer % Size];       \
+    ring_p          ring   = &recorder_##Name##_r.ring;                 \
+    recorder_entry *data   = recorder_##Name##_r.data;                  \
+    ringidx_t       writer = ring_fetch_add(ring->writer, 2);           \
+    recorder_entry *entry  = &data[writer % Size];                      \
+    recorder_info  *rec    = &recorder_##Name##_info;                   \
     entry->format = format;                                             \
     entry->order = ring_fetch_add(recorder_order, 1);                   \
     entry->timestamp = recorder_tick();                                 \
@@ -320,7 +326,7 @@ ringidx_t recorder_##Name##_record2(const char *where,                  \
     entry->args[1] = a1;                                                \
     entry->args[2] = a2;                                                \
     entry->args[3] = a3;                                                \
-    recorder_entry *entry2 = &recorder_##Name.data[(writer+1) % Size];  \
+    recorder_entry *entry2 = &data[(writer+1) % Size];                  \
     entry2->format = NULL;                                              \
     entry2->order = entry->order;                                       \
     entry2->timestamp = entry->timestamp;                               \
@@ -329,9 +335,9 @@ ringidx_t recorder_##Name##_record2(const char *where,                  \
     entry2->args[1] = a5;                                               \
     entry2->args[2] = a6;                                               \
     entry2->args[3] = a7;                                               \
-    ring_fetch_add(recorder_##Name.ring.commit, 2);                     \
-    if (recorder_##Name##_info.trace)                                   \
-        recorder_trace_entry(&recorder_##Name##_info, entry);           \
+    ring_fetch_add(ring->commit, 2);                                    \
+    if (rec->trace)                                                     \
+        recorder_trace_entry(rec, entry);                               \
     return writer;                                                      \
 }                                                                       \
                                                                         \
@@ -351,11 +357,14 @@ ringidx_t recorder_##Name##_record3(const char *where,                  \
                                     uintptr_t a10,                      \
                                     uintptr_t a11)                      \
 /* ----------------------------------------------------------------*/   \
-/*  Enter a record entry in ring buffer with given set of args     */   \
+/*  Enter a triple record entry (up to 12 args)                    */   \
 /* ----------------------------------------------------------------*/   \
 {                                                                       \
-    ringidx_t writer = ring_fetch_add(recorder_##Name.ring.writer, 3);  \
-    recorder_entry *entry = &recorder_##Name.data[writer % Size];       \
+    ring_p          ring   = &recorder_##Name##_r.ring;                 \
+    recorder_entry *data   = recorder_##Name##_r.data;                  \
+    ringidx_t       writer = ring_fetch_add(ring->writer, 3);           \
+    recorder_entry *entry  = &data[writer % Size];                      \
+    recorder_info  *rec    = &recorder_##Name##_info;                   \
     entry->format = format;                                             \
     entry->order = ring_fetch_add(recorder_order, 1);                   \
     entry->timestamp = recorder_tick();                                 \
@@ -364,7 +373,7 @@ ringidx_t recorder_##Name##_record3(const char *where,                  \
     entry->args[1] = a1;                                                \
     entry->args[2] = a2;                                                \
     entry->args[3] = a3;                                                \
-    recorder_entry *entry2 = &recorder_##Name.data[(writer+1) % Size];  \
+    recorder_entry *entry2 = &data[(writer+1) % Size];                  \
     entry2->format = NULL;                                              \
     entry2->order = entry->order;                                       \
     entry2->timestamp = entry->timestamp;                               \
@@ -373,7 +382,7 @@ ringidx_t recorder_##Name##_record3(const char *where,                  \
     entry2->args[1] = a5;                                               \
     entry2->args[2] = a6;                                               \
     entry2->args[3] = a7;                                               \
-    recorder_entry *entry3 = &recorder_##Name.data[(writer+2) % Size];  \
+    recorder_entry *entry3 = &data[(writer+2) % Size];                  \
     entry3->format = NULL;                                              \
     entry3->order = entry->order;                                       \
     entry3->timestamp = entry->timestamp;                               \
@@ -382,9 +391,9 @@ ringidx_t recorder_##Name##_record3(const char *where,                  \
     entry3->args[1] = a9;                                               \
     entry3->args[2] = a10;                                              \
     entry3->args[3] = a11;                                              \
-    ring_fetch_add(recorder_##Name.ring.commit, 3);                     \
-    if (recorder_##Name##_info.trace)                                   \
-        recorder_trace_entry(&recorder_##Name##_info, entry);           \
+    ring_fetch_add(ring->commit, 3);                                    \
+    if (rec->trace)                                                     \
+        recorder_trace_entry(rec, entry);                               \
     return writer;                                                      \
 }                                                                       \
                                                                         \
@@ -396,22 +405,25 @@ ringidx_t recorder_##Name##_recfast(const char *where,                  \
                                     uintptr_t a2,                       \
                                     uintptr_t a3)                       \
 /* ----------------------------------------------------------------*/   \
-/*  Enter a record entry in ring buffer with given set of args     */   \
+/*  Enter a record entry faster by skipping timing information     */   \
 /* ----------------------------------------------------------------*/   \
 {                                                                       \
-    ringidx_t writer = ring_fetch_add(recorder_##Name.ring.writer, 1);  \
-    recorder_entry *entry = &recorder_##Name.data[writer % Size];       \
+    ring_p          ring   = &recorder_##Name##_r.ring;                 \
+    recorder_entry *data   = recorder_##Name##_r.data;                  \
+    ringidx_t       writer = ring_fetch_add(ring->writer, 1);           \
+    recorder_entry *entry  = &data[writer % Size];                      \
+    recorder_info  *rec    = &recorder_##Name##_info;                   \
     entry->format = format;                                             \
     entry->order = ring_fetch_add(recorder_order, 1);                   \
-    entry->timestamp = recorder_##Name.data[(writer-1)%Size].timestamp; \
+    entry->timestamp = data[(writer-1) % Size].timestamp;               \
     entry->where = where;                                               \
     entry->args[0] = a0;                                                \
     entry->args[1] = a1;                                                \
     entry->args[2] = a2;                                                \
     entry->args[3] = a3;                                                \
-    ring_fetch_add(recorder_##Name.ring.commit, 1);                     \
-    if (recorder_##Name##_info.trace)                                   \
-        recorder_trace_entry(&recorder_##Name##_info, entry);           \
+    ring_fetch_add(ring->commit, 1);                                    \
+    if (rec->trace)                                                     \
+        recorder_trace_entry(rec, entry);                               \
     return writer;                                                      \
 }
 
