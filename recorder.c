@@ -1507,52 +1507,61 @@ int recorder_trace_set(const char *param_spec)
         int         value     = 1;
         char       *param     = (char *) next;
         const char *original  = param;
-        const char *value_ptr = NULL;
+        char       *value_ptr = NULL;
         char       *alloc     = NULL;
         char       *end       = NULL;
         bool        numerical = true;
+        size_t      len       = 0;
 
         // Split foo:bar:baz so that we consider only foo in this loop
         next = strpbrk(param, ": ");
         if (next)
         {
-            if (next - param < sizeof(buffer)-1U)
+            len = next - param;
+            if (len < sizeof(buffer)-1U)
             {
-                memcpy(buffer, param, next - param);
+                memcpy(buffer, param, len);
                 param = buffer;
             }
             else
             {
-                alloc = malloc(next - param + 1);
-                memcpy(alloc, param, next - param);
+                alloc = malloc(len + 1);
+                memcpy(alloc, param, len);
+                param = alloc;
             }
-            param[next - param] = 0;
+            param[len] = 0;
             next++;
+        }
+        else
+        {
+            len = strlen(param);
         }
 
         // Check if we have an explicit value (foo=1), otherwise use default
         value_ptr = strchr(param, '=');
         if (value_ptr)
         {
-            if (param == buffer)
+            size_t offset = value_ptr - param;
+            if (!alloc && param != buffer)
             {
-                if (value_ptr - buffer < sizeof(buffer)-1U)
+                if (len < sizeof(buffer)-1U)
                 {
-                    memcpy(buffer, param, value_ptr - param);
+                    memcpy(buffer, param, len);
                     param = buffer;
                 }
                 else
                 {
-                    alloc = malloc(value_ptr - param + 1);
-                    memcpy(alloc, param, value_ptr - param);
+                    alloc = malloc(len + 1);
+                    memcpy(alloc, param, len);
+                    param = alloc;
                 }
+                param[len] = 0;
             }
-            param[value_ptr - param] = 0;
-            value_ptr++;
+            value_ptr = param + offset;
+            *value_ptr++ = 0;
             numerical = isdigit(*value_ptr);
             if (numerical)
             {
-
                 value = strtol(value_ptr, &end, 0);
                 if (*end != 0)
                 {
