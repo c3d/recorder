@@ -192,6 +192,10 @@ void flight_recorder_test(int argc, char **argv)
            1,2u,3l,4lu,5.0,"six",(void *) 7,8.0);
     RECORD(Special, "Largest %d %u %ld %lu %f %s %p %g %x %lu %u",
            1,2u,3l,4lu,5.0,"six",(void *) 7,8.0, 9, 10, 11);
+    RECORD(Special, "Format '%8s' '%-8s' '%8.2f' '%-8.2f'",
+           "abc", "def", 1.2345, 2.3456);
+    RECORD(Special, "Format '%*s' '%*.*f'",
+           8, "abc", 8, 2, 1.2345);
 
     recorder_dump_for("Special");
     recorder_dump();

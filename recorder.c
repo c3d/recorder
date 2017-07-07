@@ -65,14 +65,16 @@ static void recorder_dump_entry(recorder_info      *rec,
 //  Dump a recorder entry in a buffer between dst and dst_end, return last pos
 // ----------------------------------------------------------------------------
 {
-    const char     *label       = rec->name;
-    char            buffer[256];
-    char            format_buffer[32];
-    char           *dst         = buffer;
-    char           *dst_end     = buffer + sizeof buffer - 2;
-    const char     *fmt         = entry->format;
-    unsigned        argIndex    = 0;
-    const unsigned  maxArgIndex = sizeof(entry->args) / sizeof(entry->args[0]);
+    char buffer[256];
+    char format_buffer[32];
+
+    const char     *label         = rec->name;
+    char           *dst           = buffer;
+    char           *dst_end       = buffer + sizeof buffer - 2;
+    const char     *fmt           = entry->format;
+    unsigned        arg_index     = 0;
+    const unsigned  max_arg_index = sizeof(entry->args)/sizeof(entry->args[0]);
+
 
     // Exit if we get there for a long-format second entry
     if (!fmt)
@@ -98,23 +100,25 @@ static void recorder_dump_entry(recorder_info      *rec,
         }
         else
         {
-            char *fmtCopy = format_buffer;
-            int floatingPoint = 0;
-            int done = 0;
-            int unsupported = 0;
-            *fmtCopy++ = c;
-            char *fmt_end = format_buffer + sizeof format_buffer - 1;
+            char     *fmt_copy       = format_buffer;
+            char     *fmt_end        = format_buffer + sizeof format_buffer - 1;
+            bool      floating_point = false;
+            bool      done           = false;
+            bool      unsupported    = false;
+            uintptr_t fields[2]      = { 0 };
+            unsigned  field_cnt      = 0;
+            *fmt_copy++ = c;
             while (!done && fmt < fmt_end)
             {
                 c = *fmt++;
-                *fmtCopy++ = c;
+                *fmt_copy++ = c;
                 switch(c)
                 {
                 case 'f': case 'F':  // Floating point formatting
                 case 'g': case 'G':
                 case 'e': case 'E':
                 case 'a': case 'A':
-                    floatingPoint = 1;
+                    floating_point = true;
                     // Fall through here on purpose
                 case 'b':           // Integer formatting
                 case 'c': case 'C':
@@ -128,7 +132,7 @@ static void recorder_dump_entry(recorder_info      *rec,
                 case 'p':
                 case '%':
                 case 0:             // End of string
-                    done = 1;
+                    done = true;
                     break;
 
                     // GCC: case '0' ... '9', not supported on IAR
@@ -147,52 +151,91 @@ static void recorder_dump_entry(recorder_info      *rec,
                     break;
                 case 'n':           // Expect two args
                 case '*':
+                    // Check for long entry, need to skip to next entry
+                    if (arg_index >= max_arg_index)
+                    {
+                        ring_p ring = rec->ring;
+                        recorder_entry *base = (recorder_entry *) (ring + 1);
+                        ringidx_t idx = entry - base;
+                        entry = &base[(idx + 1) % ring->size];
+                        arg_index = 0;
+                    }
+                    unsupported = field_cnt >= 2;
+                    if (!unsupported)
+                        fields[field_cnt++] = entry->args[arg_index++];
+                    break;
+
                 default:
-                    unsupported = 1;
+                    unsupported = true;
                     break;
                 }
             }
             if (!c || unsupported)
                 break;
-            int isString = (c == 's' || c == 'S');
-            *fmtCopy++ = 0;
+            bool is_string = (c == 's' || c == 'S');
+            *fmt_copy++ = 0;
 
             // Check for long entry, need to skip to next entry
-            if (argIndex >= maxArgIndex)
+            if (arg_index >= max_arg_index)
             {
                 ring_p ring = rec->ring;
                 recorder_entry *base = (recorder_entry *) (ring + 1);
                 ringidx_t idx = entry - base;
                 entry = &base[(idx + 1) % ring->size];
-                argIndex = 0;
+                arg_index = 0;
             }
 
-            if (floatingPoint)
+            if (floating_point)
             {
-                double floatArg;
+                double arg;
                 if (sizeof(intptr_t) == sizeof(float))
                 {
                     union { float f; intptr_t i; } u;
-                    u.i = entry->args[argIndex++];
-                    floatArg = (double) u.f;
+                    u.i = entry->args[arg_index++];
+                    arg = (double) u.f;
                 }
                 else
                 {
                     union { double d; intptr_t i; } u;
-                    u.i = entry->args[argIndex++];
-                    floatArg = u.d;
+                    u.i = entry->args[arg_index++];
+                    arg = u.d;
                 }
-                dst += snprintf(dst, dst_end - dst,
-                                format_buffer,
-                                floatArg);
+                switch(field_cnt)
+                {
+                case 0:
+                    dst += snprintf(dst, dst_end - dst,
+                                    format_buffer, arg);
+                    break;
+                case 1:
+                    dst += snprintf(dst, dst_end - dst,
+                                    format_buffer, fields[0], arg);
+                    break;
+                case 2:
+                    dst += snprintf(dst, dst_end - dst,
+                                    format_buffer, fields[0], fields[1], arg);
+                    break;
+                }
             }
             else
             {
-                intptr_t arg = entry->args[argIndex++];
-                if (isString && arg == 0)
+                intptr_t arg = entry->args[arg_index++];
+                if (is_string && arg == 0)
                     arg = (intptr_t) "<NULL>";
-                dst += snprintf(dst, dst_end - dst,
-                                format_buffer, arg);
+                switch (field_cnt)
+                {
+                case 0:
+                    dst += snprintf(dst, dst_end - dst,
+                                    format_buffer, arg);
+                    break;
+                case 1:
+                    dst += snprintf(dst, dst_end - dst,
+                                    format_buffer, fields[0], arg);
+                    break;
+                case 2:
+                    dst += snprintf(dst, dst_end - dst,
+                                    format_buffer, fields[0], fields[1], arg);
+                    break;
+                }
             }
         }
         finishedInNewline = c == '\n';
