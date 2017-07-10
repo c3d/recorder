@@ -20,9 +20,10 @@ happening in your program. Here is what a `RECORD` statement looks like:
 
     RECORD(main, "Program %s started with %d arguments", argv[0], argc);
 
-These `RECORD` statements are very inexpensive, so you can leave them
-in your code all the time, even for optimized code. See *Performance
-considerations* at end of this document for details.
+These `RECORD` statements are very inexpensive (less than 0.1
+microsecond on a modern PC), so you can leave them in your code all
+the time, even for optimized code. See *Performance considerations* at
+end of this document for details.
 
 In that example, `main` is the name of the recorder holding the
 data. We can declare it to hold 32 entries with a declaration like:
