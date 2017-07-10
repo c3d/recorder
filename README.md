@@ -148,8 +148,11 @@ caveats and limitations to be aware of, see below.
 
 ## Caveats and limitations
 
-Each record can store up to 4 arguments. Therefore, unlike `printf`,
-you can only pass 4 values to `RECORD`.
+Each `RECORD` statement can have only up to 12 arguments.
+Each individual record can store up to 4 arguments, but the `RECORD`
+macro can generate 1, 2 or 3 recorder entries depending on the number
+of arguments. If you need more, the changes to the code should be
+somewhat straightforward.
 
 You can pass integer values, floating-point values (limited to `float`
 on 32-bit machines for size reasons), pointers or strings as `RECORD`
@@ -173,9 +176,6 @@ string constants.
 
 The `RECORD` macro automatically converts floating point values
 to `uintptr_t` based on their type.
-
-The `printf` formats that take two arguments, for example `%.*s`, do
-not work correctly with `RECORD` statements.
 
 
 ## Dumping recorder events
