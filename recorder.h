@@ -775,7 +775,7 @@ typedef struct recorder_chan  *recorder_chan_p;
 #define RECORDER_CHAN_VERSION         0x010000   // Version 1.0.0
 #define RECORDER_EXPORT_SIZE          2048
 
-extern const char *recorder_export_file();
+extern const char *recorder_export_file(void);
 
 
 // ============================================================================
