@@ -124,7 +124,7 @@ typedef recorder_entry *(*recorder_peek_fn)(void);
 
 /// A function pointer type used by generic code to count readable items.
 /// \return the number of recorder entries that can safely be read.
-typedef size_t (*recorder_readable_fn)();
+typedef size_t (*recorder_readable_fn)(void);
 
 
 typedef struct recorder_info
