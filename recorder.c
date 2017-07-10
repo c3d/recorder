@@ -40,6 +40,277 @@
 
 // ============================================================================
 //
+//   Recording data
+//
+// ============================================================================
+
+ringidx_t recorder_append(recorder_info *rec,
+                          const char *where,
+                          const char *format,
+                          uintptr_t a0,
+                          uintptr_t a1,
+                          uintptr_t a2,
+                          uintptr_t a3)
+// ----------------------------------------------------------------------------
+//  Enter a record entry in ring buffer with given set of args
+// ----------------------------------------------------------------------------
+{
+    ring_p          ring   = &rec->ring;
+    recorder_entry *data   = rec->data;
+    ringidx_t       writer = ring_fetch_add(ring->writer, 1);
+    size_t          size   = ring->size;
+    recorder_entry *entry  = &data[writer % size];
+    entry->format = format;
+    entry->order = ring_fetch_add(recorder_order, 1);
+    entry->timestamp = recorder_tick();
+    entry->where = where;
+    entry->args[0] = a0;
+    entry->args[1] = a1;
+    entry->args[2] = a2;
+    entry->args[3] = a3;
+    ring_fetch_add(ring->commit, 1);
+    if (rec->trace)
+        recorder_trace_entry(rec, entry);
+    return writer;
+}
+
+
+ringidx_t recorder_append2(recorder_info *rec,
+                           const char *where,
+                           const char *format,
+                           uintptr_t a0,
+                           uintptr_t a1,
+                           uintptr_t a2,
+                           uintptr_t a3,
+                           uintptr_t a4,
+                           uintptr_t a5,
+                           uintptr_t a6,
+                           uintptr_t a7)
+// ----------------------------------------------------------------------------
+//   Enter a double record (up to 8 args)
+// ----------------------------------------------------------------------------
+{
+    ring_p          ring   = &rec->ring;
+    recorder_entry *data   = rec->data;
+    ringidx_t       writer = ring_fetch_add(ring->writer, 2);
+    size_t          size   = ring->size;
+    recorder_entry *entry  = &data[writer % size];
+    entry->format = format;
+    entry->order = ring_fetch_add(recorder_order, 1);
+    entry->timestamp = recorder_tick();
+    entry->where = where;
+    entry->args[0] = a0;
+    entry->args[1] = a1;
+    entry->args[2] = a2;
+    entry->args[3] = a3;
+    recorder_entry *entry2 = &data[(writer+1) % size];
+    entry2->format = NULL;
+    entry2->order = entry->order;
+    entry2->timestamp = entry->timestamp;
+    entry2->where = where;
+    entry2->args[0] = a4;
+    entry2->args[1] = a5;
+    entry2->args[2] = a6;
+    entry2->args[3] = a7;
+    ring_fetch_add(ring->commit, 2);
+    if (rec->trace)
+        recorder_trace_entry(rec, entry);
+    return writer;
+}
+
+
+ringidx_t recorder_append3(recorder_info *rec,
+                           const char *where,
+                           const char *format,
+                           uintptr_t a0,
+                           uintptr_t a1,
+                           uintptr_t a2,
+                           uintptr_t a3,
+                           uintptr_t a4,
+                           uintptr_t a5,
+                           uintptr_t a6,
+                           uintptr_t a7,
+                           uintptr_t a8,
+                           uintptr_t a9,
+                           uintptr_t a10,
+                           uintptr_t a11)
+// ----------------------------------------------------------------------------
+//   Record a triple entry (up to 12 args)
+// ----------------------------------------------------------------------------
+{
+    ring_p          ring   = &rec->ring;
+    recorder_entry *data   = rec->data;
+    ringidx_t       writer = ring_fetch_add(ring->writer, 3);
+    size_t          size   = ring->size;
+    recorder_entry *entry  = &data[writer % size];
+    entry->format = format;
+    entry->order = ring_fetch_add(recorder_order, 1);
+    entry->timestamp = recorder_tick();
+    entry->where = where;
+    entry->args[0] = a0;
+    entry->args[1] = a1;
+    entry->args[2] = a2;
+    entry->args[3] = a3;
+    recorder_entry *entry2 = &data[(writer+1) % size];
+    entry2->format = NULL;
+    entry2->order = entry->order;
+    entry2->timestamp = entry->timestamp;
+    entry2->where = where;
+    entry2->args[0] = a4;
+    entry2->args[1] = a5;
+    entry2->args[2] = a6;
+    entry2->args[3] = a7;
+    recorder_entry *entry3 = &data[(writer+2) % size];
+    entry3->format = NULL;
+    entry3->order = entry->order;
+    entry3->timestamp = entry->timestamp;
+    entry3->where = where;
+    entry3->args[0] = a8;
+    entry3->args[1] = a9;
+    entry3->args[2] = a10;
+    entry3->args[3] = a11;
+    ring_fetch_add(ring->commit, 3);
+    if (rec->trace)
+        recorder_trace_entry(rec, entry);
+    return writer;
+}
+
+
+ringidx_t recorder_append_fast(recorder_info *rec,
+                               const char *where,
+                               const char *format,
+                               uintptr_t a0,
+                               uintptr_t a1,
+                               uintptr_t a2,
+                               uintptr_t a3)
+// ----------------------------------------------------------------------------
+//  Enter a record entry in ring buffer with given set of args
+// ----------------------------------------------------------------------------
+{
+    ring_p          ring   = &rec->ring;
+    recorder_entry *data   = rec->data;
+    ringidx_t       writer = ring_fetch_add(ring->writer, 1);
+    size_t          size   = ring->size;
+    recorder_entry *entry  = &data[writer % size];
+    entry->format = format;
+    entry->order = ring_fetch_add(recorder_order, 1);
+    entry->timestamp = data[(writer - 1) % size].timestamp;
+    entry->where = where;
+    entry->args[0] = a0;
+    entry->args[1] = a1;
+    entry->args[2] = a2;
+    entry->args[3] = a3;
+    ring_fetch_add(ring->commit, 1);
+    if (rec->trace)
+        recorder_trace_entry(rec, entry);
+    return writer;
+}
+
+
+ringidx_t recorder_append_fast2(recorder_info *rec,
+                                const char *where,
+                                const char *format,
+                                uintptr_t a0,
+                                uintptr_t a1,
+                                uintptr_t a2,
+                                uintptr_t a3,
+                                uintptr_t a4,
+                                uintptr_t a5,
+                                uintptr_t a6,
+                                uintptr_t a7)
+// ----------------------------------------------------------------------------
+//   Enter a double record (up to 8 args)
+// ----------------------------------------------------------------------------
+{
+    ring_p          ring   = &rec->ring;
+    recorder_entry *data   = rec->data;
+    ringidx_t       writer = ring_fetch_add(ring->writer, 2);
+    size_t          size   = ring->size;
+    recorder_entry *entry  = &data[writer % size];
+    entry->format = format;
+    entry->order = ring_fetch_add(recorder_order, 1);
+    entry->timestamp = data[(writer - 1) % size].timestamp;
+    entry->where = where;
+    entry->args[0] = a0;
+    entry->args[1] = a1;
+    entry->args[2] = a2;
+    entry->args[3] = a3;
+    recorder_entry *entry2 = &data[(writer+1) % size];
+    entry2->format = NULL;
+    entry2->order = entry->order;
+    entry2->timestamp = entry->timestamp;
+    entry2->where = where;
+    entry2->args[0] = a4;
+    entry2->args[1] = a5;
+    entry2->args[2] = a6;
+    entry2->args[3] = a7;
+    ring_fetch_add(ring->commit, 2);
+    if (rec->trace)
+        recorder_trace_entry(rec, entry);
+    return writer;
+}
+
+
+ringidx_t recorder_append_fast3(recorder_info *rec,
+                                const char *where,
+                                const char *format,
+                                uintptr_t a0,
+                                uintptr_t a1,
+                                uintptr_t a2,
+                                uintptr_t a3,
+                                uintptr_t a4,
+                                uintptr_t a5,
+                                uintptr_t a6,
+                                uintptr_t a7,
+                                uintptr_t a8,
+                                uintptr_t a9,
+                                uintptr_t a10,
+                                uintptr_t a11)
+// ----------------------------------------------------------------------------
+//   Record a triple entry (up to 12 args)
+// ----------------------------------------------------------------------------
+{
+    ring_p          ring   = &rec->ring;
+    recorder_entry *data   = rec->data;
+    ringidx_t       writer = ring_fetch_add(ring->writer, 3);
+    size_t          size   = ring->size;
+    recorder_entry *entry  = &data[writer % size];
+    entry->format = format;
+    entry->order = ring_fetch_add(recorder_order, 1);
+    entry->timestamp = data[(writer - 1) % size].timestamp;
+    entry->where = where;
+    entry->args[0] = a0;
+    entry->args[1] = a1;
+    entry->args[2] = a2;
+    entry->args[3] = a3;
+    recorder_entry *entry2 = &data[(writer+1) % size];
+    entry2->format = NULL;
+    entry2->order = entry->order;
+    entry2->timestamp = entry->timestamp;
+    entry2->where = where;
+    entry2->args[0] = a4;
+    entry2->args[1] = a5;
+    entry2->args[2] = a6;
+    entry2->args[3] = a7;
+    recorder_entry *entry3 = &data[(writer+2) % size];
+    entry3->format = NULL;
+    entry3->order = entry->order;
+    entry3->timestamp = entry->timestamp;
+    entry3->where = where;
+    entry3->args[0] = a8;
+    entry3->args[1] = a9;
+    entry3->args[2] = a10;
+    entry3->args[3] = a11;
+    ring_fetch_add(ring->commit, 3);
+    if (rec->trace)
+        recorder_trace_entry(rec, entry);
+    return writer;
+}
+
+
+
+// ============================================================================
+//
 //    Recorder dump utility
 //
 // ============================================================================
@@ -154,7 +425,7 @@ static void recorder_dump_entry(recorder_info      *rec,
                     // Check for long entry, need to skip to next entry
                     if (arg_index >= max_arg_index)
                     {
-                        ring_p ring = rec->ring;
+                        ring_p ring = &rec->ring;
                         recorder_entry *base = (recorder_entry *) (ring + 1);
                         ringidx_t idx = entry - base;
                         entry = &base[(idx + 1) % ring->size];
@@ -178,7 +449,7 @@ static void recorder_dump_entry(recorder_info      *rec,
             // Check for long entry, need to skip to next entry
             if (arg_index >= max_arg_index)
             {
-                ring_p ring = rec->ring;
+                ring_p ring = &rec->ring;
                 recorder_entry *base = (recorder_entry *) (ring + 1);
                 ringidx_t idx = entry - base;
                 entry = &base[(idx + 1) % ring->size];
@@ -361,6 +632,28 @@ recorder_format_fn recorder_configure_format(recorder_format_fn format)
 }
 
 
+static recorder_entry *recorder_peek(ring_p ring)
+// ----------------------------------------------------------------------------
+//   Peek the next entry that would be read in the ring and advance by 1
+// ----------------------------------------------------------------------------
+{
+    recorder_entry *data      = (recorder_entry *) (ring + 1);
+    const size_t    size      = ring->size;
+    ringidx_t       reader    = ring->reader;
+    ringidx_t       commit    = ring->commit;
+    size_t          written   = commit - reader;
+    if (written >= size)
+    {
+        ringidx_t minR = commit - size + 1;
+        ringidx_t skip = minR - reader;
+        ring_add_fetch(ring->overflow, skip);
+        reader = ring_add_fetch(ring->reader, skip);
+        written = commit - reader;
+    }
+    return written ? data + reader % size : NULL;
+}
+
+
 unsigned recorder_sort(const char *what,
                        recorder_format_fn format,
                        recorder_show_fn show, void *output)
@@ -389,7 +682,7 @@ unsigned recorder_sort(const char *what,
                 continue;
 
             // Loop while this recorder is readable and we can find next order
-            entry = rec->peek();
+            entry = recorder_peek(&rec->ring);
             if (entry)
             {
                 uintptr_t order = entry->order;
@@ -405,7 +698,7 @@ unsigned recorder_sort(const char *what,
         if (!lowest_rec)
             break;
 
-        ring_fetch_add(lowest_rec->ring->reader, 1);
+        ring_fetch_add(lowest_rec->ring.reader, 1);
         recorder_dump_entry(lowest_rec, lowest_entry, format, show, output);
         dumped++;
     }
