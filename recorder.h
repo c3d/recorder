@@ -288,7 +288,7 @@ struct recorder_info_for_##Name                                         \
                                                                         \
                                                                         \
 RECORDER_CONSTRUCTOR                                                    \
-static void recorder_activate_##Name()                                  \
+static void recorder_activate_##Name(void)                              \
 /* ----------------------------------------------------------------*/   \
 /*  Activate recorder before entering main()                       */   \
 /* ----------------------------------------------------------------*/   \
@@ -304,7 +304,7 @@ recorder_tweak recorder_tweak_info_for_##Name =                         \
 };                                                                      \
                                                                         \
 RECORDER_CONSTRUCTOR                                                    \
-static void recorder_tweak_activate_##Name()                            \
+static void recorder_tweak_activate_##Name(void)                        \
 /* ----------------------------------------------------------------*/   \
 /*  Activate a tweak before entering main()                        */   \
 /* ----------------------------------------------------------------*/   \
