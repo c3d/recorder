@@ -346,7 +346,6 @@ static void recorder_dump_entry(recorder_info      *rec,
     unsigned        arg_index     = 0;
     const unsigned  max_arg_index = sizeof(entry->args)/sizeof(entry->args[0]);
 
-
     // Exit if we get there for a long-format second entry
     if (!fmt)
         return;
@@ -379,7 +378,7 @@ static void recorder_dump_entry(recorder_info      *rec,
             int       fields[2]      = { 0 };
             unsigned  field_cnt      = 0;
             *fmt_copy++ = c;
-            while (!done && fmt < fmt_end)
+            while (!done && fmt_copy < fmt_end)
             {
                 c = *fmt++;
                 *fmt_copy++ = c;
