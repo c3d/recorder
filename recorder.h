@@ -313,7 +313,7 @@ static void recorder_tweak_activate_##Name(void)                        \
 }
 
 
-#define RECORDER_TRACE(Name)    (recorder_info_for_##Name.trace)
+#define RECORDER_TRACE(Name)    (recorder_info_for_##Name.info.trace)
 #define RECORDER_TWEAK(Name)    (recorder_tweak_info_for_##Name.tweak)
 
 
