@@ -634,6 +634,51 @@ RECORDER_DECLARE(recorder_traces);
 
 // ============================================================================
 //
+//    Timing information
+//
+// ============================================================================
+
+#define RECORD_TIMING_BEGIN(Recorder)                           \
+do {                                                            \
+    static uintptr_t _last_second = 0;                          \
+    static uintptr_t _total = 0;                                \
+    static uintptr_t _total_last_second = 0;                    \
+    static uintptr_t _duration_last_second = 0;                 \
+    static uintptr_t _iterations_last_second = 0;               \
+    uintptr_t _start_time = recorder_tick()
+
+#define RECORD_TIMING_END(Recorder, Operation, Name, Value)     \
+    uintptr_t _end_time = recorder_tick();                      \
+    uintptr_t _duration = _end_time - _start_time;              \
+    uintptr_t _value = (Value);                                 \
+    ring_fetch_add(_total, _value);                             \
+    ring_fetch_add(_total_last_second, _value);                 \
+    ring_fetch_add(_duration_last_second, _duration);           \
+    ring_fetch_add(_iterations_last_second, 1);                 \
+    uintptr_t _print_interval = (RECORDER_INFO(Recorder)->trace \
+                                 * (RECORDER_HZ / 1000));       \
+    uintptr_t _known = _last_second;                            \
+    uintptr_t _interval = _end_time - _known;                   \
+    double _scale = (double) RECORDER_HZ / _interval;           \
+    if (_interval >= _print_interval &&                         \
+        ring_compare_exchange(_last_second, _known, _end_time)) \
+    {                                                           \
+        RECORD(Recorder,                                        \
+               Operation " %.2f " Name "/s, total %lu, "        \
+               "%.2f loops/s, avg duration %.2f us, ",          \
+               _total_last_second * _scale,                     \
+               _total,                                          \
+               _iterations_last_second * _scale,                \
+               _duration_last_second * _scale);                 \
+        _total_last_second = 0;                                 \
+        _duration_last_second = 0;                              \
+        _iterations_last_second = 0;                            \
+    }                                                           \
+} while (0)
+
+
+// ============================================================================
+//
 //    Data export from recorders
 //
 // ============================================================================
