@@ -23,9 +23,9 @@ PRODUCTS=librecorder.lib
 CONFIG=struct_sigaction
 
 # Need -lpthreads in some build environments
-LDFLAGS_linux  = -lpthread
-LDFLAGS_cygwin = -lpthread
-LDFLAGS_mingw  = -lpthread
+LDFLAGS_linux  = -lpthread -lm
+LDFLAGS_cygwin = -lpthread -lm
+LDFLAGS_mingw  = -lpthread -lm
 
 TESTS=  hanoi_test.c recorder_test.c ring_test.c crash_test.c
 TEST_ARGS_hanoi_test=20 | grep "hanoi_test.c"
