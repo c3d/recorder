@@ -1879,7 +1879,7 @@ int recorder_trace_set(const char *param_spec)
             for (tweak = tweaks; tweak; tweak = tweak->next)
                 printf("%20s : %s = %ld (0x%lX) \n",
                        tweak->name, tweak->description,
-                       (long) tweak->tweak, (long) tweak->tweak);
+                       (long) tweak->trace, (long) tweak->trace);
         }
         else if (strcmp(param, "share") == 0)
         {
@@ -1921,8 +1921,8 @@ int recorder_trace_set(const char *param_spec)
                         {
                             RECORD(recorder_traces,
                                    "Set tweak %s from %ld to %ld",
-                                   tweak->name, tweak->tweak, value);
-                            tweak->tweak = value;
+                                   tweak->name, tweak->trace, value);
+                            tweak->trace = value;
                         }
                     }
                 }

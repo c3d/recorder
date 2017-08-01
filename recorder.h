@@ -134,7 +134,7 @@ typedef struct recorder_tweak
 ///   A linked list of recorder tweaks
 ///----------------------------------------------------------------------------
 {
-    intptr_t                tweak;      ///< Tweak for this recorder
+    intptr_t                trace;      ///< Tweak for this recorder
     const char *            name;       ///< Name of this parameter / recorder
     const char *            description;///< Description of what is recorded
     struct recorder_tweak * next;       ///< Pointer to next in list
@@ -276,7 +276,8 @@ struct recorder_info_for_##Name                                         \
 {                                                                       \
     recorder_info       info;                                           \
     recorder_entry      data[Size];                                     \
-} recorder_info_for_##Name =                                            \
+}                                                                       \
+recorder_info_for_##Name =                                              \
 {                                                                       \
     {                                                                   \
         0, #Name, Info, NULL,                                           \
@@ -298,9 +299,13 @@ static void recorder_activate_##Name(void)                              \
 
 
 #define RECORDER_TWEAK_DEFINE(Name, Value, Info)                        \
-recorder_tweak recorder_tweak_info_for_##Name =                         \
+struct recorder_tweak_for_##Name                                        \
 {                                                                       \
-    Value, #Name, Info, NULL                                            \
+    recorder_tweak info;                                                \
+}                                                                       \
+recorder_info_for_##Name =                                              \
+{                                                                       \
+    { Value, #Name, Info, NULL }                                        \
 };                                                                      \
                                                                         \
 RECORDER_CONSTRUCTOR                                                    \
@@ -309,12 +314,12 @@ static void recorder_tweak_activate_##Name(void)                        \
 /*  Activate a tweak before entering main()                        */   \
 /* ----------------------------------------------------------------*/   \
 {                                                                       \
-    recorder_tweak_activate(&recorder_tweak_info_for_##Name);           \
+    recorder_tweak_activate(&recorder_info_for_##Name.info);            \
 }
 
 
 #define RECORDER_TRACE(Name)    (recorder_info_for_##Name.info.trace)
-#define RECORDER_TWEAK(Name)    (recorder_tweak_info_for_##Name.tweak)
+#define RECORDER_TWEAK(Name)    RECORDER_TRACE(Name)
 
 
 
