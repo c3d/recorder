@@ -11,6 +11,8 @@ A lock-free, real-time flight recorder for your C or C++ programs
 * A simple Qt5.9-based visualization tool shows content of data
   channels in real-time
 
+[![Flight Recorder Presentation Video](http://img.youtube.com/vi/kEnQY1zFa0Y/0.jpg)](http://www.youtube.com/watch?v=kEnQY1zFa0Y "Flight Recorder Presentation")
+
 ## Instrumentation that is always there when you need it
 
 The flight recorder is designed to help you debug complex, real-time,
