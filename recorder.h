@@ -31,6 +31,18 @@ extern "C" {
 #endif // __cplusplus
 
 
+// ============================================================================
+//
+//   Information about the API
+//
+// ============================================================================
+
+#define RECORDER_CURRENT_VERSION                RECORDER_VERSION(1,0)
+#define RECORDER_VERSION(major,minor)           ((major)<<16|(minor))
+#define RECORDER_VERSION_MAJOR(version)         (((version) >> 16) & 0xFFFF)
+#define RECORDER_VERSION_MINOR(version)         ((version) & 0xFFFF)
+
+
 
 // ============================================================================
 //
