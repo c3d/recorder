@@ -127,10 +127,10 @@ void flight_recorder_test(int argc, char **argv)
     uintptr_t count = argc >= 2 ? atoi(argv[1]) : 16;
     unsigned howLong = argc >= 3 ? atoi(argv[2]) : 1;
 
-    INFO("Testing recorder version %u.%u",
+    INFO("Testing recorder version %u.%02u",
          RECORDER_VERSION_MAJOR(RECORDER_CURRENT_VERSION),
          RECORDER_VERSION_MINOR(RECORDER_CURRENT_VERSION));
-    if (RECORDER_CURRENT_VERSION > RECORDER_VERSION(1,0))
+    if (RECORDER_CURRENT_VERSION > RECORDER_VERSION(1,1))
         FAIL("Testing an unexpected version of the recorder, "
              "update RECORDER_CURRENT_VERSION");
 
