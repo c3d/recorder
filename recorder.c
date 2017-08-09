@@ -735,6 +735,8 @@ unsigned recorder_dump_for(const char *what)
 //
 // ============================================================================
 
+#define RECORDER_CMD_LEN  1024
+
 typedef struct recorder_shans
 // ----------------------------------------------------------------------------
 //   Shared-memory information about recorder_chans
@@ -745,6 +747,8 @@ typedef struct recorder_shans
     off_t       head;           // First recorder_chan in linked list
     off_t       free_list;      // Free list
     off_t       offset;         // Current offset for new recorder_chans
+    ring_t      commands;       // Incoming configuration commands
+    char        commands_buffer[RECORDER_CMD_LEN];
 } recorder_shans, *recorder_shans_p;
 
 
@@ -869,6 +873,9 @@ recorder_chans_p recorder_chans_new(const char *file)
     shans->head = 0;
     shans->free_list = 0;
     shans->offset = sizeof(recorder_shans);
+    ring_init(&shans->commands,
+              sizeof(shans->commands_buffer),
+              sizeof(shans->commands_buffer[0]));
 
     return chans;
 }
@@ -1133,6 +1140,22 @@ void recorder_chans_close(recorder_chans_p chans)
 }
 
 
+bool recorder_chans_configure(recorder_chans_p chans,
+                              const char *message)
+// ----------------------------------------------------------------------------
+//   Send a configuration message over the shared memory buffer
+// ----------------------------------------------------------------------------
+{
+    recorder_shans_p shans = chans->map_addr;
+    ring_p           cmds  = &shans->commands;
+    size_t           len   = strlen(message);
+    if (ring_writable(cmds) < len)
+        return false;
+    ring_write(cmds, message, len, NULL, NULL, NULL);
+    return true;
+}
+
+
 recorder_chan_p recorder_chan_find(recorder_chans_p  chans,
                                    const char       *pattern,
                                    recorder_chan_p   after)
@@ -1354,39 +1377,6 @@ static recorder_type recorder_type_from_format(const char *format,
         }
     }
     return RECORDER_INVALID;
-}
-
-
-void recorder_trace_entry(recorder_info *info, recorder_entry *entry)
-// ----------------------------------------------------------------------------
-//   Show a recorder entry when a trace is enabled
-// ----------------------------------------------------------------------------
-{
-    unsigned i;
-    if (info->trace != RECORDER_CHAN_MAGIC)
-        recorder_dump_entry(info, entry,
-                            recorder_format, recorder_show, recorder_output);
-    for (i = 0; i < 4; i++)
-    {
-        recorder_chan_p exported = info->exported[i];
-        if (exported)
-        {
-            recorder_shan_p    shan  = recorder_shared(exported);
-            ring_p             ring   = &shan->ring;
-            ringidx_t          writer = ring_fetch_add(ring->writer, 1);
-            recorder_data     *data   = (recorder_data *) (ring + 1);
-            size_t             size   = ring->size;
-
-            recorder_type      none   = RECORDER_NONE;
-            if (ring_compare_exchange(shan->type, none, RECORDER_INVALID))
-                shan->type = recorder_type_from_format(entry->format, i);
-
-            data += 2 * (writer % size);
-            data[0].unsigned_value = entry->timestamp;
-            data[1].unsigned_value = entry->args[i];
-            ring_fetch_add(ring->commit, 1);
-        }
-    }
 }
 
 
@@ -1679,6 +1669,53 @@ void recorder_tweak_activate (recorder_tweak *tweak)
 
 RECORDER_TWEAK_DEFINE(recorder_export_size, 2048,
                       "Number of samples stored when exporting records");
+static recorder_chans_p chans = NULL;
+
+void recorder_trace_entry(recorder_info *info, recorder_entry *entry)
+// ----------------------------------------------------------------------------
+//   Show a recorder entry when a trace is enabled
+// ----------------------------------------------------------------------------
+{
+    if (chans)
+    {
+        recorder_shans *shans = chans->map_addr;
+        size_t cmdlen = ring_readable(&shans->commands, NULL);
+        if (cmdlen)
+        {
+            char buffer[cmdlen + 1];
+            ring_read(&shans->commands, buffer, cmdlen, NULL, NULL, NULL);
+            buffer[cmdlen] = 0;
+            recorder_trace_set(buffer);
+        }
+    }
+
+    unsigned i;
+    if (info->trace != RECORDER_CHAN_MAGIC)
+        recorder_dump_entry(info, entry,
+                            recorder_format, recorder_show, recorder_output);
+    for (i = 0; i < 4; i++)
+    {
+        recorder_chan_p exported = info->exported[i];
+        if (exported)
+        {
+            recorder_shan_p    shan  = recorder_shared(exported);
+            ring_p             ring   = &shan->ring;
+            ringidx_t          writer = ring_fetch_add(ring->writer, 1);
+            recorder_data     *data   = (recorder_data *) (ring + 1);
+            size_t             size   = ring->size;
+
+            recorder_type      none   = RECORDER_NONE;
+            if (ring_compare_exchange(shan->type, none, RECORDER_INVALID))
+                shan->type = recorder_type_from_format(entry->format, i);
+
+            data += 2 * (writer % size);
+            data[0].unsigned_value = entry->timestamp;
+            data[1].unsigned_value = entry->args[i];
+            ring_fetch_add(ring->commit, 1);
+        }
+    }
+}
+
 
 const char *recorder_export_file()
 // ----------------------------------------------------------------------------
@@ -1692,7 +1729,6 @@ const char *recorder_export_file()
 }
 
 
-static recorder_chans_p chans = NULL;
 static void recorder_atexit_cleanup()
 // ----------------------------------------------------------------------------
 //   Cleanup when exiting the program

@@ -168,6 +168,7 @@ typedef struct ring
    by the time the block-handling function get to read them. */
 typedef bool (*ring_block_fn)(ring_p, ringidx_t from, ringidx_t to);
 
+    extern ring_p    ring_init(ring_p ring, size_t size, size_t item_size);
 extern ring_p    ring_new(size_t size, size_t item_size);
 extern void      ring_delete(ring_p ring);
 extern size_t    ring_readable(ring_p ring, ringidx_t *reader);

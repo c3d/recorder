@@ -44,22 +44,45 @@ int main(int argc, char *argv[])
     QMainWindow window;
     QWidget *widget = new QWidget;
     QVBoxLayout *layout = new QVBoxLayout;
-    if (argc <= 1)
+    int views = 0;
+    int configurations = 0;
+    for (int a = 1; a < argc; a++)
+    {
+        QString arg = argv[a];
+        if (arg == "-c" && ++a < argc)
+        {
+            if (!recorder_chans_configure(chans, argv[a]))
+            {
+                fprintf(stderr, "Insufficient command space to send '%s'\n",
+                        argv[a]);
+                return 3;
+            }
+            configurations++;
+        }
+        else
+        {
+            RecorderView *recorderView = new RecorderView(chans, argv[a]);
+            layout->addWidget(recorderView);
+            views++;
+        }
+    }
+
+    if (views == 0 && configurations == 0)
     {
         RecorderView *recorderView = new RecorderView(chans, ".*");
         layout->addWidget(recorderView);
     }
-    else for (int arg = 1; arg < argc; arg++)
-    {
-        RecorderView *recorderView = new RecorderView(chans, argv[arg]);
-        layout->addWidget(recorderView);
-    }
-    widget->setLayout(layout);
-    window.setCentralWidget(widget);
-    window.resize(600, 400);
-    window.show();
 
-    int result = a.exec();
+    int result = 0;
+    if (views > 0 || configurations == 0)
+    {
+        widget->setLayout(layout);
+        window.setCentralWidget(widget);
+        window.resize(600, 400);
+        window.show();
+        result = a.exec();
+    }
+
     recorder_chans_close(chans);
     return result;
 }

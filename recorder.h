@@ -296,7 +296,8 @@ recorder_info_for_##Name =                                              \
         { NULL, NULL, NULL, NULL },                                     \
         { Size, sizeof(recorder_entry), 0, 0, 0, 0 },                   \
         {}                                                              \
-    }                                                                   \
+    },                                                                  \
+    {}                                                                  \
 };                                                                      \
                                                                         \
                                                                         \
@@ -732,7 +733,7 @@ typedef struct recorder_chans *recorder_chans_p;
 typedef struct recorder_chan  *recorder_chan_p;
 
 #define RECORDER_CHAN_MAGIC           0xC0DABABE // Historical reference
-#define RECORDER_CHAN_VERSION         0x010000   // Version 1.0.0
+#define RECORDER_CHAN_VERSION         0x010001   // Version 1.0.1
 #define RECORDER_EXPORT_SIZE          2048
 
 extern const char *recorder_export_file(void);
@@ -769,6 +770,8 @@ extern void             recorder_chan_delete(recorder_chan_p chan);
 // Subscribing to recorder_chans from another process
 extern recorder_chans_p recorder_chans_open(const char *file);
 extern void             recorder_chans_close(recorder_chans_p chans);
+extern bool             recorder_chans_configure(recorder_chans_p chans,
+                                                 const char *message);
 
 extern recorder_chan_p  recorder_chan_find(recorder_chans_p chans,
                                            const char *pattern,

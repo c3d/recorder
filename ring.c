@@ -26,18 +26,28 @@
 typedef intptr_t ringdiff_t;
 
 
-ring_p ring_new(size_t size, size_t item_size)
+ring_p ring_init(ring_p ring, size_t size, size_t item_size)
 // ----------------------------------------------------------------------------
-//   Create a new ring with the given name
+//   Initialize a ring
 // ----------------------------------------------------------------------------
 {
-    ring_p ring = malloc(sizeof(ring_t) + size * item_size);
     ring->size = size;
     ring->item_size = item_size;
     ring->reader = 0;
     ring->writer = 0;
     ring->commit = 0;
     ring->overflow = 0;
+    return ring;
+}
+
+
+ring_p ring_new(size_t size, size_t item_size)
+// ----------------------------------------------------------------------------
+//   Create a new ring with the given name
+// ----------------------------------------------------------------------------
+{
+    ring_p ring = malloc(sizeof(ring_t) + size * item_size);
+    ring_init(ring, size, item_size);
     return ring;
 }
 
