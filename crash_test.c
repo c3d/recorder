@@ -19,7 +19,7 @@
 //   See file LICENSE for details.
 // ****************************************************************************
 
-#include "ring.h"
+#include "recorder_ring.h"
 #include "recorder.h"
 
 #include <stdio.h>

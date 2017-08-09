@@ -19,7 +19,7 @@
 //   See file LICENSE for details.
 // ****************************************************************************
 
-#include "ring.h"
+#include "recorder_ring.h"
 #include "recorder.h"
 
 #include <stdio.h>
@@ -163,17 +163,17 @@ void dawdle(unsigned minimumMs)
 }
 
 
-bool writer_block(ring_t *rb, ringidx_t oldW, ringidx_t lastW)
+bool writer_block(recorder_ring_t *rb, ringidx_t oldW, ringidx_t lastW)
 {
     RECORD(Writes, "Blocking write old=%u last=%u", oldW, lastW);
 
-    ring_fetch_add(count_write_blocked, 1);
+    recorder_ring_fetch_add(count_write_blocked, 1);
 
     /* Wait until reader is beyond the last item we are going to write */
     RECORD(Writes,"Blocking write %zu-%zu", oldW, lastW);
     while ((intptr_t) (lastW - rb->reader) >= (intptr_t) (rb->size - 1))
     {
-        ring_fetch_add(count_write_spins, 1);
+        recorder_ring_fetch_add(count_write_spins, 1);
         VERBOSE("Blocking write ahead %d %zu-%zu",
                 (int) (lastW - rb->reader - rb->size),
                 oldW, lastW);
@@ -193,17 +193,17 @@ bool writer_block(ring_t *rb, ringidx_t oldW, ringidx_t lastW)
 }
 
 
-bool commit_block(ring_t *rb, ringidx_t commit, ringidx_t oldW)
+bool commit_block(recorder_ring_t *rb, ringidx_t commit, ringidx_t oldW)
 {
     RECORD(Writes, "Blocking commit current=%u need=%u", commit, oldW);
 
-    ring_fetch_add(count_commit_blocked, 1);
+    recorder_ring_fetch_add(count_commit_blocked, 1);
 
     /* Wait until reader is beyond the last item we are going to write */
     RECORD(Reads,"Blocking commit %zu-%zu", commit, oldW);
     while (rb->commit != oldW)
     {
-        ring_fetch_add(count_commit_spins, 1);
+        recorder_ring_fetch_add(count_commit_spins, 1);
         VERBOSE("Blocking commit, at %zu, need %zu", rb->commit, oldW);
         RECORD(Pauses,"Blocking commit %zu-%zu-%zu", commit, rb->commit, oldW);
         dawdle(1);
@@ -221,7 +221,7 @@ bool commit_block(ring_t *rb, ringidx_t commit, ringidx_t oldW)
 void *writer_thread(void *data)
 {
     const unsigned numberOfTests = sizeof(testStrings) / sizeof(*testStrings);
-    unsigned tid = ring_fetch_add(thread_id, 1);
+    unsigned tid = recorder_ring_fetch_add(thread_id, 1);
     RECORD(MAIN, "Entering writer thread %u", tid);
 
     while (!threads_to_stop)
@@ -230,30 +230,30 @@ void *writer_thread(void *data)
         const char *str = testStrings[index];
         int len = strlen(str);
         VERBOSE("Write #%02d '%s' size %u", tid, str, len);
-        ring_fetch_add(count_writes, 1);
+        recorder_ring_fetch_add(count_writes, 1);
         RECORD(Writes, "Writing '%s'", str);
         ringidx_t wr = 0;
         size_t size = buffer_block_write(str, len,
                                          writer_block, commit_block, &wr);
         RECORD(Writes, "Wrote '%s' size %zu at index %u", str, size, wr);
-        ring_fetch_add(count_written, 1);
+        recorder_ring_fetch_add(count_written, 1);
 
         VERBOSE("Wrote #%02d '%s' at offset %lu-%lu size %u",
                 tid, str, wr, wr + len - 1, len);
     }
-    unsigned toStop = ring_fetch_add(threads_to_stop, -1U);
+    unsigned toStop = recorder_ring_fetch_add(threads_to_stop, -1U);
     RECORD(MAIN, "Exiting thread %u, stopping %u more", tid, toStop);
     return NULL;
 }
 
 
-bool reader_block(ring_t *rb, ringidx_t curR, ringidx_t lastR)
+bool reader_block(recorder_ring_t *rb, ringidx_t curR, ringidx_t lastR)
 {
     RECORD(Reads, "Blocked curR=%zu lastR=%zu", curR, lastR);
-    ring_fetch_add(count_read_blocked, 1);
+    recorder_ring_fetch_add(count_read_blocked, 1);
     while ((intptr_t) (rb->commit - lastR) < 0)
     {
-        ring_fetch_add(count_read_spins, 1);
+        recorder_ring_fetch_add(count_read_spins, 1);
         VERBOSE("Blocking read commit=%zu lastR=%zu", rb->commit, lastR);
         RECORD(Pauses, "Blocking read commit=%zu last=%zu", rb->commit, lastR);
         dawdle(1);
@@ -265,15 +265,15 @@ bool reader_block(ring_t *rb, ringidx_t curR, ringidx_t lastR)
 
 unsigned overflow_handler_called = 0;
 
-bool reader_overflow(ring_t *rb, ringidx_t curR, ringidx_t minR)
+bool reader_overflow(recorder_ring_t *rb, ringidx_t curR, ringidx_t minR)
 {
     size_t  skip = minR - curR;
     RECORD(Reads, "Overflow currentR=%u minR=%u skip=%u", curR, minR, skip);
 
-    ring_fetch_add(count_read_overflow, 1);
+    recorder_ring_fetch_add(count_read_overflow, 1);
     VERBOSE("Reader overflow %zu reader %zu -> %zu, skip %zu",
             rb->overflow, rb->reader, minR, skip);
-    ring_fetch_add(overflow_handler_called, 1);
+    recorder_ring_fetch_add(overflow_handler_called, 1);
 
 
     RECORD(Reads, "End overflow minReader=%u skip=%u", minR, skip);
@@ -286,7 +286,7 @@ bool reader_overflow(ring_t *rb, ringidx_t curR, ringidx_t minR)
 void *reader_thread(void *data)
 {
     char buf[256];
-    unsigned tid = ring_fetch_add(thread_id, 1);
+    unsigned tid = recorder_ring_fetch_add(thread_id, 1);
     ringidx_t rd = 0;
 
     RECORD(MAIN, "Entering reader thread tid %u", tid);
@@ -340,10 +340,10 @@ void *reader_thread(void *data)
 
         // Read the rest of the buffer based on input length
         VERBOSE("Reading #%02d '%c' %u bytes", tid, initial, testLen);
-        ring_fetch_add(count_reads, 1);
+        recorder_ring_fetch_add(count_reads, 1);
         size += buffer_block_read(buf + size, testLen - size, &rd,
                                   reader_block, reader_overflow);
-        ring_fetch_add(count_read, 1);
+        recorder_ring_fetch_add(count_read, 1);
         RECORD(Reads, "Index %u: Read %u bytes out of %u at index %u",
                rd, size, testLen);
 
@@ -367,7 +367,7 @@ void *reader_thread(void *data)
         VERBOSE("Read #%02d '%s' %u bytes", tid, ptr, testLen);
     }
 
-    unsigned toStop = ring_fetch_add(threads_to_stop, -1);
+    unsigned toStop = recorder_ring_fetch_add(threads_to_stop, -1);
     RECORD(MAIN, "Exiting reader thread tid %u, %u more to stop", tid, toStop);
 
     return NULL;
@@ -443,19 +443,19 @@ int ringbuffer_test(int argc, char **argv)
 }
 
 
-RING_DECLARE(speed_test, recorder_entry, 512);
-RING_DEFINE(speed_test, recorder_entry, 512);
+RECORDER_RING_DECLARE(speed_test, recorder_entry, 512);
+RECORDER_RING_DEFINE(speed_test, recorder_entry, 512);
 
 
-static inline ringidx_t special_ring_write(ring_p ring,
-                                    recorder_entry *source)
+static inline ringidx_t special_ring_write(recorder_ring_p ring,
+                                           recorder_entry *source)
 // ----------------------------------------------------------------------------
 //   Optimized version
 // ----------------------------------------------------------------------------
 {
     const size_t     size   = 512;
     recorder_entry * data   = (recorder_entry *) (ring + 1);
-    ringidx_t        writer = ring_fetch_add(ring->writer, 1);
+    ringidx_t        writer = recorder_ring_fetch_add(ring->writer, 1);
     data[writer % size] = *source;
     return writer;
 }
@@ -480,17 +480,17 @@ void compare_performance_of_common_operations(unsigned loops)
     TEST("regular ring_write", speed_test_write(&entry, 1));
     TEST("special ring_write", special_ring_write(&speed_test.ring, &entry));
     TEST("fetch-add",
-         entry.order = ring_fetch_add(recorder_order, 1);
+         entry.order = recorder_ring_fetch_add(recorder_order, 1);
          special_ring_write(&speed_test.ring, &entry));
     TEST("recorder_tick()",
          entry.timestamp = recorder_tick();
          special_ring_write(&speed_test.ring, &entry));
     TEST("tick + fetch-add",
-         entry.order = ring_fetch_add(recorder_order, 1);
+         entry.order = recorder_ring_fetch_add(recorder_order, 1);
          entry.timestamp = recorder_tick();
          special_ring_write(&speed_test.ring, &entry));
     TEST("tick + fetch-add + copy",
-         entry.order = ring_fetch_add(recorder_order, 1);
+         entry.order = recorder_ring_fetch_add(recorder_order, 1);
          entry.timestamp = recorder_tick();
          entry.args[0] = i;
          entry.args[1] = 3-i;
@@ -500,7 +500,7 @@ void compare_performance_of_common_operations(unsigned loops)
     TEST("clock_gettime + copy",
          struct timespec ts;
          clock_gettime(CLOCK_MONOTONIC, &ts);
-         entry.order = ring_fetch_add(recorder_order, 1);
+         entry.order = recorder_ring_fetch_add(recorder_order, 1);
          entry.timestamp = ts.tv_sec * 1000000L + ts.tv_nsec / 1000;
          entry.args[0] = i;
          entry.args[1] = 3-i;

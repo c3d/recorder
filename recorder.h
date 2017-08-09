@@ -21,7 +21,7 @@
 //  (C) 1992-2017 Christophe de Dinechin <christophe@dinechin.org>
 // ****************************************************************************
 
-#include "ring.h"
+#include "recorder_ring.h"
 #include <stdarg.h>
 #include <stdint.h>
 
@@ -136,7 +136,7 @@ typedef struct recorder_info
     const char *            description;///< Description of what is recorded
     struct recorder_info *  next;       ///< Pointer to next in list
     struct recorder_chan *  exported[4];///< Shared-memory ring export
-    ring_t                  ring;       ///< Pointer to ring for this recorder
+    recorder_ring_t         ring;       ///< Pointer to ring for this recorder
     recorder_entry          data[0];    ///< Data for this recorder
 } recorder_info;
 
@@ -665,33 +665,33 @@ do {                                                            \
     static uintptr_t _iterations_last_second = 0;               \
     uintptr_t _start_time = recorder_tick()
 
-#define RECORD_TIMING_END(Recorder, Operation, Name, Value)     \
-    uintptr_t _end_time = recorder_tick();                      \
-    uintptr_t _duration = _end_time - _start_time;              \
-    uintptr_t _value = (Value);                                 \
-    ring_fetch_add(_total, _value);                             \
-    ring_fetch_add(_total_last_second, _value);                 \
-    ring_fetch_add(_duration_last_second, _duration);           \
-    ring_fetch_add(_iterations_last_second, 1);                 \
-    uintptr_t _print_interval = (RECORDER_INFO(Recorder)->trace \
-                                 * (RECORDER_HZ / 1000));       \
-    uintptr_t _known = _last_second;                            \
-    uintptr_t _interval = _end_time - _known;                   \
-    double _scale = (double) RECORDER_HZ / _interval;           \
-    if (_interval >= _print_interval &&                         \
-        ring_compare_exchange(_last_second, _known, _end_time)) \
-    {                                                           \
-        RECORD(Recorder,                                        \
-               Operation " %.2f " Name "/s, total %lu, "        \
-               "%.2f loops/s, avg duration %.2f us, ",          \
-               _total_last_second * _scale,                     \
-               _total,                                          \
-               _iterations_last_second * _scale,                \
-               _duration_last_second * _scale);                 \
-        _total_last_second = 0;                                 \
-        _duration_last_second = 0;                              \
-        _iterations_last_second = 0;                            \
-    }                                                           \
+#define RECORD_TIMING_END(Recorder, Operation, Name, Value)             \
+    uintptr_t _end_time = recorder_tick();                              \
+    uintptr_t _duration = _end_time - _start_time;                      \
+    uintptr_t _value = (Value);                                         \
+    recorder_ring_fetch_add(_total, _value);                            \
+    recorder_ring_fetch_add(_total_last_second, _value);                \
+    recorder_ring_fetch_add(_duration_last_second, _duration);          \
+    recorder_ring_fetch_add(_iterations_last_second, 1);                \
+    uintptr_t _print_interval = (RECORDER_INFO(Recorder)->trace         \
+                                 * (RECORDER_HZ / 1000));               \
+    uintptr_t _known = _last_second;                                    \
+    uintptr_t _interval = _end_time - _known;                           \
+    double _scale = (double) RECORDER_HZ / _interval;                   \
+    if (_interval >= _print_interval &&                                 \
+        recorder_ring_compare_exchange(_last_second,_known,_end_time))  \
+    {                                                                   \
+        RECORD(Recorder,                                                \
+               Operation " %.2f " Name "/s, total %lu, "                \
+               "%.2f loops/s, avg duration %.2f us, ",                  \
+               _total_last_second * _scale,                             \
+               _total,                                                  \
+               _iterations_last_second * _scale,                        \
+               _duration_last_second * _scale);                         \
+        _total_last_second = 0;                                         \
+        _duration_last_second = 0;                                      \
+        _iterations_last_second = 0;                                    \
+    }                                                                   \
 } while (0)
 
 

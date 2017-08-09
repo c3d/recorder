@@ -19,7 +19,7 @@
 //   See file LICENSE for details.
 // ****************************************************************************
 
-#include "ring.h"
+#include "recorder_ring.h"
 #include "recorder.h"
 
 #include <math.h>
@@ -87,7 +87,7 @@ void dawdle(unsigned minimumMs, unsigned deltaMs)
     tm.tv_sec  = 0;
     tm.tv_nsec = (minimumMs + drand48() * deltaMs) * 1000000;
     RECORD(Pauses, "Pausing #%u %ld.%03dus",
-           ring_fetch_add(pauses_count, 1),
+           recorder_ring_fetch_add(pauses_count, 1),
            tm.tv_nsec / 1000, tm.tv_nsec % 1000);
     nanosleep(&tm, NULL);
 }
@@ -101,8 +101,8 @@ void *recorder_thread(void *thread)
         i++;
         RECORD(SpeedTest, "[thread %u] Recording %u, mod %u", tid, i, i % 500);
     }
-    ring_fetch_add(recorder_count, i);
-    ring_fetch_add(threads_to_stop, -1);
+    recorder_ring_fetch_add(recorder_count, i);
+    recorder_ring_fetch_add(threads_to_stop, -1);
     return NULL;
 }
 
@@ -116,8 +116,8 @@ void *recorder_fast_thread(void *thread)
         RECORD_FAST(FastSpeedTest, "[thread %u] Fast recording %u mod %u",
                     tid, i, i % 700);
     }
-    ring_fetch_add(recorder_count, i);
-    ring_fetch_add(threads_to_stop, -1);
+    recorder_ring_fetch_add(recorder_count, i);
+    recorder_ring_fetch_add(threads_to_stop, -1);
     return NULL;
 }
 

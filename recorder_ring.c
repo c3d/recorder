@@ -19,14 +19,15 @@
 //   See LICENSE file for details.
 // ****************************************************************************
 
-#include "ring.h"
+#include "recorder_ring.h"
 #include <stdlib.h>
 #include <string.h>
 
 typedef intptr_t ringdiff_t;
 
 
-ring_p ring_init(ring_p ring, size_t size, size_t item_size)
+recorder_ring_p recorder_ring_init(recorder_ring_p ring,
+                                   size_t size, size_t item_size)
 // ----------------------------------------------------------------------------
 //   Initialize a ring
 // ----------------------------------------------------------------------------
@@ -41,18 +42,18 @@ ring_p ring_init(ring_p ring, size_t size, size_t item_size)
 }
 
 
-ring_p ring_new(size_t size, size_t item_size)
+recorder_ring_p recorder_ring_new(size_t size, size_t item_size)
 // ----------------------------------------------------------------------------
 //   Create a new ring with the given name
 // ----------------------------------------------------------------------------
 {
-    ring_p ring = malloc(sizeof(ring_t) + size * item_size);
-    ring_init(ring, size, item_size);
+    recorder_ring_p ring = malloc(sizeof(recorder_ring_t) + size * item_size);
+    recorder_ring_init(ring, size, item_size);
     return ring;
 }
 
 
-void ring_delete(ring_p ring)
+void recorder_ring_delete(recorder_ring_p ring)
 // ----------------------------------------------------------------------------
 //   Delete the given ring from the list
 // ----------------------------------------------------------------------------
@@ -61,7 +62,7 @@ void ring_delete(ring_p ring)
 }
 
 
-extern size_t ring_readable(ring_p ring, ringidx_t *reader)
+extern size_t recorder_ring_readable(recorder_ring_p ring, ringidx_t *reader)
 // ----------------------------------------------------------------------------
 //   Return number of elements readable in the ring
 // ----------------------------------------------------------------------------
@@ -75,7 +76,7 @@ extern size_t ring_readable(ring_p ring, ringidx_t *reader)
 }
 
 
-extern size_t ring_writable(ring_p ring)
+extern size_t recorder_ring_writable(recorder_ring_p ring)
 // ----------------------------------------------------------------------------
 //   Return number of elements that can be written in the ring
 // ----------------------------------------------------------------------------
@@ -94,7 +95,7 @@ extern size_t ring_writable(ring_p ring)
 }
 
 
-void *ring_peek(ring_p ring)
+void *recorder_ring_peek(recorder_ring_p ring)
 // ----------------------------------------------------------------------------
 //   Peek the next entry that would be read in the ring and advance by 1
 // ----------------------------------------------------------------------------
@@ -109,20 +110,20 @@ void *ring_peek(ring_p ring)
     {
         ringidx_t minR = commit - size + 1;
         ringidx_t skip = minR - reader;
-        ring_add_fetch(ring->overflow, skip);
-        reader = ring_add_fetch(ring->reader, skip);
+        recorder_ring_add_fetch(ring->overflow, skip);
+        reader = recorder_ring_add_fetch(ring->reader, skip);
         written = commit - reader;
     }
     return written ? data + reader % size * item_size : NULL;
 }
 
 
-ringidx_t ring_read(ring_p         ring,
-                    void          *destination,
-                    size_t         count,
-                    ringidx_t     *reader_ptr,
-                    ring_block_fn  read_block,
-                    ring_block_fn  read_overflow)
+ringidx_t recorder_ring_read(recorder_ring_p         ring,
+                             void                   *destination,
+                             size_t                  count,
+                             ringidx_t              *reader_ptr,
+                             recorder_ring_block_fn  read_block,
+                             recorder_ring_block_fn  read_overflow)
 // ----------------------------------------------------------------------------
 //   Ring up to 'count' elements, return number of elements read
 // ----------------------------------------------------------------------------
@@ -163,8 +164,8 @@ ringidx_t ring_read(ring_p         ring,
             if (!read_overflow || !read_overflow(ring, reader, first_valid))
             {
                 ringidx_t skip = first_valid - reader;
-                ring_add_fetch(ring->overflow, skip);
-                ring_add_fetch(*reader_ptr, skip);
+                recorder_ring_add_fetch(ring->overflow, skip);
+                recorder_ring_add_fetch(*reader_ptr, skip);
                 reader = first_valid;
             }
         }
@@ -187,19 +188,20 @@ ringidx_t ring_read(ring_p         ring,
             to_copy -= this_round;
             reader += this_round;
         }
-    } while (!ring_compare_exchange(*reader_ptr, first_reader, next_reader));
+    } while (!recorder_ring_compare_exchange(*reader_ptr,
+                                             first_reader, next_reader));
 
     // Return number of items effectively read
     return count - to_copy;
 }
 
 
-ringidx_t ring_write(ring_p ring,
-                     const void *source,
-                     size_t count,
-                     ring_block_fn write_block,
-                     ring_block_fn commit_block,
-                     ringidx_t *writer_ptr)
+ringidx_t recorder_ring_write(recorder_ring_p         ring,
+                              const void             *source,
+                              size_t                  count,
+                              recorder_ring_block_fn  write_block,
+                              recorder_ring_block_fn  commit_block,
+                              ringidx_t              *writer_ptr)
 // ----------------------------------------------------------------------------
 //   Write 'count' elements from 'ptr' into 'rb', return entry idx
 // ----------------------------------------------------------------------------
@@ -226,7 +228,8 @@ ringidx_t ring_write(ring_p ring,
             if (write_block && !write_block(ring, writer, writer + to_copy))
                 to_copy = available;
 
-    } while (!ring_compare_exchange(ring->writer, writer, writer + to_copy));
+    } while (!recorder_ring_compare_exchange(ring->writer,
+                                             writer, writer + to_copy));
 
     // Record first writer, to see if we will be the one committing
     first_writer = writer;
@@ -252,12 +255,12 @@ ringidx_t ring_write(ring_p ring,
     // Commit buffer change, but only if commit is first_writer.
     // Otherwise, some other write is still copying its data, we must spin.
     ringidx_t expected = first_writer;
-    while (!ring_compare_exchange(ring->commit, expected, writer))
+    while (!recorder_ring_compare_exchange(ring->commit, expected, writer))
     {
         if (!commit_block || !commit_block(ring, ring->commit, first_writer))
         {
             // Skip forward
-            ring_fetch_add(ring->commit, writer - first_writer);
+            recorder_ring_fetch_add(ring->commit, writer - first_writer);
             break;
         }
         expected = first_writer;

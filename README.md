@@ -94,10 +94,10 @@ To build and test the recorder library on your system, type:
     make test
 
 This should build the library itself, which really consists of two
-headers (`recorder.h` and `ring.h`) and corresponding C files
-(`recorder.c` and `ring.c`). After building, it will run a few simple
-tests that perform some operations and record what is happening while
-they do so.
+headers (`recorder.h` and `recorder_ring.h`) and corresponding C files
+(`recorder.c` and `recorder_ring.c`). After building, it will run a
+few simple tests that perform some operations and record what is
+happening while they do so.
 
 
 ## Adding recorders to your own project

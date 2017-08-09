@@ -55,20 +55,20 @@ ringidx_t recorder_append(recorder_info *rec,
 //  Enter a record entry in ring buffer with given set of args
 // ----------------------------------------------------------------------------
 {
-    ring_p          ring   = &rec->ring;
+    recorder_ring_p ring   = &rec->ring;
     recorder_entry *data   = rec->data;
-    ringidx_t       writer = ring_fetch_add(ring->writer, 1);
+    ringidx_t       writer = recorder_ring_fetch_add(ring->writer, 1);
     size_t          size   = ring->size;
     recorder_entry *entry  = &data[writer % size];
     entry->format = format;
-    entry->order = ring_fetch_add(recorder_order, 1);
+    entry->order = recorder_ring_fetch_add(recorder_order, 1);
     entry->timestamp = recorder_tick();
     entry->where = where;
     entry->args[0] = a0;
     entry->args[1] = a1;
     entry->args[2] = a2;
     entry->args[3] = a3;
-    ring_fetch_add(ring->commit, 1);
+    recorder_ring_fetch_add(ring->commit, 1);
     if (rec->trace)
         recorder_trace_entry(rec, entry);
     return writer;
@@ -90,13 +90,13 @@ ringidx_t recorder_append2(recorder_info *rec,
 //   Enter a double record (up to 8 args)
 // ----------------------------------------------------------------------------
 {
-    ring_p          ring   = &rec->ring;
+    recorder_ring_p ring   = &rec->ring;
     recorder_entry *data   = rec->data;
-    ringidx_t       writer = ring_fetch_add(ring->writer, 2);
+    ringidx_t       writer = recorder_ring_fetch_add(ring->writer, 2);
     size_t          size   = ring->size;
     recorder_entry *entry  = &data[writer % size];
     entry->format = format;
-    entry->order = ring_fetch_add(recorder_order, 1);
+    entry->order = recorder_ring_fetch_add(recorder_order, 1);
     entry->timestamp = recorder_tick();
     entry->where = where;
     entry->args[0] = a0;
@@ -112,7 +112,7 @@ ringidx_t recorder_append2(recorder_info *rec,
     entry2->args[1] = a5;
     entry2->args[2] = a6;
     entry2->args[3] = a7;
-    ring_fetch_add(ring->commit, 2);
+    recorder_ring_fetch_add(ring->commit, 2);
     if (rec->trace)
         recorder_trace_entry(rec, entry);
     return writer;
@@ -138,13 +138,13 @@ ringidx_t recorder_append3(recorder_info *rec,
 //   Record a triple entry (up to 12 args)
 // ----------------------------------------------------------------------------
 {
-    ring_p          ring   = &rec->ring;
+    recorder_ring_p ring   = &rec->ring;
     recorder_entry *data   = rec->data;
-    ringidx_t       writer = ring_fetch_add(ring->writer, 3);
+    ringidx_t       writer = recorder_ring_fetch_add(ring->writer, 3);
     size_t          size   = ring->size;
     recorder_entry *entry  = &data[writer % size];
     entry->format = format;
-    entry->order = ring_fetch_add(recorder_order, 1);
+    entry->order = recorder_ring_fetch_add(recorder_order, 1);
     entry->timestamp = recorder_tick();
     entry->where = where;
     entry->args[0] = a0;
@@ -169,7 +169,7 @@ ringidx_t recorder_append3(recorder_info *rec,
     entry3->args[1] = a9;
     entry3->args[2] = a10;
     entry3->args[3] = a11;
-    ring_fetch_add(ring->commit, 3);
+    recorder_ring_fetch_add(ring->commit, 3);
     if (rec->trace)
         recorder_trace_entry(rec, entry);
     return writer;
@@ -187,20 +187,20 @@ ringidx_t recorder_append_fast(recorder_info *rec,
 //  Enter a record entry in ring buffer with given set of args
 // ----------------------------------------------------------------------------
 {
-    ring_p          ring   = &rec->ring;
+    recorder_ring_p ring   = &rec->ring;
     recorder_entry *data   = rec->data;
-    ringidx_t       writer = ring_fetch_add(ring->writer, 1);
+    ringidx_t       writer = recorder_ring_fetch_add(ring->writer, 1);
     size_t          size   = ring->size;
     recorder_entry *entry  = &data[writer % size];
     entry->format = format;
-    entry->order = ring_fetch_add(recorder_order, 1);
+    entry->order = recorder_ring_fetch_add(recorder_order, 1);
     entry->timestamp = data[(writer - 1) % size].timestamp;
     entry->where = where;
     entry->args[0] = a0;
     entry->args[1] = a1;
     entry->args[2] = a2;
     entry->args[3] = a3;
-    ring_fetch_add(ring->commit, 1);
+    recorder_ring_fetch_add(ring->commit, 1);
     if (rec->trace)
         recorder_trace_entry(rec, entry);
     return writer;
@@ -222,13 +222,13 @@ ringidx_t recorder_append_fast2(recorder_info *rec,
 //   Enter a double record (up to 8 args)
 // ----------------------------------------------------------------------------
 {
-    ring_p          ring   = &rec->ring;
+    recorder_ring_p ring   = &rec->ring;
     recorder_entry *data   = rec->data;
-    ringidx_t       writer = ring_fetch_add(ring->writer, 2);
+    ringidx_t       writer = recorder_ring_fetch_add(ring->writer, 2);
     size_t          size   = ring->size;
     recorder_entry *entry  = &data[writer % size];
     entry->format = format;
-    entry->order = ring_fetch_add(recorder_order, 1);
+    entry->order = recorder_ring_fetch_add(recorder_order, 1);
     entry->timestamp = data[(writer - 1) % size].timestamp;
     entry->where = where;
     entry->args[0] = a0;
@@ -244,7 +244,7 @@ ringidx_t recorder_append_fast2(recorder_info *rec,
     entry2->args[1] = a5;
     entry2->args[2] = a6;
     entry2->args[3] = a7;
-    ring_fetch_add(ring->commit, 2);
+    recorder_ring_fetch_add(ring->commit, 2);
     if (rec->trace)
         recorder_trace_entry(rec, entry);
     return writer;
@@ -270,13 +270,13 @@ ringidx_t recorder_append_fast3(recorder_info *rec,
 //   Record a triple entry (up to 12 args)
 // ----------------------------------------------------------------------------
 {
-    ring_p          ring   = &rec->ring;
+    recorder_ring_p ring   = &rec->ring;
     recorder_entry *data   = rec->data;
-    ringidx_t       writer = ring_fetch_add(ring->writer, 3);
+    ringidx_t       writer = recorder_ring_fetch_add(ring->writer, 3);
     size_t          size   = ring->size;
     recorder_entry *entry  = &data[writer % size];
     entry->format = format;
-    entry->order = ring_fetch_add(recorder_order, 1);
+    entry->order = recorder_ring_fetch_add(recorder_order, 1);
     entry->timestamp = data[(writer - 1) % size].timestamp;
     entry->where = where;
     entry->args[0] = a0;
@@ -301,7 +301,7 @@ ringidx_t recorder_append_fast3(recorder_info *rec,
     entry3->args[1] = a9;
     entry3->args[2] = a10;
     entry3->args[3] = a11;
-    ring_fetch_add(ring->commit, 3);
+    recorder_ring_fetch_add(ring->commit, 3);
     if (rec->trace)
         recorder_trace_entry(rec, entry);
     return writer;
@@ -424,7 +424,7 @@ static void recorder_dump_entry(recorder_info      *rec,
                     // Check for long entry, need to skip to next entry
                     if (arg_index >= max_arg_index)
                     {
-                        ring_p ring = &rec->ring;
+                        recorder_ring_p ring = &rec->ring;
                         recorder_entry *base = (recorder_entry *) (ring + 1);
                         ringidx_t idx = entry - base;
                         entry = &base[(idx + 1) % ring->size];
@@ -448,7 +448,7 @@ static void recorder_dump_entry(recorder_info      *rec,
             // Check for long entry, need to skip to next entry
             if (arg_index >= max_arg_index)
             {
-                ring_p ring = &rec->ring;
+                recorder_ring_p ring = &rec->ring;
                 recorder_entry *base = (recorder_entry *) (ring + 1);
                 ringidx_t idx = entry - base;
                 entry = &base[(idx + 1) % ring->size];
@@ -631,7 +631,7 @@ recorder_format_fn recorder_configure_format(recorder_format_fn format)
 }
 
 
-static recorder_entry *recorder_peek(ring_p ring)
+static recorder_entry *recorder_peek(recorder_ring_p ring)
 // ----------------------------------------------------------------------------
 //   Peek the next entry that would be read in the ring and advance by 1
 // ----------------------------------------------------------------------------
@@ -645,8 +645,8 @@ static recorder_entry *recorder_peek(ring_p ring)
     {
         ringidx_t minR = commit - size + 1;
         ringidx_t skip = minR - reader;
-        ring_add_fetch(ring->overflow, skip);
-        reader = ring_add_fetch(ring->reader, skip);
+        recorder_ring_add_fetch(ring->overflow, skip);
+        reader = recorder_ring_add_fetch(ring->reader, skip);
         written = commit - reader;
     }
     return written ? data + reader % size : NULL;
@@ -697,7 +697,7 @@ unsigned recorder_sort(const char *what,
         if (!lowest_rec)
             break;
 
-        ring_fetch_add(lowest_rec->ring.reader, 1);
+        recorder_ring_fetch_add(lowest_rec->ring.reader, 1);
         recorder_dump_entry(lowest_rec, lowest_entry, format, show, output);
         dumped++;
     }
@@ -742,13 +742,13 @@ typedef struct recorder_shans
 //   Shared-memory information about recorder_chans
 // ----------------------------------------------------------------------------
 {
-    uint32_t    magic;          // Magic number to check structure type
-    uint32_t    version;        // Version number for shared memory format
-    off_t       head;           // First recorder_chan in linked list
-    off_t       free_list;      // Free list
-    off_t       offset;         // Current offset for new recorder_chans
-    ring_t      commands;       // Incoming configuration commands
-    char        commands_buffer[RECORDER_CMD_LEN];
+    uint32_t        magic;      // Magic number to check structure type
+    uint32_t        version;    // Version number for shared memory format
+    off_t           head;       // First recorder_chan in linked list
+    off_t           free_list;  // Free list
+    off_t           offset;     // Current offset for new recorder_chans
+    recorder_ring_t commands;   // Incoming configuration commands
+    char            commands_buffer[RECORDER_CMD_LEN];
 } recorder_shans, *recorder_shans_p;
 
 
@@ -757,14 +757,14 @@ typedef struct recorder_shan
 //   A named data recorder_chan in shared memory
 // ----------------------------------------------------------------------------
 {
-    recorder_type type;         // Data type stored in recorder_chan
-    off_t         next;         // Offset to next recorder_chan in linked list
-    off_t         name;         // Offset of name in recorder_shan
-    off_t         description;  // Offset of description
-    off_t         unit;         // Offset of measurement unit
-    recorder_data min;          // Minimum value
-    recorder_data max;          // Maximum value
-    ring_t        ring;         // Ring data
+    recorder_type   type;       // Data type stored in recorder_chan
+    off_t           next;       // Offset to next recorder_chan in linked list
+    off_t           name;       // Offset of name in recorder_shan
+    off_t           description; // Offset of description
+    off_t           unit;       // Offset of measurement unit
+    recorder_data   min;        // Minimum value
+    recorder_data   max;        // Maximum value
+    recorder_ring_t ring;       // Ring data
 } recorder_shan, *recorder_shan_p;
 
 
@@ -873,9 +873,9 @@ recorder_chans_p recorder_chans_new(const char *file)
     shans->head = 0;
     shans->free_list = 0;
     shans->offset = sizeof(recorder_shans);
-    ring_init(&shans->commands,
-              sizeof(shans->commands_buffer),
-              sizeof(shans->commands_buffer[0]));
+    recorder_ring_init(&shans->commands,
+                       sizeof(shans->commands_buffer),
+                       sizeof(shans->commands_buffer[0]));
 
     return chans;
 }
@@ -974,7 +974,7 @@ recorder_chan_p recorder_chan_new(recorder_chans_p chans,
     memcpy(base + unit_offs, unit, unit_len + 1);
 
     // Initialize ring fields
-    ring_p ring = &shan->ring;
+    recorder_ring_p ring = &shan->ring;
     ring->size = size;
     ring->item_size = item_size;
     ring->reader = 0;
@@ -1041,7 +1041,7 @@ size_t recorder_chan_write(recorder_chan_p chan, const void *ptr, size_t count)
 // ----------------------------------------------------------------------------
 {
     recorder_shan_p shan = recorder_shared(chan);
-    return ring_write(&shan->ring, ptr, count, NULL, NULL, NULL);
+    return recorder_ring_write(&shan->ring, ptr, count, NULL, NULL, NULL);
 }
 
 
@@ -1051,7 +1051,7 @@ size_t recorder_chan_writable(recorder_chan_p chan)
 // ----------------------------------------------------------------------------
 {
     recorder_shan_p shan = recorder_shared(chan);
-    return ring_writable(&shan->ring);
+    return recorder_ring_writable(&shan->ring);
 }
 
 
@@ -1147,11 +1147,11 @@ bool recorder_chans_configure(recorder_chans_p chans,
 // ----------------------------------------------------------------------------
 {
     recorder_shans_p shans = chans->map_addr;
-    ring_p           cmds  = &shans->commands;
+    recorder_ring_p  cmds  = &shans->commands;
     size_t           len   = strlen(message);
-    if (ring_writable(cmds) < len)
+    if (recorder_ring_writable(cmds) < len)
         return false;
-    ring_write(cmds, message, len, NULL, NULL, NULL);
+    recorder_ring_write(cmds, message, len, NULL, NULL, NULL);
     return true;
 }
 
@@ -1270,7 +1270,7 @@ size_t recorder_chan_readable(recorder_chan_p chan, ringidx_t *reader)
 // ----------------------------------------------------------------------------
 {
     recorder_shan_p shan = recorder_shared(chan);
-    return ring_readable(&shan->ring, reader);
+    return recorder_ring_readable(&shan->ring, reader);
 }
 
 
@@ -1282,7 +1282,7 @@ size_t recorder_chan_read(recorder_chan_p chan,
 // ----------------------------------------------------------------------------
 {
     recorder_shan_p shan = recorder_shared(chan);
-    return ring_read(&shan->ring, ptr, count, reader, NULL, NULL);
+    return recorder_ring_read(&shan->ring, ptr, count, reader, NULL, NULL);
 }
 
 
@@ -1643,7 +1643,7 @@ void recorder_activate (recorder_info *recorder)
     RECORD(recorders, "Activating '%s' (%p)", recorder->name, recorder);
     recorder_info  *head = recorders;
     do { recorder->next = head; }
-    while (!ring_compare_exchange(recorders, head, recorder));
+    while (!recorder_ring_compare_exchange(recorders, head, recorder));
 }
 
 
@@ -1655,7 +1655,7 @@ void recorder_tweak_activate (recorder_tweak *tweak)
     RECORD(recorders, "Activating tweak '%s' (%p)", tweak->name, tweak);
     recorder_tweak  *head = tweaks;
     do { tweak->next = head; }
-    while (!ring_compare_exchange(tweaks, head, tweak));
+    while (!recorder_ring_compare_exchange(tweaks, head, tweak));
 }
 
 
@@ -1679,11 +1679,11 @@ void recorder_trace_entry(recorder_info *info, recorder_entry *entry)
     if (chans)
     {
         recorder_shans *shans = chans->map_addr;
-        size_t cmdlen = ring_readable(&shans->commands, NULL);
+        size_t cmdlen = recorder_ring_readable(&shans->commands, NULL);
         if (cmdlen)
         {
             char buffer[cmdlen + 1];
-            ring_read(&shans->commands, buffer, cmdlen, NULL, NULL, NULL);
+            recorder_ring_read(&shans->commands,buffer,cmdlen,NULL,NULL,NULL);
             buffer[cmdlen] = 0;
             recorder_trace_set(buffer);
         }
@@ -1698,20 +1698,20 @@ void recorder_trace_entry(recorder_info *info, recorder_entry *entry)
         recorder_chan_p exported = info->exported[i];
         if (exported)
         {
-            recorder_shan_p    shan  = recorder_shared(exported);
-            ring_p             ring   = &shan->ring;
-            ringidx_t          writer = ring_fetch_add(ring->writer, 1);
-            recorder_data     *data   = (recorder_data *) (ring + 1);
-            size_t             size   = ring->size;
-
-            recorder_type      none   = RECORDER_NONE;
-            if (ring_compare_exchange(shan->type, none, RECORDER_INVALID))
+            recorder_shan_p  shan   = recorder_shared(exported);
+            recorder_ring_p  ring   = &shan->ring;
+            ringidx_t        writer = recorder_ring_fetch_add(ring->writer, 1);
+            recorder_data   *data   = (recorder_data *) (ring + 1);
+            size_t           size   = ring->size;
+            recorder_type    none   = RECORDER_NONE;
+            if (recorder_ring_compare_exchange(shan->type, none,
+                                               RECORDER_INVALID))
                 shan->type = recorder_type_from_format(entry->format, i);
 
             data += 2 * (writer % size);
             data[0].unsigned_value = entry->timestamp;
             data[1].unsigned_value = entry->args[i];
-            ring_fetch_add(ring->commit, 1);
+            recorder_ring_fetch_add(ring->commit, 1);
         }
     }
 }

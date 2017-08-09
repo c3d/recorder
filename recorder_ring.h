@@ -1,7 +1,7 @@
-#ifndef RING_H
-#define RING_H
+#ifndef RECORDER_RING_H
+#define RECORDER_RING_H
 // ****************************************************************************
-//  ring.h                                                    Recorder project
+//  recorder_ring.h                                           Recorder project
 // ****************************************************************************
 //
 //   File Description:
@@ -113,26 +113,26 @@ extern "C" {
 #ifdef __GNUC__
 
 // GCC-compatible compiler: use built-in atomic operations
-#define ring_fetch_add(Value, Offset)                        \
+#define recorder_ring_fetch_add(Value, Offset)                  \
     __atomic_fetch_add(&Value, Offset, __ATOMIC_ACQUIRE)
 
-#define ring_add_fetch(Value, Offset)                        \
+#define recorder_ring_add_fetch(Value, Offset)                  \
     __atomic_add_fetch(&Value, Offset, __ATOMIC_ACQUIRE)
 
-#define ring_compare_exchange(Value, Expected, New)                     \
+#define recorder_ring_compare_exchange(Value, Expected, New)            \
     __atomic_compare_exchange_n(&Value, &Expected, New,                 \
                                 0, __ATOMIC_RELEASE, __ATOMIC_RELAXED)
 
-#define RING_MAYBE_UNUSED   __attribute__((unused))
+#define RECORDER_RING_MAYBE_UNUSED   __attribute__((unused))
 
 #else // ! __GNUC__
 
 #warning "Compiler not supported yet"
-#define ring_fetch_add(Value, OFfset)   (Value += Offset)
-#define ring_add_fetch(Value, Offset)   ((Value += Offset), Value)
-#define ring_compare_exchange(Value, Expected, New)   ((Value = New), true)
+#define recorder_ring_fetch_add(Value, Offset)   (Value += Offset)
+#define recorder_ring_add_fetch(Value, Offset)   ((Value += Offset), Value)
+#define recorder_ring_compare_exchange(Val, Exp, New) ((Val = New), true)
 
-#define RING_MAYBE_UNUSED
+#define RECORDER_RING_MAYBE_UNUSED
 
 #endif
 
@@ -157,7 +157,7 @@ typedef struct ring
     ringidx_t   writer;         // Writer index
     ringidx_t   commit;         // Last commited write
     ringidx_t   overflow;       // Overflowed writes
-} ring_t, *ring_p;
+} recorder_ring_t, *recorder_ring_p;
 
 /* Deal with blocking situations on given ring
    - Return true if situation is handled and operation can proceed
@@ -166,94 +166,97 @@ typedef struct ring
    The functions take from/to as argument bys design, because the
    corresponding values may have been changed in the ring
    by the time the block-handling function get to read them. */
-typedef bool (*ring_block_fn)(ring_p, ringidx_t from, ringidx_t to);
+typedef bool (*recorder_ring_block_fn)(recorder_ring_p,
+                                       ringidx_t from, ringidx_t to);
 
-    extern ring_p    ring_init(ring_p ring, size_t size, size_t item_size);
-extern ring_p    ring_new(size_t size, size_t item_size);
-extern void      ring_delete(ring_p ring);
-extern size_t    ring_readable(ring_p ring, ringidx_t *reader);
-extern size_t    ring_writable(ring_p ring);
-extern size_t    ring_read(ring_p ring,
-                           void *data, size_t count,
-                           ringidx_t *reader,
-                           ring_block_fn read_block,
-                           ring_block_fn read_overflow);
-extern void *    ring_peek(ring_p ring);
-extern ringidx_t ring_write(ring_p ring, const void *data, size_t count,
-                            ring_block_fn write_block,
-                            ring_block_fn commit_block,
-                            ringidx_t *writer);
+extern recorder_ring_p  recorder_ring_init(recorder_ring_p ring,
+                                           size_t size, size_t item_size);
+extern recorder_ring_p  recorder_ring_new(size_t size, size_t item_size);
+extern void             recorder_ring_delete(recorder_ring_p ring);
+extern size_t           recorder_ring_readable(recorder_ring_p ring, ringidx_t *reader);
+extern size_t           recorder_ring_writable(recorder_ring_p ring);
+extern size_t           recorder_ring_read(recorder_ring_p ring,
+                                           void *data, size_t count,
+                                           ringidx_t *reader,
+                                           recorder_ring_block_fn read_block,
+                                           recorder_ring_block_fn read_overflow);
+extern void *           recorder_ring_peek(recorder_ring_p ring);
+extern ringidx_t        recorder_ring_write(recorder_ring_p ring,
+                                            const void *data, size_t count,
+                                            recorder_ring_block_fn write_block,
+                                            recorder_ring_block_fn commit_block,
+                                            ringidx_t *writer);
 
 
 
-#define RING_TYPE_DECLARE(Ring, Type)                                   \
+#define RECORDER_RING_TYPE_DECLARE(Ring, Type)                          \
 /* ----------------------------------------------------------------*/   \
 /*  Declare a ring buffer type with Size elements of given Type    */   \
 /* ----------------------------------------------------------------*/   \
                                                                         \
     typedef struct Ring                                                 \
     {                                                                   \
-        ring_t ring;                                                    \
-        Type   data[0];                                                 \
+        recorder_ring_t ring;                                           \
+        Type            data[0];                                        \
     } Ring;                                                             \
                                                                         \
     typedef bool (*Ring##_block_fn)(Ring *,ringidx_t, ringidx_t);       \
                                                                         \
-    static inline RING_MAYBE_UNUSED                                     \
+    static inline RECORDER_RING_MAYBE_UNUSED                            \
     Ring *Ring##_new(size_t size)                                       \
     {                                                                   \
-        return (Ring *) ring_new(size, sizeof(Type));                   \
+        return (Ring *) recorder_ring_new(size, sizeof(Type));          \
     }                                                                   \
                                                                         \
-    static inline RING_MAYBE_UNUSED                                     \
+    static inline RECORDER_RING_MAYBE_UNUSED                            \
     void Ring##_delete(Ring *rb)                                        \
     {                                                                   \
-        ring_delete(&rb->ring);                                         \
+        recorder_ring_delete(&rb->ring);                                \
     }                                                                   \
                                                                         \
-    static inline RING_MAYBE_UNUSED                                     \
+    static inline RECORDER_RING_MAYBE_UNUSED                            \
     Type * Ring##_peek(Ring *rb)                                        \
     {                                                                   \
-        return (Type *) ring_peek(&rb->ring);                           \
+        return (Type *) recorder_ring_peek(&rb->ring);                  \
     }                                                                   \
                                                                         \
-    static inline RING_MAYBE_UNUSED                                     \
+    static inline RECORDER_RING_MAYBE_UNUSED                            \
     size_t Ring##_read(Ring *rb,                                        \
                        Type *ptr,                                       \
                        size_t count,                                    \
                        ringidx_t *reader,                               \
-                       Ring##_block_fn read_block,                      \
-                       Ring##_block_fn read_overflow)                   \
+                       Ring##_block_fn block,                           \
+                       Ring##_block_fn overflow)                        \
     {                                                                   \
-        return ring_read(&rb->ring, ptr, count, reader,                 \
-                         (ring_block_fn) read_block,                    \
-                         (ring_block_fn) read_overflow);                \
+        return recorder_ring_read(&rb->ring, ptr, count, reader,        \
+                                  (recorder_ring_block_fn) block,       \
+                                  (recorder_ring_block_fn) overflow);   \
     }                                                                   \
                                                                         \
-    static inline RING_MAYBE_UNUSED                                     \
+    static inline RECORDER_RING_MAYBE_UNUSED                            \
     size_t Ring##_write(Ring *rb,                                       \
                         Type *ptr,                                      \
                         size_t count,                                   \
-                        Ring##_block_fn write_block,                    \
-                        Ring##_block_fn commit_block,                   \
+                        Ring##_block_fn wrblk,                          \
+                        Ring##_block_fn cmblk,                          \
                         ringidx_t *writer)                              \
     {                                                                   \
-        return ring_write(&rb->ring, ptr, count,                        \
-                          (ring_block_fn) write_block,                  \
-                          (ring_block_fn) commit_block,                 \
-                          writer);                                      \
+        return recorder_ring_write(&rb->ring, ptr, count,               \
+                                   (recorder_ring_block_fn) wrblk,      \
+                                   (recorder_ring_block_fn) cmblk,      \
+                                   writer);                             \
     }                                                                   \
                                                                         \
-    static inline RING_MAYBE_UNUSED                                     \
+    static inline RECORDER_RING_MAYBE_UNUSED                            \
     ringidx_t Ring##_readable(Ring *rb)                                 \
     {                                                                   \
-        return ring_readable(&rb->ring);                                \
+        return recorder_ring_readable(&rb->ring);                       \
     }                                                                   \
                                                                         \
-    static inline RING_MAYBE_UNUSED                                     \
+    static inline RECORDER_RING_MAYBE_UNUSED                            \
     ringidx_t Ring##_writable(Ring *rb)                                 \
     {                                                                   \
-        return ring_writable(&rb->ring);                                \
+        return recorder_ring_writable(&rb->ring);                       \
     }
 
 
@@ -264,7 +267,7 @@ extern ringidx_t ring_write(ring_p ring, const void *data, size_t count,
 //
 // ============================================================================
 
-#define RING_DECLARE(Name, Type, Size)                                  \
+#define RECORDER_RING_DECLARE(Name, Type, Size)                         \
 /* ----------------------------------------------------------------*/   \
 /*  Declare a named ring buffer with helper functions to access it */   \
 /* ----------------------------------------------------------------*/   \
@@ -272,63 +275,66 @@ extern ringidx_t ring_write(ring_p ring, const void *data, size_t count,
                                                                         \
     extern struct Name##_ring                                           \
     {                                                                   \
-        ring_t ring;                                                    \
-        Type   data[Size];                                              \
+        recorder_ring_t ring;                                           \
+        Type            data[Size];                                     \
     } Name;                                                             \
                                                                         \
-    static inline RING_MAYBE_UNUSED                                     \
+    static inline RECORDER_RING_MAYBE_UNUSED                            \
     size_t Name##_readable()                                            \
     {                                                                   \
-        return ring_readable(&Name.ring, NULL);                         \
+        return recorder_ring_readable(&Name.ring, NULL);                \
     }                                                                   \
                                                                         \
-    static inline RING_MAYBE_UNUSED                                     \
+    static inline RECORDER_RING_MAYBE_UNUSED                            \
     size_t Name##_writable()                                            \
     {                                                                   \
-        return ring_writable(&Name.ring);                               \
+        return recorder_ring_writable(&Name.ring);                      \
     }                                                                   \
                                                                         \
-    static inline RING_MAYBE_UNUSED                                     \
+    static inline RECORDER_RING_MAYBE_UNUSED                            \
     Type * Name##_peek()                                                \
     {                                                                   \
-        return (Type *) ring_peek(&Name.ring);                          \
+        return (Type *) recorder_ring_peek(&Name.ring);                 \
     }                                                                   \
                                                                         \
-    static inline RING_MAYBE_UNUSED                                     \
+    static inline RECORDER_RING_MAYBE_UNUSED                            \
     size_t Name##_read(Type *ptr, ringidx_t count)                      \
     {                                                                   \
-        return ring_read(&Name.ring, ptr, count, NULL, NULL, NULL);     \
+        return recorder_ring_read(&Name.ring, ptr, count,               \
+                                  NULL, NULL, NULL);                    \
     }                                                                   \
                                                                         \
-    static inline RING_MAYBE_UNUSED                                     \
+    static inline RECORDER_RING_MAYBE_UNUSED                            \
     size_t Name##_write(Type *ptr, ringidx_t count)                     \
     {                                                                   \
-        return ring_write(&Name.ring, ptr, count, NULL, NULL, NULL);    \
+        return recorder_ring_write(&Name.ring, ptr, count,              \
+                                   NULL, NULL, NULL);                   \
     }                                                                   \
                                                                         \
-    static inline RING_MAYBE_UNUSED                                     \
+    static inline RECORDER_RING_MAYBE_UNUSED                            \
     size_t Name##_block_read(Type *ptr,                                 \
                              size_t count,                              \
                              ringidx_t *reader,                         \
-                             ring_block_fn block,                       \
-                             ring_block_fn overflow)                    \
+                             recorder_ring_block_fn block,              \
+                             recorder_ring_block_fn overflow)           \
     {                                                                   \
-        return ring_read(&Name.ring, ptr,count,reader,block,overflow);  \
+        return recorder_ring_read(&Name.ring, ptr, count,               \
+                                  reader, block, overflow);             \
     }                                                                   \
                                                                         \
-    static inline RING_MAYBE_UNUSED                                     \
+    static inline RECORDER_RING_MAYBE_UNUSED                            \
     size_t Name##_block_write(const Type *ptr,                          \
                               size_t  count,                            \
-                              ring_block_fn write_block,                \
-                              ring_block_fn commit_block,               \
+                              recorder_ring_block_fn write_block,       \
+                              recorder_ring_block_fn commit_block,      \
                               ringidx_t *pos)                           \
     {                                                                   \
-        return ring_write(&Name.ring, ptr, count,                       \
+        return recorder_ring_write(&Name.ring, ptr, count,              \
                           write_block, commit_block, pos);              \
     }
 
 
-#define RING_DEFINE(Name, Type, Size)                                   \
+#define RECORDER_RING_DEFINE(Name, Type, Size)                          \
 /* ----------------------------------------------------------------*/   \
 /*  Define a named ring buffer                                     */   \
 /* ----------------------------------------------------------------*/   \
@@ -343,4 +349,4 @@ extern ringidx_t ring_write(ring_p ring, const void *data, size_t count,
 }
 #endif // __cplusplus
 
-#endif // RING_H
+#endif // RECORDER_RING_H
