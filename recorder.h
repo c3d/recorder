@@ -673,8 +673,11 @@ do {                                                            \
     recorder_ring_fetch_add(_total_last_second, _value);                \
     recorder_ring_fetch_add(_duration_last_second, _duration);          \
     recorder_ring_fetch_add(_iterations_last_second, 1);                \
-    uintptr_t _print_interval = (RECORDER_INFO(Recorder)->trace         \
-                                 * (RECORDER_HZ / 1000));               \
+    uintptr_t _print_interval =                                         \
+        ((RECORDER_INFO(Recorder)->trace == RECORDER_CHAN_MAGIC         \
+          ? 100                                                         \
+          : RECORDER_INFO(Recorder)->trace)                             \
+         * (RECORDER_HZ / 1000));                                       \
     uintptr_t _known = _last_second;                                    \
     uintptr_t _interval = _end_time - _known;                           \
     double _scale = (double) RECORDER_HZ / _interval;                   \
