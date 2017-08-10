@@ -1425,7 +1425,7 @@ void recorder_background_dump(const char *what)
     if (strcmp(what, "all") == 0)
         what = ".*";
     pthread_create(&tid, NULL, background_dump, (void *) what);
-    RECORD(recorders, "Activated background dump threads for %s, thread %p",
+    RECORD(recorders, "Started background dump thread for %s, thread %p",
            what, (void *) tid);
 }
 
@@ -1671,28 +1671,33 @@ RECORDER_TWEAK_DEFINE(recorder_export_size, 2048,
                       "Number of samples stored when exporting records");
 static recorder_chans_p chans = NULL;
 
+static const char *recorder_type_name[] =
+// ----------------------------------------------------------------------------
+//   Name for each of the types in the recorder exported channels
+// ----------------------------------------------------------------------------
+{
+    "NONE",              // Nothing exported (pending format)
+    "INVALID",           // Invalid data
+    "SIGNED",            // Signed value
+    "UNSIGNED",          // Unsigned value
+    "REAL"               // Real number
+};
+#define array_size(a)   (sizeof(a) / sizeof(a[0]))
+
+
 void recorder_trace_entry(recorder_info *info, recorder_entry *entry)
 // ----------------------------------------------------------------------------
 //   Show a recorder entry when a trace is enabled
 // ----------------------------------------------------------------------------
 {
-    if (chans)
-    {
-        recorder_shans *shans = chans->map_addr;
-        size_t cmdlen = recorder_ring_readable(&shans->commands, NULL);
-        if (cmdlen)
-        {
-            char buffer[cmdlen + 1];
-            recorder_ring_read(&shans->commands,buffer,cmdlen,NULL,NULL,NULL);
-            buffer[cmdlen] = 0;
-            recorder_trace_set(buffer);
-        }
-    }
-
     unsigned i;
+
+    // Dump entry if it's not just exported to shared memory
     if (info->trace != RECORDER_CHAN_MAGIC)
         recorder_dump_entry(info, entry,
                             recorder_format, recorder_show, recorder_output);
+
+    // Export channels to shared memory
     for (i = 0; i < 4; i++)
     {
         recorder_chan_p exported = info->exported[i];
@@ -1704,6 +1709,15 @@ void recorder_trace_entry(recorder_info *info, recorder_entry *entry)
             recorder_data   *data   = (recorder_data *) (ring + 1);
             size_t           size   = ring->size;
             recorder_type    none   = RECORDER_NONE;
+
+            RECORD(recorders, "Channel #%u '%s' type %u %s",
+                   i,
+                   (const char *) shan + shan->name,
+                   shan->type,
+                   shan->type < array_size(recorder_type_name)
+                   ? recorder_type_name[shan->type]
+                   : "UNGOOD");
+
             if (recorder_ring_compare_exchange(shan->type, none,
                                                RECORDER_INVALID))
                 shan->type = recorder_type_from_format(entry->format, i);
@@ -1738,6 +1752,37 @@ static void recorder_atexit_cleanup()
 }
 
 
+RECORDER_TWEAK_DEFINE(recorder_configuration_sleep, 100,
+                      "Sleep time between configuration checks (ms)");
+static void *background_configuration_check(void *ignored)
+// ----------------------------------------------------------------------------
+//    Check if there is a configuration command and apply it
+// ----------------------------------------------------------------------------
+{
+    char buffer[RECORDER_CMD_LEN];
+    while (chans)
+    {
+        recorder_shans *shans = chans->map_addr;
+        size_t cmdlen = recorder_ring_readable(&shans->commands, NULL);
+        if (cmdlen)
+        {
+            RECORD(recorders, "Got shared-memory command len %zu", cmdlen);
+            recorder_ring_read(&shans->commands,buffer,cmdlen,NULL,NULL,NULL);
+            buffer[cmdlen] = 0;
+            recorder_trace_set(buffer);
+        }
+        else
+        {
+            struct timespec tm;
+            tm.tv_sec  = 0;
+            tm.tv_nsec = 1000000 * RECORDER_TWEAK(recorder_configuration_sleep);
+            nanosleep(&tm, NULL);
+        }
+    }
+    return NULL;
+}
+
+
 static void recorder_share(const char *path)
 // ----------------------------------------------------------------------------
 //   Share to the given name
@@ -1748,7 +1793,12 @@ static void recorder_share(const char *path)
         recorder_chans_delete(chans);
     chans = recorder_chans_new(path);
     if (!had_chans && chans)
+    {
+        pthread_t tid;
         atexit(recorder_atexit_cleanup);
+        pthread_create(&tid, NULL, background_configuration_check, NULL);
+        RECORD(recorders, "Started background configuration thread\n");
+    }
 }
 
 
@@ -1793,12 +1843,13 @@ static void recorder_export(recorder_info *rec, const char *value, bool multi)
         }
 
         RECORD(recorders, "Exporting recorder channel %s for index %u in %s\n",
-               chan_name, t, rec->name);
+               name, t, rec->name);
         chan = recorder_chan_new(chans, RECORDER_NONE, size,
                                  chan_name, rec->description, "", min, max);
         rec->exported[t] = chan;
         if (multi)
             free(chan_name);
+
         if (rec->trace == 0)
             rec->trace = RECORDER_CHAN_MAGIC;
     }
@@ -1907,9 +1958,15 @@ int recorder_trace_set(const char *param_spec)
         {
             printf("List of available recorders:\n");
             for (rec = recorders; rec; rec = rec->next)
-                printf("%20s%s: %s\n",
-                       rec->name, rec->trace ? "*" : " ",
-                       rec->description);
+                if (rec->trace <= 1)
+                    printf("%20s%s: %s\n",
+                           rec->name, rec->trace ? "*" : " ",
+                           rec->description);
+                else
+                    printf("%20s : %s = %ld (0x%lX)\n",
+                           rec->name,
+                           rec->description,
+                           (long) rec->trace, (long) rec->trace);
 
             printf("List of available tweaks:\n");
             for (tweak = tweaks; tweak; tweak = tweak->next)
@@ -1923,6 +1980,17 @@ int recorder_trace_set(const char *param_spec)
                 recorder_share(value_ptr);
             else
                 RECORD(recorder_traces, "No argument to 'share', ignored");
+        }
+        else if (strcmp(param, "dump") == 0)
+        {
+            recorder_dump();
+        }
+        else if (strcmp(param, "traces") == 0)
+        {
+            recorder_info *rec;
+            for (rec = recorders; rec; rec = rec->next)
+                fprintf(stderr, "Recorder %s trace %ld (0x%lX)\n",
+                        rec->name, rec->trace, rec->trace);
         }
         else
         {
