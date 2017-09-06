@@ -44,6 +44,22 @@
 
 
 // ============================================================================
+// 
+//    Local prototypes (in case -Wmissing-prototypes is enabled)
+// 
+// ============================================================================
+
+size_t    recorder_chan_write(recorder_chan_p chan, const void *ptr, size_t cnt);
+size_t    recorder_chan_writable(recorder_chan_p chan);
+ringidx_t recorder_chan_writer(recorder_chan_p chan);
+ringidx_t recorder_chan_reader(recorder_chan_p chan);
+size_t    recorder_chan_item_size(recorder_chan_p chan);
+ringidx_t recorder_chan_reader(recorder_chan_p chan);
+ringidx_t recorder_chan_writer(recorder_chan_p chan);
+
+
+
+// ============================================================================
 //
 //   Recording data
 //
@@ -617,7 +633,7 @@ static void recorder_format_entry(recorder_show_fn show,
                         "%s: [%lu %.3f] %s: %s",
                         location,
                         (unsigned long) order,
-                        (float) timestamp / RECORDER_HZ,
+                        (double) timestamp / RECORDER_HZ,
                         label, message);
     }
 
@@ -1735,7 +1751,7 @@ void recorder_dump_on_common_signals(unsigned add, unsigned remove)
 // ============================================================================
 
 #ifndef recorder_tick
-uintptr_t recorder_tick()
+uintptr_t recorder_tick(void)
 // ----------------------------------------------------------------------------
 //   Return the "ticks" as stored in the recorder
 // ----------------------------------------------------------------------------
@@ -1851,7 +1867,7 @@ void recorder_trace_entry(recorder_info *info, recorder_entry *entry)
 }
 
 
-const char *recorder_export_file()
+const char *recorder_export_file(void)
 // ----------------------------------------------------------------------------
 //    Return the name of the file used for sharing data across processes
 // ----------------------------------------------------------------------------
@@ -1863,7 +1879,7 @@ const char *recorder_export_file()
 }
 
 
-static void recorder_atexit_cleanup()
+static void recorder_atexit_cleanup(void)
 // ----------------------------------------------------------------------------
 //   Cleanup when exiting the program
 // ----------------------------------------------------------------------------
@@ -2116,7 +2132,7 @@ int recorder_trace_set(const char *param_spec)
         else
         {
             if (strcmp(param, "all") == 0)
-                param = ".*";
+                param = (char *) ".*";
 
 #if HAVE_REGEX_H
             int status = regcomp(&re, param, REG_EXTENDED|REG_ICASE);
