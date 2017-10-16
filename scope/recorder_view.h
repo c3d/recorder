@@ -43,18 +43,25 @@ class RecorderView : public QChartView
 {
     Q_OBJECT
 public:
-    explicit RecorderView(recorder_chans_p chans,
+    explicit RecorderView(const char *filename,
+                          recorder_chans_p &chans,
                           const char *pattern,
                           QWidget *parent = 0);
     ~RecorderView();
+    void setup();
+    void updateSetup();
 
 public slots:
     void updateSeries();
     void sceneChanged();
 
 private:
+    const char *             filename;
+    const char *             pattern;
+    recorder_chans_p         &chans;
+    int                      sourceChanged;
+
     typedef QVector<QPointF> Points;
-    recorder_chans_p         chans;
     QVector<Points>          data;
     QVector<QLineSeries *>   seriesList;
     QVector<recorder_chan_p> chanList;

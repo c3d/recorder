@@ -22,24 +22,23 @@
 #include "recorder_view.h"
 
 #include <QtCore/QtMath>
+#include <QMutex>
 #include <QRegExp>
 
 QT_CHARTS_USE_NAMESPACE
 
 
-RecorderView::RecorderView(recorder_chans_p chans,
+RecorderView::RecorderView(const char *filename,
+                           recorder_chans_p &chans,
                            const char *pattern,
                            QWidget *parent)
 // ----------------------------------------------------------------------------
 //   Constructor opens the shared memory for recorder data
 // ----------------------------------------------------------------------------
-    : QChartView(parent)
+    : QChartView(parent),
+      filename(filename), pattern(pattern), chans(chans),
+      sourceChanged(0)
 {
-    // Widget construction
-    const char *colors[] = { "red", "blue", "green", "black" };
-    const unsigned numColors = sizeof(colors) / sizeof(colors[0]);
-    bool hasGL = getenv ("RECORDER_NOGL") == NULL;
-
     xAxis = new QValueAxis;
     yAxis = new QValueAxis; // Or QLogValueAxis?
     xAxis->setRange(0, 20.0);
@@ -54,52 +53,16 @@ RecorderView::RecorderView(recorder_chans_p chans,
     QObject::connect(chart->scene(), &QGraphicsScene::changed,
                      this, &RecorderView::sceneChanged);
 
-    // Data construction
-    if (chans)
-    {
-        unsigned i = 0;
-        recorder_chan_p chan = NULL;
-        while (true)
-        {
-            chan = recorder_chan_find(chans, pattern, chan);
-            if (!chan)
-                break;
-            if (chanList.indexOf(chan) != -1)
-                break;
-
-            const char *name = recorder_chan_name(chan);
-            const char *info = recorder_chan_description(chan);
-            const char *unit = recorder_chan_unit(chan);
-            recorder_data min = recorder_chan_min(chan);
-            recorder_data max = recorder_chan_max(chan);
-
-            printf("Channel #%u %s (%s): %ld %s-%ld %s\n", i,
-                   name, info, min.signed_value, unit,
-                   max.signed_value, unit);
-
-            int colorIndex = i++ % numColors;
-            QLineSeries *series = new QLineSeries;
-
-            chart->addSeries(series);
-            seriesList.append(series);
-            data.append(Points());
-            chanList.append(chan);
-            readerIndex.append(0);
-
-            series->setPen(QPen(QBrush(QColor(colors[colorIndex])), 1.0));
-            series->setUseOpenGL(hasGL);
-            series->attachAxis(xAxis);
-            series->attachAxis(yAxis);
-            series->setName(name);
-        }
-    }
-
     // Timer setup
     dataUpdater.setInterval(0);
     dataUpdater.setSingleShot(true);
     QObject::connect(&dataUpdater, &QTimer::timeout,
                      this, &RecorderView::updateSeries);
     chart->setTheme(QChart::ChartThemeBlueCerulean);
+
+    // Data construction
+    if (chans)
+        setup();
 }
 
 
@@ -115,11 +78,103 @@ RecorderView::~RecorderView()
 }
 
 
+void RecorderView::setup()
+// ----------------------------------------------------------------------------
+//   Setup the channels that match the pattern
+// ----------------------------------------------------------------------------
+{
+    unsigned i = 0;
+    recorder_chan_p chan = NULL;
+    bool hasGL = getenv ("RECORDER_NOGL") == NULL;
+    const char *colors[] = { "red", "blue", "green", "black" };
+    const unsigned numColors = sizeof(colors) / sizeof(colors[0]);
+    while (true)
+    {
+        chan = recorder_chan_find(chans, pattern, chan);
+        if (!chan)
+            break;
+        if (chanList.indexOf(chan) != -1)
+            break;
+
+        const char *name = recorder_chan_name(chan);
+        const char *info = recorder_chan_description(chan);
+        const char *unit = recorder_chan_unit(chan);
+        recorder_data min = recorder_chan_min(chan);
+        recorder_data max = recorder_chan_max(chan);
+
+        printf("Channel #%u %s (%s): %ld %s-%ld %s\n", i,
+               name, info, min.signed_value, unit,
+               max.signed_value, unit);
+
+        int colorIndex = i++ % numColors;
+        QLineSeries *series = new QLineSeries;
+
+        chart->addSeries(series);
+        seriesList.append(series);
+        data.append(Points());
+        chanList.append(chan);
+        readerIndex.append(0);
+
+        series->setPen(QPen(QBrush(QColor(colors[colorIndex])), 1.0));
+        series->setUseOpenGL(hasGL);
+        series->attachAxis(xAxis);
+        series->attachAxis(yAxis);
+        series->setName(name);
+    }
+}
+
+
+void RecorderView::updateSetup()
+// ----------------------------------------------------------------------------
+//   Setup the channels that match the pattern
+// ----------------------------------------------------------------------------
+{
+    // Update chans only once (it's a pointer shared across all views)
+    static QMutex chansUpdateMutex;
+    chansUpdateMutex.lock();
+    if (!recorder_chans_valid(chans))
+    {
+        fprintf(stderr, "Recorder channels became invalid, re-initializing\n");
+        recorder_chans_close(chans);
+        chans = recorder_chans_open(filename);
+    }
+    chansUpdateMutex.unlock();
+
+    // Update the view with the new channels
+    chart->removeAllSeries();
+    seriesList.clear();
+    chanList.clear();
+    readerIndex.clear();
+    data.clear();
+    setup();
+}
+
+
 void RecorderView::updateSeries()
 // ----------------------------------------------------------------------------
 //   Update all data series by reading the latest data
 // ----------------------------------------------------------------------------
 {
+    if (!recorder_chans_valid(chans))
+    {
+        if (sourceChanged == 0)
+        {
+            // A new program started with the same shared memory file
+            // Wait a bit to make sure all channels are setup by new instance
+            // Then update this view.
+            // All views will presumably fail at the same time and get updated
+            sourceChanged = 1;
+            dataUpdater.setInterval(100);
+            dataUpdater.start();
+            return;
+        }
+    }
+    if (sourceChanged)
+    {
+        updateSetup();
+        sourceChanged = 0;
+    }
+
     size_t numSeries = seriesList.size();
     size_t width = this->width();
     double minX = -1.0, maxX = 1.0, minY = -1.0, maxY = 1.0;

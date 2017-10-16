@@ -759,6 +759,7 @@ typedef struct recorder_shans
 {
     uint32_t        magic;      // Magic number to check structure type
     uint32_t        version;    // Version number for shared memory format
+    uint32_t        serial;     // Serial ID for the current channels
     off_t           head;       // First recorder_chan in linked list
     off_t           free_list;  // Free list
     off_t           offset;     // Current offset for new recorder_chans
@@ -789,6 +790,7 @@ typedef struct recorder_chans
 // ----------------------------------------------------------------------------
 {
     int             fd;         // File descriptor for mmap
+    uint32_t        serial;     // Serial ID to check if still valid
     void *          map_addr;   // Address in memory for mmap
     size_t          map_size;   // Size allocated for mmap
     recorder_chan_p head;       // First recorder_chan in list
@@ -846,6 +848,7 @@ recorder_chans_p recorder_chans_new(const char *file)
 // ----------------------------------------------------------------------------
 {
     RECORD(recorders, "Create export channels %s", file);
+    printf("Creating new %s\n", file);
     if (!file)
         return NULL;
 
@@ -885,6 +888,9 @@ recorder_chans_p recorder_chans_new(const char *file)
     recorder_shans_p shans = map_addr;
     shans->magic = RECORDER_CHAN_MAGIC;
     shans->version = RECORDER_CHAN_VERSION;
+    struct timeval t;
+    gettimeofday(&t, NULL);
+    shans->serial = t.tv_usec;
     shans->head = 0;
     shans->free_list = 0;
     shans->offset = sizeof(recorder_shans);
@@ -1116,27 +1122,40 @@ recorder_chans_p recorder_chans_open(const char *file)
         return NULL;
     }
 
-    // Successful: Initialize with recorder_chan descriptor
-    recorder_chans_p chans = malloc(sizeof(recorder_chans_t));
-    chans->fd = fd;
-    chans->map_addr = map_addr;
-    chans->map_size = map_size;
-    chans->head = NULL;
-
-    // Create recorder_chans for all recorder_chans in shared memory
-    recorder_shan_p shan;
-    off_t             off;
-    for (off = shans->head; off; off = shan->next)
+    int retries = 0;
+    while (retries < 3)
     {
-        shan = (recorder_shan_p) ((char *) map_addr + off);
-        recorder_chan_p chan = malloc(sizeof(recorder_chan_t));
-        chan->chans = chans;
-        chan->offset = off;
-        chan->next = chans->head;
-        chans->head = chan;
+        // Successful: Initialize with recorder_chan descriptor
+        recorder_chans_p chans = malloc(sizeof(recorder_chans_t));
+        chans->fd = fd;
+        chans->map_addr = map_addr;
+        chans->map_size = map_size;
+        chans->serial = shans->serial;
+        chans->head = NULL;
+
+        // Create recorder_chans for all recorder_chans in shared memory
+        recorder_shan_p shan;
+        off_t           off;
+        for (off = shans->head; off; off = shan->next)
+        {
+            shan = (recorder_shan_p) ((char *) map_addr + off);
+            recorder_chan_p chan = malloc(sizeof(recorder_chan_t));
+            chan->chans = chans;
+            chan->offset = off;
+            chan->next = chans->head;
+            chans->head = chan;
+        }
+
+        if (recorder_chans_valid(chans))
+            return chans;
+
+        // The serial number changed - Program restarted at wrong time?
+        RECORD(recorders, "Export channels serial changed, retry #%d", retries);
+        recorder_chans_close(chans);
     }
 
-    return chans;
+    RECORD(recorders, "Too many retries, giving up");
+    return NULL;
 }
 
 
@@ -1152,6 +1171,16 @@ void recorder_chans_close(recorder_chans_p chans)
         free(chan);
     }
     free (chans);
+}
+
+
+bool recorder_chans_valid(recorder_chans_p chans)
+// ----------------------------------------------------------------------------
+//   Return true if the open chans is still valid
+// ----------------------------------------------------------------------------
+{
+    recorder_shans_p shans = (recorder_shans_p) chans->map_addr;
+    return chans->serial == shans->serial;
 }
 
 
@@ -1295,6 +1324,8 @@ size_t recorder_chan_readable(recorder_chan_p chan, ringidx_t *reader)
 //   Return number of readable elements in ring
 // ----------------------------------------------------------------------------
 {
+    if (!recorder_chans_valid(chan->chans))
+        return 0;
     recorder_shan_p shan = recorder_shared(chan);
     return recorder_ring_readable(&shan->ring, reader);
 }
@@ -1307,6 +1338,8 @@ size_t recorder_chan_read(recorder_chan_p chan,
 //   Read data from the ring
 // ----------------------------------------------------------------------------
 {
+    if (!recorder_chans_valid(chan->chans))
+        return 0;
     recorder_shan_p shan = recorder_shared(chan);
     return recorder_ring_read(&shan->ring, ptr, count, reader, NULL, NULL);
 }
@@ -1317,6 +1350,8 @@ ringidx_t recorder_chan_reader(recorder_chan_p chan)
 //   Return current reader index for recorder_chan
 // ----------------------------------------------------------------------------
 {
+    if (!recorder_chans_valid(chan->chans))
+        return 0;
     recorder_shan_p shan = recorder_shared(chan);
     return shan->ring.reader;
 }
@@ -1805,7 +1840,7 @@ static void *background_configuration_check(void *ignored)
             nanosleep(&tm, NULL);
         }
     }
-    return NULL;
+    return ignored ? NULL : NULL;
 }
 
 
@@ -1854,8 +1889,6 @@ static void recorder_export(recorder_info *rec, const char *value, bool multi)
         }
 
         recorder_chan_p chan = rec->exported[t];
-        if (chan)
-            recorder_chan_delete(chan);
         size_t size = RECORDER_TWEAK(recorder_export_size);
         recorder_data min, max;
         min.signed_value = 0;
@@ -1870,8 +1903,9 @@ static void recorder_export(recorder_info *rec, const char *value, bool multi)
 
         RECORD(recorders, "Exporting recorder channel %s for index %u in %s\n",
                name, t, rec->name);
-        chan = recorder_chan_new(chans, RECORDER_NONE, size,
-                                 chan_name, rec->description, "", min, max);
+        if (!chan)
+            chan = recorder_chan_new(chans, RECORDER_NONE, size,
+                                     chan_name, rec->description, "", min, max);
         rec->exported[t] = chan;
         if (multi)
             free(chan_name);

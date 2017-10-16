@@ -61,7 +61,7 @@ int main(int argc, char *argv[])
         }
         else
         {
-            RecorderView *recorderView = new RecorderView(chans, argv[a]);
+            RecorderView *recorderView = new RecorderView(path, chans, argv[a]);
             layout->addWidget(recorderView);
             views++;
         }
@@ -69,7 +69,7 @@ int main(int argc, char *argv[])
 
     if (views == 0 && configurations == 0)
     {
-        RecorderView *recorderView = new RecorderView(chans, ".*");
+        RecorderView *recorderView = new RecorderView(path, chans, ".*");
         layout->addWidget(recorderView);
     }
 
