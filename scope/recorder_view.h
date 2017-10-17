@@ -59,7 +59,7 @@ private:
     const char *             filename;
     const char *             pattern;
     recorder_chans_p         &chans;
-    int                      sourceChanged;
+    bool                     sourceChanged;
 
     typedef QVector<QPointF> Points;
     QVector<Points>          data;
@@ -74,4 +74,4 @@ private:
 
 };
 
-#endif // RECORDER_DATA_H
+#endif // RECORDER_VIEW_H

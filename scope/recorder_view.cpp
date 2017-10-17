@@ -37,7 +37,7 @@ RecorderView::RecorderView(const char *filename,
 // ----------------------------------------------------------------------------
     : QChartView(parent),
       filename(filename), pattern(pattern), chans(chans),
-      sourceChanged(0)
+      sourceChanged(false)
 {
     xAxis = new QValueAxis;
     yAxis = new QValueAxis; // Or QLogValueAxis?
@@ -180,13 +180,13 @@ void RecorderView::updateSeries()
 {
     if (!recorder_chans_valid(chans))
     {
-        if (sourceChanged == 0)
+        if (!sourceChanged)
         {
             // A new program started with the same shared memory file
             // Wait a bit to make sure all channels are setup by new instance
             // Then update this view.
             // All views will presumably fail at the same time and get updated
-            sourceChanged = 1;
+            sourceChanged = true;
             dataUpdater.setInterval(100);
             dataUpdater.start();
             return;
@@ -195,7 +195,7 @@ void RecorderView::updateSeries()
     if (sourceChanged)
     {
         updateSetup();
-        sourceChanged = 0;
+        sourceChanged = false;
     }
 
     size_t numSeries = seriesList.size();
