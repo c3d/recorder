@@ -543,6 +543,7 @@ void compare_performance_of_common_operations(unsigned loops)
 
 int main(int argc, char **argv)
 {
+    recorder_trace_set(".*_(warning|error)");
     recorder_dump_on_common_signals(0, 0);
     ringbuffer_test(argc, argv);
     if (failed)
