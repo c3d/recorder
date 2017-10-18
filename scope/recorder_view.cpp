@@ -43,7 +43,6 @@ RecorderView::RecorderView(const char *filename,
     yAxis = new QValueAxis; // Or QLogValueAxis?
     xAxis->setRange(0, 20.0);
     yAxis->setRange(-10.0, 10.0);
-    yAxis->setLabelFormat("%10.3g");
 
     chart = new QChart();
     // chart->legend()->hide();
@@ -150,26 +149,6 @@ void RecorderView::updateSetup()
     readerIndex.clear();
     data.clear();
     setup();
-}
-
-
-static double roundToNiceValue(double x)
-// ----------------------------------------------------------------------------
-//   Round a value to the next power of 10 multiplied by 1, 2 or 5
-// ----------------------------------------------------------------------------
-{
-    if (x < 0)
-        return -roundToNiceValue(-x);
-    double scale = 1;
-    while (scale < x)
-    {
-        if (2*scale >= x)
-            return 2*scale;
-        if (5*scale >= x)
-            return 5*scale;
-        scale *= 10;
-    }
-    return scale;
 }
 
 
@@ -304,8 +283,21 @@ void RecorderView::updateSeries()
 
     if (updated)
     {
-        maxY = roundToNiceValue(maxY);
-        minY = maxY - roundToNiceValue(maxY - minY);
+        double range = fabs(maxY - minY);
+        double scale = 1;
+        while (scale < range)
+        {
+            scale *= 2;
+            if (scale >= range)
+                break;
+            scale *= 2.5;
+            if (scale >= range)
+                break;
+            scale *= 2;
+        }
+        minY = floor(minY / scale) * scale;
+        maxY = ceil(maxY / scale) * scale;
+
         xAxis->setRange(minX, maxX);
         yAxis->setRange(minY, maxY);
     }
