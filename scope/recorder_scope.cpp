@@ -20,6 +20,7 @@
 // ****************************************************************************
 
 #include "recorder_view.h"
+#include "recorder_slider.h"
 #include "recorder.h"
 
 #include <QtWidgets/QApplication>
@@ -58,6 +59,11 @@ int main(int argc, char *argv[])
                 return 3;
             }
             configurations++;
+        }
+        else if (arg == "-s" && ++a < argc)
+        {
+            QGroupBox *slider = RecorderSlider::make(path, chans, argv[a]);
+            layout->addWidget(slider);
         }
         else
         {

@@ -25,4 +25,8 @@ INCPATH += ..
 
 HEADERS += recorder_view.h
 
-SOURCES += recorder_view.cpp recorder_scope.cpp ../recorder.c ../recorder_ring.c
+SOURCES += recorder_view.cpp    \
+           recorder_scope.cpp   \
+           recorder_slider.cpp  \
+           ../recorder.c        \
+           ../recorder_ring.c
