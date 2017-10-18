@@ -61,6 +61,7 @@ int main(int argc, char *argv[])
 //   Create the main widget for the oscilloscope and display it
 // ----------------------------------------------------------------------------
 {
+    recorder_trace_set(".*_warning|.*_error");
     const char *path = recorder_export_file();
     recorder_chans_p chans = recorder_chans_open(path);
     if (!chans)
