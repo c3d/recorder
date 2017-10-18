@@ -34,6 +34,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+#include <errno.h>
 #include <sys/time.h>
 #if HAVE_SYS_MMAN_H
 #include <sys/mman.h>
@@ -329,7 +330,9 @@ recorder_info * recorders        = NULL;
 recorder_tweak *tweaks           = NULL;
 
 
-RECORDER(recorders, 64, "Activation of recorders");
+RECORDER(recorders,             32, "Activation of recorders");
+RECORDER(recorders_warning,     16, "Errors related to recorders");
+RECORDER(recorders_error,       16, "Errors related to recorders");
 
 static void recorder_dump_entry(recorder_info      *rec,
                                 recorder_entry     *entry,
@@ -850,17 +853,28 @@ recorder_chans_p recorder_chans_new(const char *file)
     RECORD(recorders, "Create export channels %s", file);
     printf("Creating new %s\n", file);
     if (!file)
+    {
+        RECORD(recorders_error, "NULL export file");
         return NULL;
+    }
 
     // Open the file
     int fd = open(file, O_RDWR|O_CREAT|O_TRUNC, (mode_t) 0600);
     if (fd == -1)
+    {
+        RECORD(recorders_error,
+               "Unable to create exports file %s: %s (%d)",
+               file, strerror(errno), errno);
         return NULL;
+    }
 
     // Make sure we have enough space for the data
     size_t map_size = MAP_SIZE;
     if (!recorder_shans_file_extend(fd, map_size))
     {
+        RECORD(recorders_error,
+               "Unable to create initial mapping for exports file %s: %s (%d)",
+               file, strerror(errno), errno);
         close(fd);
         return NULL;
     }
@@ -873,6 +887,8 @@ recorder_chans_p recorder_chans_new(const char *file)
                            fd, offset);
     if (map_addr == MAP_FAILED)
     {
+        RECORD(recorders_error, "Unable to mmap %s: %s (%d)",
+               file, strerror(errno), errno);
         close(fd);
         return NULL;
     }
@@ -965,13 +981,23 @@ recorder_chan_p recorder_chan_new(recorder_chans_p chans,
     {
         size_t map_size = (new_offset / MAP_SIZE + 1) * MAP_SIZE;
         if (!recorder_shans_file_extend(chans->fd, map_size))
+        {
+            RECORD(recorders_error,
+                   "Could not extend mapping to %zu bytes: %s (%d)",
+                   map_size, strerror(errno), errno);
             return NULL;
+        }
         void *map_addr = mmap(chans->map_addr, map_size,
                               PROT_READ | PROT_WRITE,
                               MAP_FILE | MAP_SHARED,
                               chans->fd, 0);
         if (map_addr == MAP_FAILED)
+        {
+            RECORD(recorders_error,
+                   "Unable to extend mmap to %zu bytes, errno=%d (%s)",
+                   map_size, errno, strerror(errno));
             return NULL;
+        }
 
         // Note that if the new mapping address is different,
         // all recorder_chan_p become invalid
@@ -1101,10 +1127,20 @@ recorder_chans_p recorder_chans_open(const char *file)
     RECORD(recorders, "Open export channels %s", file);
     int fd = open(file, O_RDWR);
     if (fd == -1)
+    {
+        RECORD(recorders_error,
+               "Unable to open %s for reading: %s (%d)",
+               file, strerror(errno), errno);
         return NULL;
+    }
     struct stat stat;
     if (fstat(fd, &stat) != 0)
+    {
+        RECORD(recorders_error,
+               "Unable to stat %s: %s (%d)",
+               file, strerror(errno), errno);
         return NULL;
+    }
 
     // Map space for the recorder_chans
     size_t  map_size = stat.st_size;
@@ -1115,9 +1151,22 @@ recorder_chans_p recorder_chans_open(const char *file)
                             fd, offset);
     recorder_shans_p shans = map_addr;
     if (map_addr == MAP_FAILED                  ||
-        shans->magic != RECORDER_CHAN_MAGIC          ||
+        shans->magic != RECORDER_CHAN_MAGIC     ||
         shans->version != RECORDER_CHAN_VERSION)
     {
+        if (map_addr == MAP_FAILED)
+            RECORD(recorders_error,
+                   "Unable to map %s file for reading: %s (%d)",
+                   file, strerror(errno), errno);
+        if (shans->magic != RECORDER_CHAN_MAGIC)
+            RECORD(recorders_error,
+                   "Wrong magic number, got %x instead of %x",
+                   shans->magic, RECORDER_CHAN_MAGIC);
+        if (shans->version != RECORDER_CHAN_VERSION)
+            RECORD(recorders_error,
+                   "Wrong exports file version, got %x instead of %x",
+                   shans->version, RECORDER_CHAN_VERSION);
+
         close(fd);
         return NULL;
     }
@@ -1150,11 +1199,12 @@ recorder_chans_p recorder_chans_open(const char *file)
             return chans;
 
         // The serial number changed - Program restarted at wrong time?
-        RECORD(recorders, "Export channels serial changed, retry #%d", retries);
+        RECORD(recorders_warning,
+               "Export channels serial changed, retry #%d", retries);
         recorder_chans_close(chans);
     }
 
-    RECORD(recorders, "Too many retries, giving up");
+    RECORD(recorders_error, "Too many retries mapping %s, giving up", file);
     return NULL;
 }
 
@@ -1193,8 +1243,13 @@ bool recorder_chans_configure(recorder_chans_p chans,
     recorder_shans_p shans = chans->map_addr;
     recorder_ring_p  cmds  = &shans->commands;
     size_t           len   = strlen(message);
-    if (recorder_ring_writable(cmds) < len)
+    size_t           avail = recorder_ring_writable(cmds);
+    if (avail < len)
+    {
+        RECORD(recorders_warning,
+               "Insufficient space in command buffer, %u < %u", avail, len);
         return false;
+    }
     recorder_ring_write(cmds, message, len, NULL, NULL, NULL);
     return true;
 }
@@ -1437,6 +1492,10 @@ static recorder_type recorder_type_from_format(const char *format,
             in_format = false;
         }
     }
+
+    RECORD(recorders_warning,
+           "Unknown format directive at index %u in %s",
+           start_index, start_format);
     return RECORDER_INVALID;
 }
 
