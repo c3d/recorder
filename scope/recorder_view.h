@@ -55,6 +55,10 @@ public slots:
     void updateSeries();
     void sceneChanged();
 
+public:
+    static double            max_duration;
+    static unsigned          max_width;
+
 private:
     const char *             filename;
     const char *             pattern;

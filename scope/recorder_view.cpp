@@ -178,7 +178,10 @@ void RecorderView::updateSeries()
     }
 
     size_t numSeries = seriesList.size();
-    size_t width = this->width();
+    size_t width =
+          max_width > 0    ? max_width
+        : max_duration > 0 ? this->width() * 10
+        : this->width();
     double minX = -1.0, maxX = 1.0, minY = -1.0, maxY = 1.0;
     bool first = true;
     bool updated = false;
@@ -275,6 +278,20 @@ void RecorderView::updateSeries()
                     }
                 }
 
+                if (max_duration > 0.0)
+                {
+                    minX = maxX - max_duration;
+                    size_t lowP = 0;
+                    for (size_t p = 0; p < count; p++)
+                    {
+                        double x = pbuf[p].x();
+                        if (x < minX)
+                            lowP = p;
+                    }
+                    if (lowP > 0)
+                        dataPoints.remove(0, lowP);
+                }
+
                 series->replace(dataPoints);
                 updated = true;
             }
@@ -317,3 +334,7 @@ void RecorderView::sceneChanged()
     dataUpdater.setInterval(0);
     dataUpdater.start();
 }
+
+
+double   RecorderView::max_duration = 0.0;
+unsigned RecorderView::max_width    = 0;

@@ -36,8 +36,10 @@ void usage(const char *progname)
     printf("Usage: %s [[-c config][-s slider][chan_re]...]\n"
            "\n"
            "  Arguments:\n"
-           "    -c config       :  Send configuration command\n"
+           "    -c config       : Send configuration command\n"
            "    -s slider       : Setup a control slider\n"
+           "    -d delay        : Set max delay in seconds\n"
+           "    -w delay        : Set max width in samples (0 = window width)\n"
            "    chan_re         : Add view with channels matching regexp\n"
            "\n"
            "  Configuration syntax for -c matches RECORDER_TRACES syntax\n"
@@ -97,6 +99,14 @@ int main(int argc, char *argv[])
         {
             QGroupBox *slider = RecorderSlider::make(path, chans, argv[++a]);
             layout->addWidget(slider);
+        }
+        else if (arg == "-d" && a+1 < argc)
+        {
+            RecorderView::max_duration = strtod(argv[++a], NULL);
+        }
+        else if (arg == "-w" && a+1 < argc)
+        {
+            RecorderView::max_width = strtoul(argv[++a], NULL, 10);
         }
         else if (arg[0] == '-')
         {
