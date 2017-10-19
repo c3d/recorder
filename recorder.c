@@ -412,7 +412,7 @@ static void recorder_dump_entry(recorder_info      *rec,
                 case 'e': case 'E':
                 case 'a': case 'A':
                     floating_point = true;
-                    // Fall through here on purpose
+                    /* Falls through */
                 case 'b':           // Integer formatting
                 case 'c': case 'C':
                 case 's': case 'S':

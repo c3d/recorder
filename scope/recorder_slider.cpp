@@ -115,7 +115,7 @@ void RecorderSlider::setup(const char *specification)
         case 3:
             min = args[1].toInt();
             max = args[2].toInt();
-            // Fall-through on purpose
+            /* Falls through */
         case 1:
             value = args[0].toInt();
             break;
