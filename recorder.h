@@ -262,7 +262,10 @@ enum { RECORDER_TRACE_OK,
 /* ----------------------------------------------------------------*/   \
 /*  Declare a tweak with the given name (for use in headers)       */   \
 /* ----------------------------------------------------------------*/   \
-    extern recorder_tweak recorder_tweak_info_for_##Name
+    extern struct recorder_info_for_##Name                              \
+    {                                                                   \
+        recorder_info       info;                                       \
+    } recorder_info_for_##Name
 
 
 #define RECORDER_INFO(Name)     ((recorder_info *) &recorder_info_for_##Name)
@@ -619,6 +622,9 @@ static void recorder_tweak_activate_##Name(void)                        \
 #define RECORD_FAST_X(Name, Format, ...)   RECORD_TOO_MANY_ARGS(printf(Format, __VA_ARGS__))
 
 // Some ugly macro drudgery to make things easy to use. Adjust type.
+#ifdef __cplusplus
+#define RECORDER_ARG(arg)       _recorder_arg(arg)
+#else // !__cplusplus
 #define RECORDER_ARG(arg)                               \
     _Generic(arg,                                       \
              unsigned char:     _recorder_unsigned,     \
@@ -635,6 +641,7 @@ static void recorder_tweak_activate_##Name(void)                        \
              float:             _recorder_float,        \
              double:            _recorder_double,       \
              default:           _recorder_pointer)(arg)
+#endif // __cplusplus
 
 
 
@@ -814,6 +821,31 @@ extern size_t           recorder_chan_read(recorder_chan_p chan,
 
 // ============================================================================
 //
+//   Portability helpers
+//
+// ============================================================================
+
+#ifndef recorder_tick
+// Return ticks (some kind of time unit) since first called
+extern uintptr_t recorder_tick(void);
+#endif
+
+#ifndef RECORDER_HZ
+#if INTPTR_MAX < 0x8000000
+#define RECORDER_HZ     1000
+#else // Large enough intptr_t
+#define RECORDER_HZ     1000000
+#endif // INTPTR_MAX
+#endif // RECORDER_HZ
+
+#ifdef __cplusplus
+}
+#endif // __cplusplus
+
+
+
+// ============================================================================
+//
 //    Utility: Convert floating point values for vararg format
 //
 // ============================================================================
@@ -823,6 +855,21 @@ extern size_t           recorder_chan_read(recorder_chan_p chan,
 //   are converted a floating point type of the same size as uintptr_t,
 //   i.e. float are converted to double on 64-bit platforms, and conversely.
 
+#ifdef __cplusplus
+// In C++, we don't use _Generic but actual overloading
+static inline uintptr_t         _recorder_arg(unsigned char i)  { return (uintptr_t) i; }
+static inline uintptr_t         _recorder_arg(unsigned short i) { return (uintptr_t) i; }
+static inline uintptr_t         _recorder_arg(unsigned i)       { return (uintptr_t) i; }
+static inline uintptr_t         _recorder_arg(unsigned long i)  { return (uintptr_t) i; }
+static inline uintptr_t         _recorder_arg(char i)           { return (uintptr_t) i; }
+static inline uintptr_t         _recorder_arg(short i)          { return (uintptr_t) i; }
+static inline uintptr_t         _recorder_arg(int i)            { return (uintptr_t) i; }
+static inline uintptr_t         _recorder_arg(long i)           { return (uintptr_t) i; }
+static inline uintptr_t         _recorder_arg(const void *i)    { return (uintptr_t) i; }
+#define _recorder_float         _recorder_arg
+#define _recorder_double        _recorder_arg
+
+#else // !__cplusplus
 
 static inline uintptr_t _recorder_char(char c)
 // ----------------------------------------------------------------------------
@@ -858,6 +905,8 @@ static inline uintptr_t _recorder_pointer(const void *i)
 {
     return (uintptr_t) i;
 }
+
+#endif // __cplusplus
 
 
 static inline uintptr_t _recorder_float(float f)
@@ -900,29 +949,5 @@ static inline uintptr_t _recorder_double(double d)
     }
 }
 
-
-
-// ============================================================================
-//
-//   Portability helpers
-//
-// ============================================================================
-
-#ifndef recorder_tick
-// Return ticks (some kind of time unit) since first called
-extern uintptr_t recorder_tick(void);
-#endif
-
-#ifndef RECORDER_HZ
-#if INTPTR_MAX < 0x8000000
-#define RECORDER_HZ     1000
-#else // Large enough intptr_t
-#define RECORDER_HZ     1000000
-#endif // INTPTR_MAX
-#endif // RECORDER_HZ
-
-#ifdef __cplusplus
-}
-#endif // __cplusplus
 
 #endif // RECORDER_H
