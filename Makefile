@@ -19,8 +19,8 @@
 BUILD=build/
 
 SOURCES=recorder_ring.c recorder.c
-PRODUCTS=librecorder.lib
-CONFIG=struct_sigaction
+PRODUCTS=recorder.lib
+CONFIG=struct_sigaction <regex.h> <sys/mman.h>
 
 # Need -lpthreads in some build environments
 LDFLAGS_linux  = -lpthread -lm
