@@ -497,6 +497,7 @@ void compare_performance_of_common_operations(unsigned loops)
          entry.args[2] = i * 1081;
          entry.args[3] = i ^ 0xFE;
          special_ring_write(&speed_test.ring, &entry));
+#ifdef CLOCK_MONOTONIC
     TEST("clock_gettime + copy",
          struct timespec ts;
          clock_gettime(CLOCK_MONOTONIC, &ts);
@@ -507,6 +508,7 @@ void compare_performance_of_common_operations(unsigned loops)
          entry.args[2] = i * 1081;
          entry.args[3] = i ^ 0xFE;
          special_ring_write(&speed_test.ring, &entry));
+#endif
 
     TEST("RECORD", RECORD(SpeedTest, "Speed test %u", i));
     TEST("RECORD_FAST", RECORD_FAST(SpeedTest, "Speed test %u", i));
