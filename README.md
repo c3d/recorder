@@ -27,6 +27,9 @@ microsecond on a modern PC), so you can leave them in your code all
 the time, even for optimized code. See *Performance considerations* at
 end of this document for details.
 
+The `RECORD` can also be written in lowercase, as `record`, if you
+don't want macros standing out in your regular code.
+
 In that example, `main` is the name of the recorder holding the
 data. We can declare it to hold 32 entries with a declaration like:
 

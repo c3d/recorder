@@ -84,12 +84,12 @@ int main(int argc, char **argv)
         int count = atoi(argv[i]);
 
 #define TEST(Info, Code)                                        \
-        RECORD(TIMING,                                          \
+        record(TIMING,                                          \
                "Begin " Info " with %d iterations", count);     \
         duration = recorder_tick();                             \
         Code;                                                   \
         duration = recorder_tick() - duration;                  \
-        RECORD(TIMING,                                          \
+        record(TIMING,                                          \
                "End " Info " with %d iterations, "              \
                "duration %.6fs",                                \
                count, DURATION);

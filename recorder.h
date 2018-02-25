@@ -345,6 +345,7 @@ static void recorder_tweak_activate_##Name(void)                        \
 //
 // ============================================================================
 
+#define record(Name, ...)     RECORD(Name, __VA_ARGS__)
 #define RECORD(Name, Format,...)                                        \
     RECORD_(RECORD,RECORD_COUNT_(__VA_ARGS__),Name,Format,##__VA_ARGS__)
 #define RECORD_(RECORD,RCOUNT,Name,Format,...)                          \
