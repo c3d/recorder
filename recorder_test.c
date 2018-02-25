@@ -121,6 +121,15 @@ void *recorder_fast_thread(void *thread)
     return NULL;
 }
 
+typedef struct example { int x; int y; int z; } example_t;
+
+size_t show_struct(const char *format, char *buffer, size_t len, uintptr_t data)
+{
+    example_t *e = (example_t *) data;
+    size_t s = snprintf(buffer, len, "example(%d, %d, %d)", e->x, e->y, e->z);
+    return s;
+}
+
 void flight_recorder_test(int argc, char **argv)
 {
     int i, j;
@@ -203,6 +212,12 @@ void flight_recorder_test(int argc, char **argv)
            "abc", "def", 1.2345, 2.3456);
     RECORD(Special, "Format '%*s' '%*.*f'",
            8, "abc", 8, 2, 1.2345);
+
+    recorder_configure_type('E', show_struct);
+    example_t x1 = { 1, 2, 3 };
+    example_t x2 = { 42, -42, 42*42 };
+
+    record(Special, "Struct dump %E then %E", &x1, &x2);
 
     recorder_dump_for("Special");
     recorder_dump();

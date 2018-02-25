@@ -78,11 +78,16 @@ typedef void (*recorder_format_fn)(recorder_show_fn show,
                                    uintptr_t order,
                                    uintptr_t timestamp,
                                    const char *message);
+typedef size_t (*recorder_type_fn)(const char *format,
+                                   char *buffer, size_t length,
+                                   uintptr_t data);
 
 // Configure function used to print and format entries
 extern void *             recorder_configure_output(void *output);
 extern recorder_show_fn   recorder_configure_show(recorder_show_fn show);
 extern recorder_format_fn recorder_configure_format(recorder_format_fn format);
+extern recorder_type_fn   recorder_configure_type(uint8_t id,
+                                                  recorder_type_fn type);
 
 // Sort recorder entries with specific format and output functions
 extern unsigned recorder_sort(const char *what,

@@ -357,6 +357,36 @@ variable).
     for (int i = 0; i < RECORDER_TWEAK(foo_loops); i++) { foo(); }
 
 
+# Custom recorder data types
+
+Often, you may have your own custom data types in your program. The
+flight recorder has provision for enabling specific format characters
+to callback your own code for specific rendering. For example, if
+you have a `person` structure defined as:
+
+    typedef struct person { const char *name; unsigned age; } person_t;
+
+You can make it so that the 'P' character denotes a person pointer,
+and render it as a 'person'. This would be done by adding a rendering
+function of type `recorder_type_fn` for character `P` as follows:
+
+    recorder_configure_type('P', render_person);
+
+where the function `render_person` would be defined as follows:
+
+    size_t render_person(const char *fmt, char *buf, size_t len, uintptr_t data)
+    {
+        person_t *p = (person_t *) data;
+        return snprintf(buf, len, "person(%s,%u)", p->name, p->age);
+    }
+
+Beware that this will overwrite any regular behaviour 'P' might have
+in a printf format, so be careful to use characters that are either
+unused by regular `printf`, or at least not used by your own program
+(e.g. `%v`, `%E`).
+
+
+
 ## Reacting to signals
 
 It is often desirable to dump the recorder when some specific signal is

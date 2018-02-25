@@ -44,9 +44,9 @@
 
 
 // ============================================================================
-// 
+//
 //    Local prototypes (in case -Wmissing-prototypes is enabled)
-// 
+//
 // ============================================================================
 
 size_t    recorder_chan_write(recorder_chan_p chan, const void *ptr, size_t cnt);
@@ -56,6 +56,27 @@ ringidx_t recorder_chan_reader(recorder_chan_p chan);
 size_t    recorder_chan_item_size(recorder_chan_p chan);
 ringidx_t recorder_chan_reader(recorder_chan_p chan);
 ringidx_t recorder_chan_writer(recorder_chan_p chan);
+
+
+// ============================================================================
+//
+//    User-configurable parameters
+//
+// ============================================================================
+
+static unsigned recorder_print(const char *ptr, size_t len, void *file_arg);
+static void recorder_format_entry(recorder_show_fn show,
+                                  void *output,
+                                  const char *label,
+                                  const char *location,
+                                  uintptr_t order,
+                                  uintptr_t timestamp,
+                                  const char *message);
+
+static void * recorder_output = NULL;
+static recorder_show_fn recorder_show = recorder_print;
+static recorder_format_fn recorder_format = recorder_format_entry;
+static recorder_type_fn recorder_types[256];
 
 
 
@@ -396,6 +417,7 @@ static void recorder_dump_entry(recorder_info      *rec,
             char     *fmt_copy       = format_buffer;
             char     *fmt_end        = format_buffer + sizeof format_buffer - 1;
             bool      floating_point = false;
+            recorder_type_fn special = NULL;
             bool      done           = false;
             bool      unsupported    = false;
             int       fields[2]      = { 0 };
@@ -405,6 +427,11 @@ static void recorder_dump_entry(recorder_info      *rec,
             {
                 c = *fmt++;
                 *fmt_copy++ = c;
+
+                special = recorder_types[(uint8_t) c];
+                if (special)
+                    break;
+
                 switch(c)
                 {
                 case 'f': case 'F':  // Floating point formatting
@@ -478,7 +505,12 @@ static void recorder_dump_entry(recorder_info      *rec,
                 arg_index = 0;
             }
 
-            if (floating_point)
+            if (special)
+            {
+                uintptr_t arg = entry->args[arg_index++];
+                dst += special(format_buffer, dst, dst_end - dst, arg);
+            }
+            else if (floating_point)
             {
                 double arg;
                 if (sizeof(intptr_t) == sizeof(float))
@@ -549,7 +581,6 @@ static void recorder_dump_entry(recorder_info      *rec,
 //
 // ============================================================================
 
-static void * recorder_output = NULL;
 void *recorder_configure_output(void *output)
 // ----------------------------------------------------------------------------
 //   Configure the output stream
@@ -572,7 +603,6 @@ static unsigned recorder_print(const char *ptr, size_t len, void *file_arg)
 }
 
 
-static recorder_show_fn recorder_show = recorder_print;
 recorder_show_fn  recorder_configure_show(recorder_show_fn show)
 // ----------------------------------------------------------------------------
 //   Configure the function used to output data to the stream
@@ -641,7 +671,6 @@ static void recorder_format_entry(recorder_show_fn show,
 }
 
 
-static recorder_format_fn recorder_format = recorder_format_entry;
 recorder_format_fn recorder_configure_format(recorder_format_fn format)
 // ----------------------------------------------------------------------------
 //   Configure the function used to format entries
@@ -650,6 +679,19 @@ recorder_format_fn recorder_configure_format(recorder_format_fn format)
     RECORD(recorders, "Configure format %p from %p", format, recorder_format);
     recorder_format_fn previous = recorder_format;
     recorder_format = format;
+    return previous;
+}
+
+
+recorder_type_fn recorder_configure_type(uint8_t id,
+                                         recorder_type_fn type)
+// ----------------------------------------------------------------------------
+//    Register a formatting function for specific data types
+// ----------------------------------------------------------------------------
+{
+    recorder_type_fn previous = recorder_types[id];
+    RECORD(recorders, "Configure type '%c' to %p from %p", id, type, previous);
+    recorder_types[id] = type;
     return previous;
 }
 
