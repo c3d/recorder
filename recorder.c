@@ -565,6 +565,8 @@ static void recorder_dump_entry(recorder_info      *rec,
         }
         finished_in_newline = c == '\n';
     }
+    if (dst > dst_end)
+        dst = dst_end;
     if (finished_in_newline)
         dst--;
     *dst++ = 0;
