@@ -267,10 +267,7 @@ enum { RECORDER_TRACE_OK,
 /* ----------------------------------------------------------------*/   \
 /*  Declare a tweak with the given name (for use in headers)       */   \
 /* ----------------------------------------------------------------*/   \
-    extern struct recorder_info_for_##Name                              \
-    {                                                                   \
-        recorder_info       info;                                       \
-    } recorder_info_for_##Name
+    extern struct recorder_tweak_for_##Name recorder_info_for_##Name
 
 
 #define RECORDER_INFO(Name)     ((recorder_info *) &recorder_info_for_##Name)
