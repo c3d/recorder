@@ -505,6 +505,9 @@ static void recorder_dump_entry(recorder_info      *rec,
                 arg_index = 0;
             }
 
+            // Warning: It is important for correctness that only
+            // one call to snprintf happens per loop, since snprintf
+            // return value can be larger than what is actually written.
             if (special)
             {
                 uintptr_t arg = entry->args[arg_index++];
@@ -565,6 +568,7 @@ static void recorder_dump_entry(recorder_info      *rec,
         }
         finished_in_newline = c == '\n';
     }
+    // Check if snprintf returned a value beyond the buffer
     if (dst > dst_end)
         dst = dst_end;
     if (finished_in_newline)
@@ -633,6 +637,9 @@ recorder_show_fn  recorder_configure_show(recorder_show_fn show)
 #  define snprintf  _snprintf
 #endif
 
+RECORDER_TWEAK_DEFINE(recorder_location, 0,
+                      "Set to show location in recorder dumps");
+
 static void recorder_format_entry(recorder_show_fn show,
                                   void *output,
                                   const char *label,
@@ -648,12 +655,22 @@ static void recorder_format_entry(recorder_show_fn show,
     char *dst = buffer;
     char *dst_end = buffer + sizeof buffer;
 
+    int size = RECORDER_TWEAK(recorder_location);
+    if (size)
+    {
+        if (size != 1)
+            dst += snprintf(dst, dst_end - dst, "%*s: ", size, location);
+        else
+            dst += snprintf(dst, dst_end - dst, "%s: ", location);
+        if (dst > dst_end)
+            dst = dst_end;
+    }
+
     if (UINTPTR_MAX >= 0x7fffffff) // Static if to detect how to display time
     {
         // Time stamp in us, show in seconds
         dst += snprintf(dst, dst_end - dst,
-                        "%s: [%lu %.6f] %s: %s",
-                        location,
+                        "[%lu %.6f] %s: %s",
                         (unsigned long) order,
                         (double) timestamp / RECORDER_HZ,
                         label, message);
@@ -662,12 +679,14 @@ static void recorder_format_entry(recorder_show_fn show,
     {
         // Time stamp  in ms, show in seconds
         dst += snprintf(dst, dst_end - dst,
-                        "%s: [%lu %.3f] %s: %s",
-                        location,
+                        "[%lu %.3f] %s: %s",
                         (unsigned long) order,
                         (double) timestamp / RECORDER_HZ,
                         label, message);
     }
+    // In case snprintf overflowed
+    if (dst > dst_end)
+        dst = dst_end;
 
     show(buffer, dst - buffer, output);
 }
