@@ -2119,7 +2119,7 @@ int recorder_trace_set(const char *param_spec)
             }
             value_ptr = param + offset;
             *value_ptr++ = 0;
-            numerical = isdigit(*value_ptr);
+            numerical = isdigit(*value_ptr) || *value_ptr == '-';
             if (numerical)
             {
                 value = strtol(value_ptr, &end, 0);
