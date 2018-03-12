@@ -78,7 +78,8 @@ typedef void (*recorder_format_fn)(recorder_show_fn show,
                                    uintptr_t order,
                                    uintptr_t timestamp,
                                    const char *message);
-typedef size_t (*recorder_type_fn)(const char *format,
+typedef size_t (*recorder_type_fn)(intptr_t trace,
+                                   const char *format,
                                    char *buffer, size_t length,
                                    uintptr_t data);
 

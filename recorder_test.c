@@ -123,10 +123,13 @@ void *recorder_fast_thread(void *thread)
 
 typedef struct example { int x; int y; int z; } example_t;
 
-size_t show_struct(const char *format, char *buffer, size_t len, uintptr_t data)
+size_t show_struct(intptr_t trace,
+                   const char *format, char *buffer, size_t len, uintptr_t data)
 {
     example_t *e = (example_t *) data;
-    size_t s = snprintf(buffer, len, "example(%d, %d, %d)", e->x, e->y, e->z);
+    size_t s = trace
+        ? snprintf(buffer, len, "example(%d, %d, %d)", e->x, e->y, e->z)
+        : snprintf(buffer, len, "example(%p)", e);
     return s;
 }
 

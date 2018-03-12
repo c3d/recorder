@@ -420,6 +420,7 @@ static void recorder_dump_entry(recorder_info      *rec,
             recorder_type_fn special = NULL;
             bool      done           = false;
             bool      unsupported    = false;
+            bool      safe_string    = false;
             int       fields[2]      = { 0 };
             unsigned  field_cnt      = 0;
             *fmt_copy++ = c;
@@ -469,6 +470,10 @@ static void recorder_dump_entry(recorder_info      *rec,
                 case 'q':
                 case 'v':
                     break;
+                case '!':
+                    safe_string = true;
+                    fmt_copy--;
+                    break;
                 case 'n':           // Expect two args
                 case '*':
                     // Check for long entry, need to skip to next entry
@@ -493,6 +498,8 @@ static void recorder_dump_entry(recorder_info      *rec,
             if (!c || unsupported)
                 break;
             bool is_string = (c == 's' || c == 'S');
+            if (is_string && !safe_string && !rec->trace)
+                fmt_copy[-1] = 'p'; // Replace with a pointer if not tracing
             *fmt_copy++ = 0;
 
             // Check for long entry, need to skip to next entry
@@ -511,7 +518,7 @@ static void recorder_dump_entry(recorder_info      *rec,
             if (special)
             {
                 uintptr_t arg = entry->args[arg_index++];
-                dst += special(format_buffer, dst, dst_end - dst, arg);
+                dst += special(rec->trace,format_buffer,dst,dst_end-dst,arg);
             }
             else if (floating_point)
             {
