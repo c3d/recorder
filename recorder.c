@@ -1663,15 +1663,9 @@ static void signal_handler(int sig, siginfo_t *info, void *ucontext)
             strsignal(sig), sig);
 
     // Restore previous handler in case we crash during the dump
-    struct sigaction save, next;
-    sigaction(sig, &old_action[sig], &save);
+    struct sigaction next;
+    sigaction(sig, &old_action[sig], &next);
     recorder_dump();
-    sigaction(sig, &save, &next);
-
-    // If there is another handler, call it now
-    if (next.sa_sigaction != (sig_fn) SIG_DFL &&
-        next.sa_sigaction != (sig_fn) SIG_IGN)
-        next.sa_sigaction(sig, info, ucontext);
 }
 
 
@@ -1688,6 +1682,8 @@ void recorder_dump_on_signal(int sig)
     sigemptyset(&action.sa_mask);
     action.sa_flags = SA_SIGINFO;
     sigaction(sig, &action, &old_action[sig]);
+    if (old_action[sig].sa_sigaction == signal_handler)
+        old_action[sig].sa_sigaction = (sig_fn) SIG_DFL;
 }
 
 #else // !HAVE_STRUCT_SIGACTION
@@ -1705,9 +1701,8 @@ static void signal_handler(int sig)
     fprintf(stderr, "Received signal %d, dumping recorder\n", sig);
 
     // Restore previous handler
-    sig_fn save = signal(sig, old_handler[sig]);
+    sig_fn next = signal(sig, old_handler[sig]);
     recorder_dump();
-    sig_fn next = signal(sig, save);
 
     // If there is a 'next' handler, call it
     if (next != SIG_DFL && next != SIG_IGN)
@@ -1723,6 +1718,8 @@ void recorder_dump_on_signal(int sig)
     if (sig < 0 || sig >= NSIG)
         return;
     old_handler[sig] = signal(sig, signal_handler);
+    if (old_handler[sig] == signal_handler)
+        old_handler[sig] = (sig_fn) SIG_DFL;
 }
 
 #endif // HAVE_STRUCT_SIGACTION
