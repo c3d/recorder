@@ -166,21 +166,26 @@ argument.
 However, unlike `printf`, the rendering of the final message is done
 *at the time of the dump*. This is not a problem for integer,
 characters, pointer or floating-point values, but for strings (the
-`%s` format of `printf`), you must make sure that the string is still
-valid at the time of the dump. A good practice is to only record
-string constants.
+`%s` format of `printf`), this could cause a crash. Therefore, a
+string is printed as a pointer at dump time, unless you add the `+`
+modifier to the `printf` format, e.g. `"%+s"`. If you know that the
+string is a compiler constant, you can use this flag safely.
 
-    // OK if 0 <= i and i < 5
+    // OK if 0 <= i and i < 5, can use the '%+s' format
     const char *array[5] = { "ONE", "TWO", "THREE", "FOUR", "FIVE" };
-    RECORD(Main, "Looking at %s", array[i]);
+    RECORD(Main, "Looking at %+s", array[i]);
 
     // Not OK because the value of the string has been freed at dump time
     char *tempStr = strdup("Hello");
-    RECORD(Main, "You will see garbage here: %s", tempStr);
+    RECORD(Main, "You will see a pointer at dump time here: %s", tempStr);
     free(tempStr); // At dump time, the string no longer exists
 
+Note that if tracing is enabled for a given recorder, the string will be
+printed. If the string is not valid at that time, a crash is possible
+during tracing.
+
 The `RECORD` macro automatically converts floating point values
-to `uintptr_t` based on their type.
+to `uintptr_t` based on their type, i.e. 32-bit or 64-bit floating-point.
 
 
 ## Dumping recorder events
@@ -372,12 +377,15 @@ function of type `recorder_type_fn` for character `P` as follows:
 
     recorder_configure_type('P', render_person);
 
-where the function `render_person` would be defined as follows:
+where the function `render_person` could be defined as follows:
 
-    size_t render_person(const char *fmt, char *buf, size_t len, uintptr_t data)
+    size_t render_person(intptr_t tracing,
+                         const char *fmt, char *buf, size_t len, uintptr_t data)
     {
         person_t *p = (person_t *) data;
-        return snprintf(buf, len, "person(%s,%u)", p->name, p->age);
+        return tracing
+            ? snprintf(buf, len, "person(%s,%u)", p->name, p->age)
+            : snprintf(buf, len, "person(%p)", p);
     }
 
 Beware that this will overwrite any regular behaviour 'P' might have
@@ -385,6 +393,12 @@ in a printf format, so be careful to use characters that are either
 unused by regular `printf`, or at least not used by your own program
 (e.g. `%v`, `%E`).
 
+The `tracing` flag contains the trace value for that recorder.
+Like for strings, it may be safe to print more information during
+tracing than at dump time, as shown in the example above. The lower
+bit of the tracing flag will also be set if the `+` modifier was
+passed in the format. So if you know that you are passing the address
+of a global `person_t` variable, you may use the `"%+P"` format.
 
 
 ## Reacting to signals
