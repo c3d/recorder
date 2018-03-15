@@ -826,7 +826,7 @@ unsigned recorder_dump_for(const char *what)
 //   Dump all entries for recorder with names matching 'what'
 // ----------------------------------------------------------------------------
 {
-    RECORD(recorders, "Recorder dump for %s", what);
+    RECORD(recorders, "Recorder dump for %+s", what);
     return recorder_sort(what, recorder_format,recorder_show,recorder_output);
 }
 
@@ -1663,7 +1663,7 @@ static void signal_handler(int sig, siginfo_t *info, void *ucontext)
 //    Dump the recorder when receiving a signal
 // ----------------------------------------------------------------------------
 {
-    RECORD(signals, "Received signal %s (%d) si_addr=%p, dumping recorder",
+    RECORD(signals, "Received signal %+s (%d) si_addr=%p, dumping recorder",
            strsignal(sig), sig, info->si_addr);
     fprintf(stderr, "Received signal %s (%d), dumping recorder\n",
             strsignal(sig), sig);
@@ -1688,6 +1688,8 @@ void recorder_dump_on_signal(int sig)
     sigemptyset(&action.sa_mask);
     action.sa_flags = SA_SIGINFO;
     sigaction(sig, &action, &old_action[sig]);
+    RECORD(signals, "Recorder dump handler %p for signal %u, old action=%p",
+           signal_handler, sig, old_action[sig].sa_sigaction);
     if (old_action[sig].sa_sigaction == signal_handler)
         old_action[sig].sa_sigaction = (sig_fn) SIG_DFL;
 }
@@ -1724,6 +1726,8 @@ void recorder_dump_on_signal(int sig)
     if (sig < 0 || sig >= NSIG)
         return;
     old_handler[sig] = signal(sig, signal_handler);
+    RECORD(signals, "Recorder dump handler %p for signal %u, old handler=%p",
+           signal_handler, sig, old_handler[sig]);
     if (old_handler[sig] == signal_handler)
         old_handler[sig] = (sig_fn) SIG_DFL;
 }
@@ -1842,7 +1846,7 @@ void recorder_activate (recorder_info *recorder)
 //   Activate the given recorder by putting it in linked list
 // ----------------------------------------------------------------------------
 {
-    RECORD(recorders, "Activating '%s' (%p)", recorder->name, recorder);
+    RECORD(recorders, "Activating '%+s' (%p)", recorder->name, recorder);
     recorder_info  *head = recorders;
     do { recorder->next = head; }
     while (!recorder_ring_compare_exchange(recorders, head, recorder));
@@ -1854,7 +1858,7 @@ void recorder_tweak_activate (recorder_tweak *tweak)
 //   Activate the given recorder by putting it in linked list
 // ----------------------------------------------------------------------------
 {
-    RECORD(recorders, "Activating tweak '%s' (%p)", tweak->name, tweak);
+    RECORD(recorders, "Activating tweak '%+s' (%p)", tweak->name, tweak);
     recorder_tweak  *head = tweaks;
     do { tweak->next = head; }
     while (!recorder_ring_compare_exchange(tweaks, head, tweak));
@@ -1912,7 +1916,7 @@ void recorder_trace_entry(recorder_info *info, recorder_entry *entry)
             size_t           size   = ring->size;
             recorder_type    none   = RECORDER_NONE;
 
-            RECORD(recorders, "Channel #%u '%s' type %u %s",
+            RECORD(recorders, "Channel #%u '%+s' type %u %+s",
                    i,
                    (const char *) shan + shan->name,
                    shan->type,
@@ -2042,7 +2046,7 @@ static void recorder_export(recorder_info *rec, const char *value, bool multi)
             sprintf(chan_name, "%s/%s", rec->name, name);
         }
 
-        RECORD(recorders, "Exporting recorder channel %s for index %u in %s\n",
+        RECORD(recorders, "Exporting channel %+s for index %u in %+s\n",
                name, t, rec->name);
         if (!chan)
             chan = recorder_chan_new(chans, RECORDER_NONE, size,
@@ -2217,12 +2221,12 @@ int recorder_trace_set(const char *param_spec)
                     for (rec = recorders; rec; rec = rec->next)
                     {
                         int re_result = param_match(rec->name);
-                        RECORD(recorder_traces, "Numerical testing %s = %s",
+                        RECORD(recorder_traces, "Numerical testing %+s = %+s",
                                rec->name, re_result ? "YES" : "NO");
                         if (re_result)
                         {
                             RECORD(recorder_traces,
-                                   "Set %s from %ld to %ld",
+                                   "Set %+s from %ld to %ld",
                                    rec->name, rec->trace, value);
                             rec->trace = value;
                         }
@@ -2233,7 +2237,7 @@ int recorder_trace_set(const char *param_spec)
                         if (re_result)
                         {
                             RECORD(recorder_traces,
-                                   "Set tweak %s from %ld to %ld",
+                                   "Set tweak %+s from %ld to %ld",
                                    tweak->name, tweak->trace, value);
                             tweak->trace = value;
                         }
@@ -2251,12 +2255,12 @@ int recorder_trace_set(const char *param_spec)
                     for (rec = recorders; rec; rec = rec->next)
                     {
                         int re_result = param_match(rec->name);
-                        RECORD(recorder_traces, "Textual testing %s = %s",
+                        RECORD(recorder_traces, "Textual testing %+s = %+s",
                                rec->name, re_result ? "YES" : "NO");
                         if (re_result)
                         {
                             RECORD(recorder_traces,
-                                   "Share %s under name %s",
+                                   "Share %+s under name %s",
                                    rec->name, value_ptr);
                             recorder_export(rec, value_ptr, matches > 1);
                         }
