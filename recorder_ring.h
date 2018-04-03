@@ -146,7 +146,7 @@ extern "C" {
 
 typedef uintptr_t ringidx_t;
 
-typedef struct ring
+typedef struct recorder_ring
 // ----------------------------------------------------------------------------
 //   Header for ring buffers
 // ----------------------------------------------------------------------------
