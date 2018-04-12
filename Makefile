@@ -13,7 +13,7 @@
 #
 #
 #******************************************************************************
-# (C) 2015 Christophe de Dinechin <christophe@taodyne.com>
+# (C) 2015-2018 Christophe de Dinechin <christophe@dinechin.com>
 #******************************************************************************
 
 SOURCES=recorder_ring.c recorder.c

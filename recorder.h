@@ -18,7 +18,7 @@
 // ****************************************************************************
 // This document is released under the GNU General Public License version 3
 // See http://www.gnu.org/copyleft/gpl.html and Matthew 25:22 for details
-//  (C) 1992-2017 Christophe de Dinechin <christophe@dinechin.org>
+//  (C) 1992-2018 Christophe de Dinechin <christophe@dinechin.org>
 // ****************************************************************************
 
 #include "recorder_ring.h"
