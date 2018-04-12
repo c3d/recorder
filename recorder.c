@@ -368,7 +368,7 @@ recorder_tweak *tweaks           = NULL;
 
 
 RECORDER(recorders,             32, "Activation of recorders");
-RECORDER(recorders_warning,     16, "Errors related to recorders");
+RECORDER(recorders_warning,     16, "Warnings related to recorders");
 RECORDER(recorders_error,       16, "Errors related to recorders");
 
 static void recorder_dump_entry(recorder_info      *rec,
