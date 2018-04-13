@@ -37,7 +37,7 @@ extern "C" {
 //
 // ============================================================================
 
-#define RECORDER_CURRENT_VERSION                RECORDER_VERSION(1,1)
+#define RECORDER_CURRENT_VERSION                RECORDER_VERSION(1,2)
 #define RECORDER_VERSION(major,minor)           ((major)<<16|(minor))
 #define RECORDER_VERSION_MAJOR(version)         (((version) >> 16) & 0xFFFF)
 #define RECORDER_VERSION_MINOR(version)         ((version) & 0xFFFF)
@@ -253,7 +253,7 @@ enum { RECORDER_TRACE_OK,
 
 // ============================================================================
 //
-//    Declaration of recorders
+//    Declaration of recorders and tweaks
 //
 // ============================================================================
 
@@ -261,6 +261,7 @@ enum { RECORDER_TRACE_OK,
 /* ----------------------------------------------------------------*/   \
 /*  Declare a recorder with the given name (for use in headers)    */   \
 /* ----------------------------------------------------------------*/   \
+    extern recorder_info * const recorder_info_ptr_for_##Name;          \
     extern struct recorder_info_for_##Name recorder_info_for_##Name
 
 
@@ -268,20 +269,20 @@ enum { RECORDER_TRACE_OK,
 /* ----------------------------------------------------------------*/   \
 /*  Declare a tweak with the given name (for use in headers)       */   \
 /* ----------------------------------------------------------------*/   \
+    extern recorder_tweak * const recorder_info_ptr_for_##Name;         \
     extern struct recorder_tweak_for_##Name recorder_info_for_##Name
 
 
-#define RECORDER_INFO(Name)     ((recorder_info *) &recorder_info_for_##Name)
-
-
 
 // ============================================================================
 //
-//    Definition of recorders
+//    Definition of recorders and tweaks
 //
 // ============================================================================
 
-#define RECORDER(Name, Size, Info)                                      \
+#define RECORDER(Name, Size, Info)      RECORDER_DEFINE(Name,Size,Info)
+
+#define RECORDER_DEFINE(Name, Size, Info)                               \
 /*!----------------------------------------------------------------*/   \
 /*! Define a recorder type with Size elements                      */   \
 /*!----------------------------------------------------------------*/   \
@@ -305,7 +306,8 @@ recorder_info_for_##Name =                                              \
     },                                                                  \
     {}                                                                  \
 };                                                                      \
-                                                                        \
+recorder_info * const recorder_info_ptr_for_##Name =                    \
+    &recorder_info_for_##Name.info;                                     \
                                                                         \
 RECORDER_CONSTRUCTOR                                                    \
 static void recorder_activate_##Name(void)                              \
@@ -326,6 +328,8 @@ recorder_info_for_##Name =                                              \
 {                                                                       \
     { Value, #Name, Info, NULL }                                        \
 };                                                                      \
+recorder_tweak * const recorder_info_ptr_for_##Name =                   \
+    &recorder_info_for_##Name.info;                                     \
                                                                         \
 RECORDER_CONSTRUCTOR                                                    \
 static void recorder_tweak_activate_##Name(void)                        \
@@ -337,6 +341,14 @@ static void recorder_tweak_activate_##Name(void)                        \
 }
 
 
+
+// ============================================================================
+//
+//    Access to recorder and tweak info
+//
+// ============================================================================
+
+#define RECORDER_INFO(Name)     (recorder_info_ptr_for_##Name)
 #define RECORDER_TRACE(Name)    (RECORDER_INFO(Name)->trace)
 #define RECORDER_TWEAK(Name)    RECORDER_TRACE(Name)
 
