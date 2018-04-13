@@ -114,13 +114,13 @@ typedef struct recorder_entry
 ///  Notice that the arguments are stored as "intptr_t" because that type
 ///  is guaranteed to be the same size as a pointer. This allows us to
 ///  properly align recorder entries to powers of 2 for efficiency.
-///  Also read explanations of \ref _recorder_double and \ref _recorder_float below regarding
-///  how to use floating-point with the recorder.
+///  Also read explanations of \ref _recorder_double and \ref _recorder_float
+///  below regarding how to use floating-point with the recorder.
 {
-    const char *format;         ///< Printf-style format for record
+    const char *format;         ///< Printf-style format for record + file/line
     uintptr_t   order;          ///< Global order of events (across recorders)
     uintptr_t   timestamp;      ///< Time at which record took place
-    const char *where;          ///< Source code location (__FILE__ : __LINE__)
+    const char *where;          ///< Source code function
     uintptr_t   args[4];        ///< Four arguments, for a total of 8 fields
 } recorder_entry;
 
@@ -360,29 +360,34 @@ static void recorder_tweak_activate_##Name(void)                        \
 
 #define RECORD_0(Name, Format)                          \
     recorder_append(RECORDER_INFO(Name),                \
-                    RECORDER_SOURCE_LOCATION,           \
+                    RECORDER_SOURCE_FUNCTION,           \
+                    RECORDER_SOURCE_LOCATION            \
                     Format, 0, 0, 0, 0)
 #define RECORD_1(Name, Format, a)                       \
     recorder_append(RECORDER_INFO(Name),                \
-                    RECORDER_SOURCE_LOCATION,           \
+                    RECORDER_SOURCE_FUNCTION,           \
+                    RECORDER_SOURCE_LOCATION            \
                     Format,                             \
                     RECORDER_ARG(a), 0, 0, 0)
 #define RECORD_2(Name, Format, a,b)                     \
     recorder_append(RECORDER_INFO(Name),                \
-                    RECORDER_SOURCE_LOCATION,           \
+                    RECORDER_SOURCE_FUNCTION,           \
+                    RECORDER_SOURCE_LOCATION            \
                     Format,                             \
                     RECORDER_ARG(a),                    \
                     RECORDER_ARG(b), 0, 0)
 #define RECORD_3(Name, Format, a,b,c)                   \
     recorder_append(RECORDER_INFO(Name),                \
-                    RECORDER_SOURCE_LOCATION,           \
+                    RECORDER_SOURCE_FUNCTION,           \
+                    RECORDER_SOURCE_LOCATION            \
                     Format,                             \
                     RECORDER_ARG(a),                    \
                     RECORDER_ARG(b),                    \
                     RECORDER_ARG(c), 0)
 #define RECORD_4(Name, Format, a,b,c,d)                 \
     recorder_append(RECORDER_INFO(Name),                \
-                    RECORDER_SOURCE_LOCATION,           \
+                    RECORDER_SOURCE_FUNCTION,           \
+                    RECORDER_SOURCE_LOCATION            \
                     Format,                             \
                     RECORDER_ARG(a),                    \
                     RECORDER_ARG(b),                    \
@@ -390,7 +395,8 @@ static void recorder_tweak_activate_##Name(void)                        \
                     RECORDER_ARG(d))
 #define RECORD_5(Name, Format, a,b,c,d,e)               \
     recorder_append2(RECORDER_INFO(Name),               \
-                     RECORDER_SOURCE_LOCATION,          \
+                     RECORDER_SOURCE_FUNCTION,          \
+                     RECORDER_SOURCE_LOCATION           \
                      Format,                            \
                      RECORDER_ARG(a),                   \
                      RECORDER_ARG(b),                   \
@@ -399,7 +405,8 @@ static void recorder_tweak_activate_##Name(void)                        \
                      RECORDER_ARG(e), 0, 0, 0)
 #define RECORD_6(Name, Format, a,b,c,d,e,f)             \
     recorder_append2(RECORDER_INFO(Name),               \
-                     RECORDER_SOURCE_LOCATION,          \
+                     RECORDER_SOURCE_FUNCTION,          \
+                     RECORDER_SOURCE_LOCATION           \
                      Format,                            \
                      RECORDER_ARG(a),                   \
                      RECORDER_ARG(b),                   \
@@ -409,7 +416,8 @@ static void recorder_tweak_activate_##Name(void)                        \
                      RECORDER_ARG(f), 0, 0)
 #define RECORD_7(Name, Format, a,b,c,d,e,f,g)           \
     recorder_append2(RECORDER_INFO(Name),               \
-                     RECORDER_SOURCE_LOCATION,          \
+                     RECORDER_SOURCE_FUNCTION,          \
+                     RECORDER_SOURCE_LOCATION           \
                      Format,                            \
                      RECORDER_ARG(a),                   \
                      RECORDER_ARG(b),                   \
@@ -420,7 +428,8 @@ static void recorder_tweak_activate_##Name(void)                        \
                      RECORDER_ARG(g), 0)
 #define RECORD_8(Name, Format, a,b,c,d,e,f,g,h)         \
     recorder_append2(RECORDER_INFO(Name),               \
-                     RECORDER_SOURCE_LOCATION,          \
+                     RECORDER_SOURCE_FUNCTION,          \
+                     RECORDER_SOURCE_LOCATION           \
                      Format,                            \
                      RECORDER_ARG(a),                   \
                      RECORDER_ARG(b),                   \
@@ -432,7 +441,8 @@ static void recorder_tweak_activate_##Name(void)                        \
                      RECORDER_ARG(h))
 #define RECORD_9(Name, Format, a,b,c,d,e,f,g,h,i)       \
     recorder_append3(RECORDER_INFO(Name),               \
-                     RECORDER_SOURCE_LOCATION,          \
+                     RECORDER_SOURCE_FUNCTION,          \
+                     RECORDER_SOURCE_LOCATION           \
                      Format,                            \
                      RECORDER_ARG(a),                   \
                      RECORDER_ARG(b),                   \
@@ -445,7 +455,8 @@ static void recorder_tweak_activate_##Name(void)                        \
                      RECORDER_ARG(i), 0,0,0)
 #define RECORD_10(Name, Format, a,b,c,d,e,f,g,h,i,j)    \
     recorder_append3(RECORDER_INFO(Name),               \
-                     RECORDER_SOURCE_LOCATION,          \
+                     RECORDER_SOURCE_FUNCTION,          \
+                     RECORDER_SOURCE_LOCATION           \
                      Format,                            \
                      RECORDER_ARG(a),                   \
                      RECORDER_ARG(b),                   \
@@ -459,7 +470,8 @@ static void recorder_tweak_activate_##Name(void)                        \
                      RECORDER_ARG(j), 0,0)
 #define RECORD_11(Name, Format, a,b,c,d,e,f,g,h,i,j,k)  \
     recorder_append3(RECORDER_INFO(Name),               \
-                     RECORDER_SOURCE_LOCATION,          \
+                     RECORDER_SOURCE_FUNCTION,          \
+                     RECORDER_SOURCE_LOCATION           \
                      Format,                            \
                      RECORDER_ARG(a),                   \
                      RECORDER_ARG(b),                   \
@@ -472,21 +484,22 @@ static void recorder_tweak_activate_##Name(void)                        \
                      RECORDER_ARG(i),                   \
                      RECORDER_ARG(j),                   \
                      RECORDER_ARG(k),0)
-#define RECORD_12(Name, Format, a,b,c,d,e,f,g,h,i,j,k,l)        \
-    recorder_append3(RECORDER_INFO(Name),                       \
-                     RECORDER_SOURCE_LOCATION,                  \
-                     Format,                                    \
-                     RECORDER_ARG(a),                           \
-                     RECORDER_ARG(b),                           \
-                     RECORDER_ARG(c),                           \
-                     RECORDER_ARG(d),                           \
-                     RECORDER_ARG(e),                           \
-                     RECORDER_ARG(f),                           \
-                     RECORDER_ARG(g),                           \
-                     RECORDER_ARG(h),                           \
-                     RECORDER_ARG(i),                           \
-                     RECORDER_ARG(j),                           \
-                     RECORDER_ARG(k),                           \
+#define RECORD_12(Name,Format,a,b,c,d,e,f,g,h,i,j,k,l)  \
+    recorder_append3(RECORDER_INFO(Name),               \
+                     RECORDER_SOURCE_FUNCTION,          \
+                     RECORDER_SOURCE_LOCATION           \
+                     Format,                            \
+                     RECORDER_ARG(a),                   \
+                     RECORDER_ARG(b),                   \
+                     RECORDER_ARG(c),                   \
+                     RECORDER_ARG(d),                   \
+                     RECORDER_ARG(e),                   \
+                     RECORDER_ARG(f),                   \
+                     RECORDER_ARG(g),                   \
+                     RECORDER_ARG(h),                   \
+                     RECORDER_ARG(i),                   \
+                     RECORDER_ARG(j),                   \
+                     RECORDER_ARG(k),                   \
                      RECORDER_ARG(l))
 #define RECORD_X(Name, Format, ...)   RECORD_TOO_MANY_ARGS(printf(Format, __VA_ARGS__))
 
@@ -495,29 +508,34 @@ static void recorder_tweak_activate_##Name(void)                        \
     RECORD_(RECORD_FAST,RECORD_COUNT_(__VA_ARGS__),Name,Format,##__VA_ARGS__)
 #define RECORD_FAST_0(Name, Format)                             \
     recorder_append_fast(RECORDER_INFO(Name),                   \
-                         RECORDER_SOURCE_LOCATION,              \
+                         RECORDER_SOURCE_FUNCTION,              \
+                         RECORDER_SOURCE_LOCATION               \
                          Format, 0, 0, 0, 0)
 #define RECORD_FAST_1(Name, Format, a)                          \
     recorder_append_fast(RECORDER_INFO(Name),                   \
-                         RECORDER_SOURCE_LOCATION,              \
+                         RECORDER_SOURCE_FUNCTION,              \
+                         RECORDER_SOURCE_LOCATION               \
                          Format,                                \
                          RECORDER_ARG(a), 0, 0, 0)
 #define RECORD_FAST_2(Name, Format, a,b)                        \
     recorder_append_fast(RECORDER_INFO(Name),                   \
-                         RECORDER_SOURCE_LOCATION,              \
+                         RECORDER_SOURCE_FUNCTION,              \
+                         RECORDER_SOURCE_LOCATION               \
                          Format,                                \
                          RECORDER_ARG(a),                       \
                          RECORDER_ARG(b), 0, 0)
 #define RECORD_FAST_3(Name, Format, a,b,c)                      \
     recorder_append_fast(RECORDER_INFO(Name),                   \
-                         RECORDER_SOURCE_LOCATION,              \
+                         RECORDER_SOURCE_FUNCTION,              \
+                         RECORDER_SOURCE_LOCATION               \
                          Format,                                \
                          RECORDER_ARG(a),                       \
                          RECORDER_ARG(b),                       \
                          RECORDER_ARG(c), 0)
 #define RECORD_FAST_4(Name, Format, a,b,c,d)                    \
     recorder_append_fast(RECORDER_INFO(Name),                   \
-                         RECORDER_SOURCE_LOCATION,              \
+                         RECORDER_SOURCE_FUNCTION,              \
+                             RECORDER_SOURCE_LOCATION           \
                          Format,                                \
                          RECORDER_ARG(a),                       \
                          RECORDER_ARG(b),                       \
@@ -525,7 +543,8 @@ static void recorder_tweak_activate_##Name(void)                        \
                          RECORDER_ARG(d))
 #define RECORD_FAST_5(Name, Format, a,b,c,d,e)                  \
     recorder_append_fast2(RECORDER_INFO(Name),                  \
-                          RECORDER_SOURCE_LOCATION,             \
+                          RECORDER_SOURCE_FUNCTION,             \
+                              RECORDER_SOURCE_LOCATION          \
                           Format,                               \
                           RECORDER_ARG(a),                      \
                           RECORDER_ARG(b),                      \
@@ -534,7 +553,8 @@ static void recorder_tweak_activate_##Name(void)                        \
                           RECORDER_ARG(e), 0, 0, 0)
 #define RECORD_FAST_6(Name, Format, a,b,c,d,e,f)                \
     recorder_append_fast2(RECORDER_INFO(Name),                  \
-                          RECORDER_SOURCE_LOCATION,             \
+                          RECORDER_SOURCE_FUNCTION,             \
+                          RECORDER_SOURCE_LOCATION              \
                           Format,                               \
                           RECORDER_ARG(a),                      \
                           RECORDER_ARG(b),                      \
@@ -544,7 +564,8 @@ static void recorder_tweak_activate_##Name(void)                        \
                           RECORDER_ARG(f), 0, 0)
 #define RECORD_FAST_7(Name, Format, a,b,c,d,e,f,g)              \
     recorder_append_fast2(RECORDER_INFO(Name),                  \
-                          RECORDER_SOURCE_LOCATION,             \
+                          RECORDER_SOURCE_FUNCTION,             \
+                          RECORDER_SOURCE_LOCATION              \
                           Format,                               \
                           RECORDER_ARG(a),                      \
                           RECORDER_ARG(b),                      \
@@ -555,7 +576,8 @@ static void recorder_tweak_activate_##Name(void)                        \
                           RECORDER_ARG(g), 0)
 #define RECORD_FAST_8(Name, Format, a,b,c,d,e,f,g,h)            \
     recorder_append_fast2(RECORDER_INFO(Name),                  \
-                          RECORDER_SOURCE_LOCATION,             \
+                          RECORDER_SOURCE_FUNCTION,             \
+                          RECORDER_SOURCE_LOCATION              \
                           Format,                               \
                           RECORDER_ARG(a),                      \
                           RECORDER_ARG(b),                      \
@@ -567,7 +589,8 @@ static void recorder_tweak_activate_##Name(void)                        \
                           RECORDER_ARG(h))
 #define RECORD_FAST_9(Name, Format, a,b,c,d,e,f,g,h,i)          \
     recorder_append_fast3(RECORDER_INFO(Name),                  \
-                          RECORDER_SOURCE_LOCATION,             \
+                          RECORDER_SOURCE_FUNCTION,             \
+                          RECORDER_SOURCE_LOCATION              \
                           Format,                               \
                           RECORDER_ARG(a),                      \
                           RECORDER_ARG(b),                      \
@@ -580,7 +603,8 @@ static void recorder_tweak_activate_##Name(void)                        \
                           RECORDER_ARG(i), 0,0,0)
 #define RECORD_FAST_10(Name, Format, a,b,c,d,e,f,g,h,i,j)       \
     recorder_append_fast3(RECORDER_INFO(Name),                  \
-                          RECORDER_SOURCE_LOCATION,             \
+                          RECORDER_SOURCE_FUNCTION,             \
+                          RECORDER_SOURCE_LOCATION              \
                           Format,                               \
                           RECORDER_ARG(a),                      \
                           RECORDER_ARG(b),                      \
@@ -594,7 +618,8 @@ static void recorder_tweak_activate_##Name(void)                        \
                           RECORDER_ARG(j), 0,0)
 #define RECORD_FAST_11(Name, Format, a,b,c,d,e,f,g,h,i,j,k)     \
     recorder_append_fast3(RECORDER_INFO(Name),                  \
-                          RECORDER_SOURCE_LOCATION,             \
+                          RECORDER_SOURCE_FUNCTION,             \
+                          RECORDER_SOURCE_LOCATION              \
                           Format,                               \
                           RECORDER_ARG(a),                      \
                           RECORDER_ARG(b),                      \
@@ -609,7 +634,8 @@ static void recorder_tweak_activate_##Name(void)                        \
                           RECORDER_ARG(k),0)
 #define RECORD_FAST_12(Name, Format, a,b,c,d,e,f,g,h,i,j,k,l)   \
     recorder_append_fast3(RECORDER_INFO(Name),                  \
-                          RECORDER_SOURCE_LOCATION,             \
+                          RECORDER_SOURCE_FUNCTION,             \
+                          RECORDER_SOURCE_LOCATION              \
                           Format,                               \
                           RECORDER_ARG(a),                      \
                           RECORDER_ARG(b),                      \
@@ -812,9 +838,10 @@ extern size_t           recorder_chan_read(recorder_chan_p chan,
 //
 // ============================================================================
 
-#define RECORDER_SOURCE_LOCATION        __FILE__ ":" RECORDER_STRING(__LINE__)
-#define RECORDER_STRING(LINE)           RECORDER_STRING_(LINE)
-#define RECORDER_STRING_(LINE)          #LINE
+#define RECORDER_SOURCE_FUNCTION    __func__ /* Works in C99 and C++11 */
+#define RECORDER_SOURCE_LOCATION    __FILE__ ":" RECORDER_STRING(__LINE__) ":"
+#define RECORDER_STRING(LINE)       RECORDER_STRING_(LINE)
+#define RECORDER_STRING_(LINE)      #LINE
 
 #ifdef __GNUC__
 #define RECORDER_CONSTRUCTOR            __attribute__((constructor))

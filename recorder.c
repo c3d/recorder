@@ -645,11 +645,13 @@ recorder_show_fn  recorder_configure_show(recorder_show_fn show)
 
 RECORDER_TWEAK_DEFINE(recorder_location, 0,
                       "Set to show location in recorder dumps");
+RECORDER_TWEAK_DEFINE(recorder_function, 0,
+                      "Set to show function in recorder dumps");
 
 static void recorder_format_entry(recorder_show_fn show,
                                   void *output,
                                   const char *label,
-                                  const char *location,
+                                  const char *function_name,
                                   uintptr_t order,
                                   uintptr_t timestamp,
                                   const char *message)
@@ -661,13 +663,36 @@ static void recorder_format_entry(recorder_show_fn show,
     char *dst = buffer;
     char *dst_end = buffer + sizeof buffer;
 
+    // Look for file:line: in the input message
+    const char *end_of_fileline = message;
+    for (int colon = 0; colon < 2; colon++)
+        while (*end_of_fileline && *end_of_fileline++ != ':')
+            /* Empty */;
+    if (*end_of_fileline == 0)       // Play it ultra-safe
+        end_of_fileline = message;
+
     int size = RECORDER_TWEAK(recorder_location);
     if (size)
     {
+        int fileline_size = (int) (end_of_fileline - message);
         if (size != 1)
-            dst += snprintf(dst, dst_end - dst, "%*s: ", size, location);
+            dst += snprintf(dst, dst_end - dst,
+                            "%*.*s", size, fileline_size, message);
         else
-            dst += snprintf(dst, dst_end - dst, "%s: ", location);
+            dst += snprintf(dst, dst_end - dst,
+                            "%.*s", fileline_size, message);
+        if (dst > dst_end)
+            dst = dst_end;
+    }
+    message = end_of_fileline;
+
+    size = RECORDER_TWEAK(recorder_function);
+    if (size)
+    {
+        if (size != 1)
+            dst += snprintf(dst, dst_end - dst, "%*s:", size, function_name);
+        else
+            dst += snprintf(dst, dst_end - dst, "%s:", function_name);
         if (dst > dst_end)
             dst = dst_end;
     }
