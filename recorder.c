@@ -1679,7 +1679,7 @@ void recorder_background_dump_stop(void)
 RECORDER(signals, 32, "Information about signals");
 
 // Saved old actions
-#if HAVE_STRUCT_SIGACTION
+#if HAVE_SIGACTION
 typedef void (*sig_fn)(int, siginfo_t *, void *);
 static struct sigaction old_action[NSIG] = { };
 
@@ -1719,7 +1719,7 @@ void recorder_dump_on_signal(int sig)
         old_action[sig].sa_sigaction = (sig_fn) SIG_DFL;
 }
 
-#else // !HAVE_STRUCT_SIGACTION
+#else // !HAVE_SIGACTION
 
 /* For MinGW, there is no struct sigaction */
 typedef void (*sig_fn)(int);
@@ -1757,7 +1757,7 @@ void recorder_dump_on_signal(int sig)
         old_handler[sig] = (sig_fn) SIG_DFL;
 }
 
-#endif // HAVE_STRUCT_SIGACTION
+#endif // HAVE_SIGACTION
 
 
 enum
