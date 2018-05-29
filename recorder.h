@@ -900,16 +900,8 @@ extern uintptr_t recorder_tick(void);
 
 #ifdef __cplusplus
 // In C++, we don't use _Generic but actual overloading
-static inline uintptr_t         _recorder_arg(unsigned char i)  { return (uintptr_t) i; }
-static inline uintptr_t         _recorder_arg(unsigned short i) { return (uintptr_t) i; }
-static inline uintptr_t         _recorder_arg(unsigned i)       { return (uintptr_t) i; }
-static inline uintptr_t         _recorder_arg(unsigned long i)  { return (uintptr_t) i; }
-static inline uintptr_t         _recorder_arg(unsigned long long i)  { return (uintptr_t) i; }
-static inline uintptr_t         _recorder_arg(char i)           { return (uintptr_t) i; }
-static inline uintptr_t         _recorder_arg(short i)          { return (uintptr_t) i; }
-static inline uintptr_t         _recorder_arg(int i)            { return (uintptr_t) i; }
-static inline uintptr_t         _recorder_arg(long long i)      { return (uintptr_t) i; }
-static inline uintptr_t         _recorder_arg(const void *i)    { return (uintptr_t) i; }
+template <class inttype>
+static inline uintptr_t         _recorder_arg(inttype i)  { return (uintptr_t) i; }
 #define _recorder_float         _recorder_arg
 #define _recorder_double        _recorder_arg
 
