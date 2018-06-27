@@ -360,6 +360,8 @@ ringidx_t recorder_append_fast3(recorder_info *rec,
 /// Global counter indicating the order of entries across recorders.
 uintptr_t       recorder_order   = 0;
 
+unsigned        recorder_dumping = 0;
+
 /// List of the currently active flight recorders (ring buffers)
 recorder_info * recorders        = NULL;
 
@@ -496,7 +498,7 @@ static void recorder_dump_entry(recorder_info      *rec,
             if (!c || unsupported)
                 break;
             bool is_string = (c == 's' || c == 'S');
-            if (is_string && !safe_pointer && !rec->trace)
+            if (is_string && !safe_pointer && recorder_dumping)
                 fmt_copy[-1] = 'p'; // Replace with a pointer if not tracing
             *fmt_copy++ = 0;
 
@@ -787,6 +789,8 @@ unsigned recorder_sort(const char *what,
 #else
     int status = 0;
 #endif
+
+    recorder_ring_fetch_add(recorder_dumping, 1);
     while (status == 0)
     {
         uintptr_t       lowest_order = ~0UL;
@@ -827,6 +831,7 @@ unsigned recorder_sort(const char *what,
         recorder_dump_entry(lowest_rec, lowest_entry, format, show, output);
         dumped++;
     }
+    recorder_ring_fetch_add(recorder_dumping, -1);
 
 #if HAVE_REGEX_H
     regfree(&re);
