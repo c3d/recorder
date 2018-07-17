@@ -1894,6 +1894,12 @@ void recorder_tweak_activate (recorder_tweak *tweak)
 //   Activate the given recorder by putting it in linked list
 // ----------------------------------------------------------------------------
 {
+    if (tweak->next)
+    {
+        RECORD(recorders_error, "Re-activating tweak %+s (%p)",
+               tweak->name, tweak);
+        return;
+    }
     RECORD(recorders, "Activating tweak '%+s' (%p)", tweak->name, tweak);
     recorder_tweak  *head = tweaks;
     do { tweak->next = head; }
