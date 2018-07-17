@@ -1876,6 +1876,12 @@ void recorder_activate (recorder_info *recorder)
 //   Activate the given recorder by putting it in linked list
 // ----------------------------------------------------------------------------
 {
+    if (recorder->next)
+    {
+        RECORD(recorders_error, "Re-activating %+s (%p)",
+               recorder->name, recorder);
+        return;
+    }
     RECORD(recorders, "Activating '%+s' (%p)", recorder->name, recorder);
     recorder_info  *head = recorders;
     do { recorder->next = head; }
