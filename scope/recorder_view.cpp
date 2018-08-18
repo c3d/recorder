@@ -87,7 +87,7 @@ void RecorderView::setup()
     recorder_chan_p chan = NULL;
     bool hasGL = getenv ("RECORDER_NOGL") == NULL;
     const char *colors[] = {
-        "red", "yellow", "lightgreen", "orange",
+        "yellow", "red", "lightgreen", "orange",
         "purple", "lightgray", "pink", "cyan",
     };
     const unsigned numColors = sizeof(colors) / sizeof(colors[0]);
