@@ -92,14 +92,31 @@ void dawdle(unsigned minimumMs, unsigned deltaMs)
     nanosleep(&tm, NULL);
 }
 
+// RECORDER(SpeedTest,      32, "Recorder speed test");
+RECORDER_TWEAK_DEFINE(sleep_time, 0, "Sleep time between records");
+RECORDER_TWEAK_DEFINE(sleep_time_delta, 0, "Variations in sleep time between records");
+
 void *recorder_thread(void *thread)
 {
     uintptr_t i = 0;
     unsigned tid = (unsigned) (uintptr_t) thread;
+    uintptr_t last_time = recorder_tick();
     while (!threads_to_stop)
     {
         i++;
-        RECORD(SpeedTest, "[thread %u] Recording %u, mod %u", tid, i, i % 500);
+        uintptr_t current_time = recorder_tick();
+        RECORD(SpeedTest, "[thread %u] Recording %u, mod %u after %ld", tid, i, i % 500,
+            current_time - last_time);
+        last_time = current_time;
+        if (RECORDER_TWEAK(sleep_time))
+        {
+            struct timespec tm;
+            uint64_t wait_time = (uint64_t)
+                (RECORDER_TWEAK(sleep_time) + drand48()*RECORDER_TWEAK(sleep_time_delta));
+            tm.tv_sec  = 0;
+            tm.tv_nsec = wait_time * 1000;
+            nanosleep(&tm, NULL);
+        }
     }
     recorder_ring_fetch_add(recorder_count, i);
     recorder_ring_fetch_add(threads_to_stop, -1);
