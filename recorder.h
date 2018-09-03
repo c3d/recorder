@@ -667,6 +667,16 @@ static void recorder_tweak_activate_##Name(void)                        \
 #ifdef __cplusplus
 #define RECORDER_ARG(arg)       _recorder_arg(arg)
 #else // !__cplusplus
+
+#ifdef __GNUC__
+#  if __GNUC__ <= 4 || __GNUC_MINOR__ < 9
+#    define RECORDER_WITHOUT_GENERIC
+#  endif
+#endif // __GNUC__
+
+#ifdef RECORDER_WITHOUT_GENERIC
+#define RECORDER_ARG(arg) ((uintptr_t) (arg))
+#else // !RECORDER_WITHOUT_GENERIC
 #define RECORDER_ARG(arg)                               \
     _Generic(arg,                                       \
              unsigned char:     _recorder_unsigned,     \
@@ -683,6 +693,7 @@ static void recorder_tweak_activate_##Name(void)                        \
              float:             _recorder_float,        \
              double:            _recorder_double,       \
              default:           _recorder_pointer)(arg)
+#endif // RECORDER_WITHOUT_GENERIC
 #endif // __cplusplus
 
 
