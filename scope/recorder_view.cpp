@@ -241,8 +241,8 @@ void RecorderView::updateSeries()
                     break;
                 case RECORDER_REAL:
                     for (size_t p = 0; p < count; p++)
-                        pbuf[p] = QPointF(rbuf[2*p].unsigned_value * scale,
-                                          rbuf[2*p+1].real_value);
+                        pbuf[p] = QPointF(rbuf[2 * p].unsigned_value * scale,
+                                          rbuf[2 * p + 1].real_value);
                     break;
                 }
 
@@ -254,50 +254,50 @@ void RecorderView::updateSeries()
                     pointsRead.resize(count);
                 dataPoints.append(pointsRead);
 
-                pbuf = dataPoints.data();
-                count = dataPoints.size();
-                for (size_t p = 0; p < count; p++)
-                {
-                    double x = pbuf[p].x();
-                    double y = pbuf[p].y();
-                    if (first)
-                    {
-                        minX = x;
-                        maxX = x;
-                        minY = y;
-                        maxY = y;
-                        first = false;
-                    }
-                    else
-                    {
-                        if (maxX < x)
-                            maxX = x;
-                        if (minX > x)
-                            minX = x;
-                        if (maxY < y)
-                            maxY = y;
-                        if (minY > y)
-                            minY = y;
-                    }
-                }
-
-                if (max_duration > 0.0)
-                {
-                    minX = maxX - max_duration;
-                    size_t lowP = 0;
-                    for (size_t p = 0; p < count; p++)
-                    {
-                        double x = pbuf[p].x();
-                        if (x < minX)
-                            lowP = p;
-                    }
-                    if (lowP > 0)
-                        dataPoints.remove(0, lowP);
-                }
-
                 series->replace(dataPoints);
                 updated = true;
             }
+        }
+
+        QPointF *pbuf = dataPoints.data();
+        size_t count = dataPoints.size();
+        for (size_t p = 0; p < count; p++)
+        {
+            double x = pbuf[p].x();
+            double y = pbuf[p].y();
+            if (first)
+            {
+                minX = x;
+                maxX = x;
+                minY = y;
+                maxY = y;
+                first = false;
+            }
+            else
+            {
+                if (maxX < x)
+                    maxX = x;
+                if (minX > x)
+                    minX = x;
+                if (maxY < y)
+                    maxY = y;
+                if (minY > y)
+                    minY = y;
+            }
+        }
+
+        if (max_duration > 0.0)
+        {
+            minX = maxX - max_duration;
+            size_t lowP = 0;
+            for (size_t p = 0; p < count; p++)
+            {
+                double x = pbuf[p].x();
+                if (x < minX)
+                    lowP = p;
+            }
+            if (lowP > 0)
+                dataPoints.remove(0, lowP);
         }
     }
 
