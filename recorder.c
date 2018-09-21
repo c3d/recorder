@@ -2091,9 +2091,13 @@ static void recorder_export(recorder_info *rec, const char *value, bool multi)
 
         RECORD(recorders, "Exporting channel %+s for index %u in %+s\n",
                name, t, rec->name);
-        if (!chan)
+        if (!chan || strcmp(recorder_chan_name(chan), name) != 0)
+        {
+            if (chan)
+                recorder_chan_delete(chan);
             chan = recorder_chan_new(chans, RECORDER_NONE, size,
                                      chan_name, rec->description, "", min, max);
+        }
         rec->exported[t] = chan;
         if (multi)
             free(chan_name);
