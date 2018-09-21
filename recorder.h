@@ -669,7 +669,7 @@ static void recorder_tweak_activate_##Name(void)                        \
 #else // !__cplusplus
 
 #if defined(__GNUC__) && !defined(__clang__)
-#  if __GNUC__ <= 4 || __GNUC_MINOR__ < 9
+#  if __GNUC__ <= 4 || (__GNUC__ == 4 && __GNUC_MINOR__ < 9)
 #    define RECORDER_WITHOUT_GENERIC
 #  endif
 #endif // __GNUC__
