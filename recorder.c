@@ -1317,6 +1317,7 @@ recorder_chans_p recorder_chans_open(const char *file)
         RECORD(recorders_warning,
                "Export channels serial changed, retry #%d", retries);
         recorder_chans_close(chans);
+        retries++;
     }
 
     RECORD(recorders_error, "Too many retries mapping %s, giving up", file);
