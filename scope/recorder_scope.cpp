@@ -102,11 +102,11 @@ int main(int argc, char *argv[])
         }
         else if (arg == "-d" && a+1 < argc)
         {
-            RecorderView::max_duration = strtod(argv[++a], NULL);
+            RecorderView::maxDuration = strtod(argv[++a], NULL);
         }
         else if (arg == "-w" && a+1 < argc)
         {
-            RecorderView::max_width = strtoul(argv[++a], NULL, 10);
+            RecorderView::maxWidth = strtoul(argv[++a], NULL, 10);
         }
         else if (arg[0] == '-')
         {

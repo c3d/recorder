@@ -56,8 +56,8 @@ public slots:
     void sceneChanged();
 
 public:
-    static double            max_duration;
-    static unsigned          max_width;
+    static double            maxDuration;
+    static unsigned          maxWidth;
 
 private:
     const char *             filename;
