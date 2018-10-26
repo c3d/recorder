@@ -39,3 +39,10 @@ include $(MIQ)rules.mk
 
 $(MIQ)rules.mk:
 	git submodule update --init --recursive
+
+MAKEOVERRIDES:=
+scope: scope/Makefile
+scope: .ALWAYS
+	cd scope && make
+scope/Makefile:
+	cd scope && qmake
