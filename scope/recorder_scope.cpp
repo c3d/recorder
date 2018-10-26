@@ -40,6 +40,11 @@ void usage(const char *progname)
            "    -s slider       : Setup a control slider\n"
            "    -d delay        : Set max delay in seconds\n"
            "    -w delay        : Set max width in samples (0 = window width)\n"
+           "    -t              : Show/hide time graph\n"
+           "    -m              : Show/hide min/max graph\n"
+           "    -a              : Show/hide average graph\n"
+           "    -n              : Show/hide normal vaue graph\n"
+           "    -r ratio        : Set averaging ratio in percent\n"
            "    chan_re         : Add view with channels matching regexp\n"
            "\n"
            "  Configuration syntax for -c matches RECORDER_TRACES syntax\n"
@@ -85,6 +90,22 @@ int main(int argc, char *argv[])
         {
             usage(argv[0]);
         }
+        else if (arg == "-n")
+        {
+            RecorderView::showNormal = !RecorderView::showNormal;
+        }
+        else if (arg == "-t")
+        {
+            RecorderView::showTiming = !RecorderView::showTiming;
+        }
+        else if (arg == "-m")
+        {
+            RecorderView::showMinMax = !RecorderView::showMinMax;
+        }
+        else if (arg == "-a")
+        {
+            RecorderView::showAverage = !RecorderView::showAverage;
+        }
         else if (arg == "-c" && a+1 < argc)
         {
             if (!recorder_chans_configure(chans, argv[++a]))
@@ -107,6 +128,14 @@ int main(int argc, char *argv[])
         else if (arg == "-w" && a+1 < argc)
         {
             RecorderView::maxWidth = strtoul(argv[++a], NULL, 10);
+        }
+        else if (arg == "-r" && a+1 < argc)
+        {
+            double ratio = strtod(argv[++a], NULL);
+            if (ratio <= 0.0 || ratio >= 100.0)
+                fprintf(stderr, "Ratio %f must be in 0-100\n", ratio);
+            else
+                RecorderView::averagingRatio = ratio * 0.01;
         }
         else if (arg[0] == '-')
         {

@@ -58,8 +58,14 @@ public slots:
 public:
     static double            maxDuration;
     static unsigned          maxWidth;
+    static double            averagingRatio;
+    static bool              showNormal;
+    static bool              showTiming;
+    static bool              showMinMax;
+    static bool              showAverage;
 
 private:
+    typedef enum { NONE, NORMAL, MINIMUM, MAXIMUM, AVERAGE, TIMING } series_et;
     const char *             filename;
     const char *             pattern;
     recorder_chans_p         &chans;
@@ -70,12 +76,18 @@ private:
     QVector<QLineSeries *>   seriesList;
     QVector<recorder_chan_p> chanList;
     QVector<ringidx_t>       readerIndex;
+    QVector<series_et>       seriesType;
 
     QChart *                 chart;
     QValueAxis *             xAxis;
     QValueAxis *             yAxis;
+    QValueAxis *             tAxis;
     QTimer                   dataUpdater;
 
+    static Points            minimum(const Points &);
+    static Points            maximum(const Points &);
+    static Points            average(const Points &);
+    static Points            timing(const Points &);
 };
 
 #endif // RECORDER_VIEW_H
