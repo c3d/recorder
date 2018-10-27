@@ -36,16 +36,17 @@ void usage(const char *progname)
     printf("Usage: %s [[-c config][-s slider][chan_re]...]\n"
            "\n"
            "  Arguments:\n"
+           "    chan_re         : Add view with channels matching regexp\n"
            "    -c config       : Send configuration command\n"
            "    -s slider       : Setup a control slider\n"
            "    -d delay        : Set max delay in seconds\n"
-           "    -w delay        : Set max width in samples (0 = window width)\n"
+           "    -w samples      : Set max width in samples (0 = window width)\n"
            "    -t              : Show/hide time graph\n"
            "    -m              : Show/hide min/max graph\n"
            "    -a              : Show/hide average graph\n"
            "    -n              : Show/hide normal vaue graph\n"
            "    -r ratio        : Set averaging ratio in percent\n"
-           "    chan_re         : Add view with channels matching regexp\n"
+           "    -s basename     : Set basenanme for saving data\n"
            "\n"
            "  Configuration syntax for -c matches RECORDER_TRACES syntax\n"
            "  Slider syntax is slider[=value[:min:max]]\n"
@@ -136,6 +137,10 @@ int main(int argc, char *argv[])
                 fprintf(stderr, "Ratio %f must be in 0-100\n", ratio);
             else
                 RecorderView::averagingRatio = ratio * 0.01;
+        }
+        else if (arg == "-s" && a+1 < argc)
+        {
+            RecorderView::saveBaseName = argv[++a];
         }
         else if (arg[0] == '-')
         {

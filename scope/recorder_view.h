@@ -56,6 +56,9 @@ public slots:
     void sceneChanged();
 
 public:
+    void keyPressEvent(QKeyEvent *event) override;
+
+public:
     static double            maxDuration;
     static unsigned          maxWidth;
     static double            averagingRatio;
@@ -63,6 +66,7 @@ public:
     static bool              showTiming;
     static bool              showMinMax;
     static bool              showAverage;
+    static QString           saveBaseName;
 
 private:
     typedef enum { NONE, NORMAL, MINIMUM, MAXIMUM, AVERAGE, TIMING } series_et;

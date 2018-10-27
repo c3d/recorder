@@ -24,6 +24,8 @@
 #include <QtCore/QtMath>
 #include <QMutex>
 #include <QRegExp>
+#include <QFileInfo>
+#include <errno.h>
 
 QT_CHARTS_USE_NAMESPACE
 
@@ -444,6 +446,82 @@ void RecorderView::sceneChanged()
 }
 
 
+void RecorderView::keyPressEvent(QKeyEvent *event)
+// ----------------------------------------------------------------------------
+//   Respond to 'space' key by capturing image and log values
+// ----------------------------------------------------------------------------
+{
+    QString key = event->text();
+    bool saveCSV = false;
+    bool saveImage = false;
+    if (key == " ")
+        saveCSV = saveImage = true;
+    else if (key == "i" || key == "I")
+        saveImage = true;
+    else if (key == "c" || key == "C")
+        saveCSV = true;
+
+    if (!saveImage && !saveCSV)
+        return;
+
+    // Find a name that can be used both for CSV and PNG file
+    static unsigned index = 0;
+    QString basename = saveBaseName + "%1";
+    QString name = basename.arg(++index);
+    while ((saveCSV && QFileInfo(name + ".csv").exists()) ||
+           (saveImage && QFileInfo(name + ".png").exists()))
+        name = QString(basename).arg(++index);
+
+    if (saveImage)
+    {
+        bool hasGL = getenv ("RECORDER_NOGL") == NULL;
+
+        QPixmap pixmap(size());
+        QPainter painter(&pixmap);
+        for (auto s : seriesList)
+            s->setUseOpenGL(false);
+        render(&painter);
+        for (auto s : seriesList)
+            s->setUseOpenGL(hasGL);
+        pixmap.save(name + ".png");
+    }
+
+    if (saveCSV)
+    {
+        // Use data directly from series, as it may have gone through processing
+        // for example through timing() or average() functions
+        QVector<Points> data;
+        for (auto s : seriesList)
+            data.append(s->pointsVector());
+
+        const char *cname = (name + ".csv").toUtf8().data();
+        FILE *f = fopen(cname, "w");
+        if (f)
+        {
+            size_t columns = data.size();
+            size_t rows = data[0].size();
+            for (size_t r = 0; r < rows; r++)
+            {
+                double t = data[0][r].x();
+                fprintf(f, "%f", t);
+                for (size_t c = 0; c < columns; c++)
+                {
+                    Q_ASSERT(data[c][r].x() == t);
+                    double value = data[c][r].y();
+                    fprintf(f, ",%f", value);
+                }
+                fprintf(f, "\n");
+            }
+            fclose(f);
+        }
+        else
+        {
+            fprintf(stderr, "Error opening %s: %s\n", cname, strerror(errno));
+        }
+    }
+}
+
+
 RecorderView::Points RecorderView::minimum(const RecorderView::Points &data)
 // ----------------------------------------------------------------------------
 //   Compute the running minimum for the input values
@@ -548,3 +626,4 @@ bool     RecorderView::showNormal     = true;
 bool     RecorderView::showTiming     = false;
 bool     RecorderView::showMinMax     = false;
 bool     RecorderView::showAverage    = false;
+QString  RecorderView::saveBaseName   = "recorder_scope_data-";
