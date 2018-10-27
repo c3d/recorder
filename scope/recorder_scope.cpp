@@ -47,6 +47,7 @@ void usage(const char *progname)
            "    -n              : Show/hide normal vaue graph\n"
            "    -r ratio        : Set averaging ratio in percent\n"
            "    -s basename     : Set basenanme for saving data\n"
+           "    -g WxH@XxY      : Set window geometry to W x H pixels\n"
            "\n"
            "  Configuration syntax for -c matches RECORDER_TRACES syntax\n"
            "  Slider syntax is slider[=value[:min:max]]\n"
@@ -84,6 +85,8 @@ int main(int argc, char *argv[])
     QVBoxLayout *layout = new QVBoxLayout;
     int views = 0;
     int configurations = 0;
+    int width = -1, height = -1;
+    int posx = -1, posy = -1;
     for (int a = 1; a < argc; a++)
     {
         QString arg = argv[a];
@@ -142,6 +145,15 @@ int main(int argc, char *argv[])
         {
             RecorderView::saveBaseName = argv[++a];
         }
+        else if (arg == "-g" && a+1 < argc)
+        {
+            int rc = sscanf(argv[++a], "%dx%d@%dx%d",
+                            &width, &height, &posx, &posy);
+            if (rc != 2 && rc != 4)
+                fprintf(stderr, "-g %s was invalid, "
+                        "width=%d, height=%d, x=%d, y=%d\n",
+                        argv[a], width, height, posx, posy);
+        }
         else if (arg[0] == '-')
         {
             fprintf(stderr, "Invalid option %s\n", argv[a]);
@@ -166,7 +178,10 @@ int main(int argc, char *argv[])
     {
         widget->setLayout(layout);
         window.setCentralWidget(widget);
-        window.resize(600, 400);
+        if (width > 0 && height > 0)
+            window.resize(width, height);
+        if (posx > 0 && posy > 0)
+            window.move(posx, posy);
         window.show();
         result = a.exec();
     }

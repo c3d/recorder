@@ -621,6 +621,11 @@ The `recorder_scope` application takes the following command-line arguments:
   the space bar, the same number will be used for both the image and
   CSV file.
 
+* `-g WxH` sets the window geometry to WxH pixels.
+
+* `-g WxH@XxY` sets the window geometry to WxH pixels and the window
+  position to X,Y.
+
 
 ### Example
 
