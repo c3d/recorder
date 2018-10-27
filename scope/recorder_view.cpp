@@ -41,7 +41,11 @@ RecorderView::RecorderView(const char *filename,
 // ----------------------------------------------------------------------------
     : QChartView(parent),
       filename(filename), pattern(pattern), chans(chans),
-      sourceChanged(false)
+      sourceChanged(false),
+      viewHasNormal(showNormal),
+      viewHasTiming(showTiming),
+      viewHasMinMax(showMinMax),
+      viewHasAverage(showAverage)
 {
     xAxis = new QValueAxis;
     yAxis = new QValueAxis; // Or QLogValueAxis?
@@ -53,7 +57,7 @@ RecorderView::RecorderView(const char *filename,
     chart->addAxis(xAxis, Qt::AlignBottom);
     chart->addAxis(yAxis, Qt::AlignLeft);
 
-    if (showTiming)
+    if (viewHasTiming)
     {
         tAxis = new QValueAxis;
         tAxis->setRange(0, 100.0);
@@ -122,11 +126,11 @@ void RecorderView::setup()
         recorder_data min = recorder_chan_min(chan);
         recorder_data max = recorder_chan_max(chan);
 
-        bool hasNormal = showNormal;
-        bool hasMin = showMinMax;
-        bool hasMax = showMinMax;
-        bool hasAverage = showAverage;
-        bool hasTiming = showTiming;
+        bool hasNormal = viewHasNormal;
+        bool hasMin = viewHasMinMax;
+        bool hasMax = viewHasMinMax;
+        bool hasAverage = viewHasAverage;
+        bool hasTiming = viewHasTiming;
         series_et type = NONE;
 
         while (true)

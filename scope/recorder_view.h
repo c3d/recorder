@@ -84,6 +84,11 @@ private:
     QValueAxis *             tAxis;
     QTimer                   dataUpdater;
 
+    bool                     viewHasNormal;
+    bool                     viewHasTiming;
+    bool                     viewHasMinMax;
+    bool                     viewHasAverage;
+
     static Points            minimum(const Points &);
     static Points            maximum(const Points &);
     static Points            average(const Points &);
