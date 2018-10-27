@@ -81,6 +81,7 @@ QGroupBox *RecorderSlider::make(const char       *filename,
     layout->addWidget(slider, 0, 1);
     layout->addWidget(maxLabel, 0, 2);
     layout->addWidget(valueLabel, 1, 1);
+    layout->setContentsMargins(0, 0, 0, 0);
     valueLabel->setAlignment(Qt::AlignCenter);
     group->setLayout(layout);
 

@@ -176,6 +176,7 @@ int main(int argc, char *argv[])
     int result = 0;
     if (views > 0 || configurations == 0)
     {
+        layout->setContentsMargins(4, 4, 4, 4);
         widget->setLayout(layout);
         window.setCentralWidget(widget);
         if (width > 0 && height > 0)

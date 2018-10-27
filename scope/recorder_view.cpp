@@ -25,6 +25,7 @@
 #include <QMutex>
 #include <QRegExp>
 #include <QFileInfo>
+#include <QGraphicsLayout>
 #include <errno.h>
 
 QT_CHARTS_USE_NAMESPACE
@@ -55,6 +56,7 @@ RecorderView::RecorderView(const char *filename,
     yAxis->setRange(-10.0, 10.0);
 
     chart = new QChart();
+    chart->layout()->setContentsMargins(0, 0, 0, 0);
     // chart->legend()->hide();
     chart->addAxis(xAxis, Qt::AlignBottom);
     chart->addAxis(yAxis, Qt::AlignLeft);
