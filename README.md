@@ -547,3 +547,139 @@ between nearby records.
 In general, this should have a minimal impact on the understanding of
 what is happening, and may help you pinpoint risks of race condition
 in your code.
+
+## Recorder scope
+
+The recorder scope application, `recorder_scope`, shows real-time graphs
+of selected `record` statements in your program.
+
+![Recorder scope](scope/Scope.png)
+
+The `recorder_scope` application is not built by default.  In order to
+build it, you need Qt5 and Qt5 Charts. You can then build it using
+`make scope` from the top-level.
+
+The `recorder_scope` application uses the recorder API to remotely access
+a program being monitored. This communication happens over shared memory,
+using a file specified in the `RECORDER_SHARE` environment variable.
+That value needs to be the same for both the program being monitored and
+the matching `recorder_scope` program. By default, the file name is
+`/tmp/recorder_share`.
+
+### Command-line arguments
+
+The `recorder_scope` application takes the following command-line arguments:
+
+* A channel-regexp to match exported channels. Each channel-regexp builds
+  a new graph, and graphs show stacked in a single window. If you want
+  multiple windows for the same channel, you can run multiple instances
+  of `recorder_scope`.
+
+* `-c config` sends the given recorder configuration to the program
+  being monitored. It is equivalent to adding the given configuration
+  commands to the `RECORDER_TRACES` environment variable.
+
+* `-s name=init:min:max` creates a slider with a value that can be set
+  between `min` and `max` and starts at `init`. This slider then sends
+  configuration commands to the `name` tweak. This can be used to
+  adjust parameters in the monitored program on the fly.
+
+* `-d delay` sets the number of seconds that can be shown at once on
+  screen.  This is useful for example if the sampling rate for the
+  events is not regular.
+
+* `-w samples` sets the number of samples that can be displayed.  The
+  default is 0, which corresponds to the width of the window. Using a
+  larger value makes it possible to show more data, but at the expense
+  of performance and, in some cases, readability of the data.
+
+* `-t` toggles the display of a time graph for the following graphs. The
+  time graph is an additional graph showing timing information about
+  the event being recorded. It is drawn on a microseconds scale that shows
+  on the right of the graph.
+  ![Timing graph](scope/Timing.png)
+
+* `-m` toggles the display of a min/max values graph for the following
+   graphs
+   ![Min, max and average](scope/MinMaxAverage.png)
+
+* `-a` toggles the display of the average value for the following graphs
+
+* `-n` toggles the display of the normal value for the following graphs,
+  which is useful if you want to remove it from display for clarity.
+
+* `-r ratio` sets the rolling average ratio used for `-m` and `-a` options.
+  It is a percentage, and should be set relatively high. The default is
+  `-r 99`, which means that a new sample changes the average by 1% only.
+
+* `-s basename` sets the basename when saving data. The default is
+  `recorder_scope_data-`. Hitting the `i` key saves an image of the
+  current graph (i.e. the graph with the focus). Hitting the `c` key
+  saves a CSV file with the currently displayed values. Hitting the
+  space bar saves both a file and CSV data. Files are numbered
+  incrementally so as to not overwrite an existing file. When hitting
+  the space bar, the same number will be used for both the image and
+  CSV file.
+
+
+### Example
+
+For example, run the `recorder_test` program with:
+
+    RECORDER_TRACES='SpeedTest=tid,value,mod,delay' ./recorder_test_test 1 1000
+
+THen run the `recorder_scope` with:
+
+    recorder_scope                      \
+        -s sleep_time=0:0:100000        \
+        -s sleep_time_delta=0:0:100000  \
+        -t mod                          \
+        -m -a -t delay
+
+This will open a window that looks like the following:
+
+![Recorder scope with sliders](scope/ScopeAndSliders.png)
+
+
+### Sliders to adjust tweaks
+
+You can then adjust the waiting time for the program being run
+dynamically using the two sliders. They will update the values of the
+two recorder tweaks defined in `recorder_test.c` as follows:
+
+    RECORDER_TWEAK_DEFINE(sleep_time, 0, "Sleep time between records");
+    RECORDER_TWEAK_DEFINE(sleep_time_delta, 0, "Variations in sleep time between records");
+
+In that specific case, the tweaks adjust the wait time in the
+following code in `recorder_test.c`:
+
+   if (RECORDER_TWEAK(sleep_time))
+   {
+       struct timespec tm;
+       uint64_t wait_time = (uint64_t)
+           (RECORDER_TWEAK(sleep_time) + drand48()*RECORDER_TWEAK(sleep_time_delta));
+       tm.tv_sec  = 0;
+       tm.tv_nsec = wait_time * 1000;
+       nanosleep(&tm, NULL);
+   }
+
+### Graphing
+
+The `RECORDER_TRACES` has indicated that you want to share the
+`SpeedTest` record as four columns, named `tid`, `value`, `mod` and
+`delay`. These corresponds to the four arguments in the following
+`RECORD` in the `recorder_test.c` program:
+
+        RECORD(SpeedTest, "[thread %u] Recording %u, mod %u after
+ %ld",
+            tid, i, i % 500, current_time - last_time);
+
+
+### Derived values (min, max, average, timing)
+
+The `recorder_scope` will then graph the `mod` and `delay` columns in
+two separate graphs. Since we have activated timing before `mod`,
+the `recorder_scoope` will show timing information in the `mod` graph.
+Similaryl, since we have activated min/max and average, and then
+toggled timing off by using `-t` a second time, the `delay` graph will
+show min, max and average value, but not timing.
