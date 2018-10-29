@@ -52,26 +52,16 @@ RecorderView::RecorderView(const char *filename,
 {
     xAxis = new QValueAxis;
     yAxis = new QValueAxis; // Or QLogValueAxis?
+    tAxis = new QValueAxis;
     xAxis->setRange(0, 20.0);
     yAxis->setRange(-10.0, 10.0);
+    tAxis->setRange(0, 100.0);
 
     chart = new QChart();
     chart->layout()->setContentsMargins(0, 0, 0, 0);
     // chart->legend()->hide();
     chart->addAxis(xAxis, Qt::AlignBottom);
     chart->addAxis(yAxis, Qt::AlignLeft);
-
-    if (viewHasTiming)
-    {
-        tAxis = new QValueAxis;
-        tAxis->setRange(0, 100.0);
-        chart->addAxis(tAxis, Qt::AlignRight);
-    }
-    else
-    {
-        tAxis = NULL;
-    }
-
     setChart(chart);
 
     QObject::connect(chart->scene(), &QGraphicsScene::changed,
@@ -116,6 +106,16 @@ void RecorderView::setup()
         "cyan", "lightgray", "pink", "lightyellow",
     };
     const unsigned numColors = sizeof(colors) / sizeof(colors[0]);
+
+    if (viewHasTiming)
+    {
+        chart->addAxis(tAxis, Qt::AlignRight);
+    }
+    else
+    {
+        chart->removeAxis(tAxis);
+    }
+
     while (true)
     {
         chan = recorder_chan_find(chans, pattern, chan);
@@ -204,10 +204,11 @@ void RecorderView::updateSetup()
 
     // Update the view with the new channels
     chart->removeAllSeries();
+    data.clear();
     seriesList.clear();
     chanList.clear();
     readerIndex.clear();
-    data.clear();
+    seriesType.clear();
     setup();
 }
 
@@ -453,15 +454,38 @@ void RecorderView::keyPressEvent(QKeyEvent *event)
 //   Respond to 'space' key by capturing image and log values
 // ----------------------------------------------------------------------------
 {
-    QString key = event->text();
+    int key = event->key();
     bool saveCSV = false;
     bool saveImage = false;
-    if (key == " ")
+
+    switch (key)
+    {
+    case ' ':
         saveCSV = saveImage = true;
-    else if (key == "i" || key == "I")
+        break;
+    case 'i': case 'I':
         saveImage = true;
-    else if (key == "c" || key == "C")
+        break;
+    case 'c': case 'C':
         saveCSV = true;
+        break;
+    case 'n': case 'N':
+        viewHasNormal = !viewHasNormal;
+        sourceChanged = true;
+        break;
+    case 't': case 'T':
+        viewHasTiming = !viewHasTiming;
+        sourceChanged = true;
+        break;
+    case 'm': case 'M':
+        viewHasMinMax = !viewHasMinMax;
+        sourceChanged = true;
+        break;
+    case 'a': case 'A':
+        viewHasAverage = !viewHasAverage;
+        sourceChanged = true;
+        break;
+    }
 
     if (!saveImage && !saveCSV)
         return;
