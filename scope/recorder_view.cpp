@@ -56,6 +56,8 @@ RecorderView::RecorderView(const char *filename,
     xAxis->setRange(0, 20.0);
     yAxis->setRange(-10.0, 10.0);
     tAxis->setRange(0, 100.0);
+    if (viewHasTiming)
+        chart->addAxis(tAxis, Qt::AlignRight);
 
     chart = new QChart();
     chart->layout()->setContentsMargins(0, 0, 0, 0);
@@ -106,15 +108,6 @@ void RecorderView::setup()
         "cyan", "lightgray", "pink", "lightyellow",
     };
     const unsigned numColors = sizeof(colors) / sizeof(colors[0]);
-
-    if (viewHasTiming)
-    {
-        chart->addAxis(tAxis, Qt::AlignRight);
-    }
-    else
-    {
-        chart->removeAxis(tAxis);
-    }
 
     while (true)
     {
@@ -476,6 +469,10 @@ void RecorderView::keyPressEvent(QKeyEvent *event)
     case 't': case 'T':
         viewHasTiming = !viewHasTiming;
         sourceChanged = true;
+        if (viewHasTiming)
+            chart->addAxis(tAxis, Qt::AlignRight);
+        else
+            chart->removeAxis(tAxis);
         break;
     case 'm': case 'M':
         viewHasMinMax = !viewHasMinMax;
