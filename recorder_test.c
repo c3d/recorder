@@ -77,8 +77,10 @@ unsigned pauses_count = 0;
 unsigned thread_id = 0;
 unsigned threads_to_stop = 0;
 
-#ifdef CONFIG_MINGW
+#ifndef HAVE_DRAND48
+// Missing functions on MinGW
 #define lrand48() rand()
+#define drand48() (rand()*(1.0/RAND_MAX))
 #endif // CONFIG_MINGW
 
 void dawdle(unsigned minimumMs, unsigned deltaMs)

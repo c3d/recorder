@@ -19,7 +19,7 @@
 SOURCES=recorder_ring.c recorder.c
 HEADERS=recorder_ring.h recorder.h
 PRODUCTS=recorder.dll
-CONFIG=sigaction <regex.h> <sys/mman.h>
+CONFIG=sigaction <regex.h> <sys/mman.h> drand48
 
 # For pkg-config generation
 PACKAGE_NAME=recorder
