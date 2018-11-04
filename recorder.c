@@ -965,6 +965,13 @@ recorder_chans_p recorder_chans_new(const char *file)
 //   Create a new mmap'd file
 // ----------------------------------------------------------------------------
 {
+#ifndef HAVE_SYS_MMAN_H
+    // Some version of MinGW do not have <sys/mman.h>
+    RECORD(recorders_error,
+           "Cannot create export channels %s on system without mmap",
+           file);
+    return NULL;
+#else // HAVE_SYS_MMAN_H
     RECORD(recorders, "Create export channels %s", file);
     printf("Creating new %s\n", file);
     if (!file)
@@ -1030,6 +1037,7 @@ recorder_chans_p recorder_chans_new(const char *file)
                        sizeof(shans->commands_buffer[0]));
 
     return chans;
+#endif // HAVE_SYS_MMAN_H
 }
 
 
@@ -1056,7 +1064,9 @@ void recorder_chans_delete(recorder_chans_p chans)
         recorder_chan_delete(chan);
     }
 
+#ifdef HAVE_SYS_MMAN_H
     munmap(chans->map_addr, chans->map_size);
+#endif // HAVE_SYS_MMAN_H
     close(chans->fd);
     free(chans);
 }
@@ -1074,6 +1084,10 @@ recorder_chan_p recorder_chan_new(recorder_chans_p chans,
 //    Allocate and create a new recorder_chan
 // ----------------------------------------------------------------------------
 {
+#ifndef HAVE_SYS_MMAN_H
+    RECORD(recorders_error, "recorder_chan_new called on system without mmap");
+    return NULL;
+#else // HAVE_SYS_MMAN_H
     recorder_shans_p   shans       = chans->map_addr;
     size_t             offset      = shans->offset;
     size_t             item_size   = 2 * sizeof(recorder_data);
@@ -1155,6 +1169,7 @@ recorder_chan_p recorder_chan_new(recorder_chans_p chans,
     chans->head = chan;
 
     return chan;
+#endif // HAVE_SYS_MMAN_H
 }
 
 
@@ -1239,6 +1254,12 @@ recorder_chans_p recorder_chans_open(const char *file)
 //    Map the file in memory, and scan its structure
 // ----------------------------------------------------------------------------
 {
+#ifndef HAVE_SYS_MMAN_H
+    RECORD(recorders_error,
+           "Cannot open export channels %s on system without mmap",
+           file);
+    return NULL;
+#else // HAVE_SYS_MMAN_H
     RECORD(recorders, "Open export channels %s", file);
     int fd = open(file, O_RDWR);
     if (fd == -1)
@@ -1322,6 +1343,7 @@ recorder_chans_p recorder_chans_open(const char *file)
 
     RECORD(recorders_error, "Too many retries mapping %s, giving up", file);
     return NULL;
+#endif // HAVE_SYS_MMAN_H
 }
 
 
