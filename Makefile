@@ -30,6 +30,7 @@ PACKAGE_REQUIRES=
 PACKAGE_BUGS=christophe@dinechin.org
 
 LDFLAGS  = -lpthread -lm
+LDFLAGS_BUILDENV_mingw = -lregex
 
 TESTS=  hanoi_test.c recorder_test.c ring_test.c crash_test.c
 TEST_ARGS_hanoi_test=20 | grep "End fast recording Hanoi with 20 iterations"
