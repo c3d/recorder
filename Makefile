@@ -19,7 +19,7 @@
 SOURCES=recorder_ring.c recorder.c
 HEADERS=recorder_ring.h recorder.h
 PRODUCTS=recorder.dll
-CONFIG=sigaction <regex.h> <sys/mman.h> drand48
+CONFIG=sigaction <regex.h> <sys/mman.h> drand48 libregex
 
 # For pkg-config generation
 PACKAGE_NAME=recorder
@@ -30,7 +30,6 @@ PACKAGE_REQUIRES=
 PACKAGE_BUGS=christophe@dinechin.org
 
 LDFLAGS  = -lpthread -lm
-LDFLAGS_BUILDENV_mingw = -lregex
 
 TESTS=  hanoi_test.c recorder_test.c ring_test.c crash_test.c
 TEST_ARGS_hanoi_test=20 | grep "End fast recording Hanoi with 20 iterations"
