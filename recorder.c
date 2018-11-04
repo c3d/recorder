@@ -2317,8 +2317,7 @@ int recorder_trace_set(const char *param_spec)
                     // Non-numerical: Activate corresponding exports
                     unsigned matches = 0;
                     for (rec = recorders; rec; rec = rec->next)
-                        if (regexec(&re, rec->name, 1, &rm, 0) == 0 &&
-                            rm.rm_so == 0 && rec->name[rm.rm_eo] == 0)
+                        if (param_match(rec->name))
                             matches++;
 
                     for (rec = recorders; rec; rec = rec->next)
