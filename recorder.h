@@ -16,8 +16,8 @@
 //
 //
 // ****************************************************************************
-// This document is released under the GNU General Public License version 3
-// See http://www.gnu.org/copyleft/gpl.html and Matthew 25:22 for details
+// This document is released under the GNU LGPL version 3
+// See http://www.gnu.org/copyleft/lgpl.html and Matthew 25:22 for details
 //  (C) 1992-2018 Christophe de Dinechin <christophe@dinechin.org>
 // ****************************************************************************
 
