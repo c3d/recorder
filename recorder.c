@@ -1655,7 +1655,7 @@ static void *background_dump(void *pattern)
 //    Dump the recorder (background thread)
 // ----------------------------------------------------------------------------
 {
-    const char *what = pattern;
+    char *what = pattern;
     while (background_dump_running)
     {
         unsigned dumped = recorder_sort(what, recorder_format,
@@ -1668,6 +1668,7 @@ static void *background_dump(void *pattern)
             nanosleep(&tm, NULL);
         }
     }
+    free(what);
     return pattern;
 }
 
@@ -1681,7 +1682,7 @@ void recorder_background_dump(const char *what)
     background_dump_running = true;
     if (strcmp(what, "all") == 0)
         what = ".*";
-    pthread_create(&tid, NULL, background_dump, (void *) what);
+    pthread_create(&tid, NULL, background_dump, (void *) strdup(what));
     RECORD(recorders, "Started background dump thread for %s, thread %p",
            what, (void *) tid);
 }
