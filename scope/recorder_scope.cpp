@@ -46,7 +46,7 @@ void usage(const char *progname)
            "    -a              : Show/hide average graph\n"
            "    -n              : Show/hide normal vaue graph\n"
            "    -r ratio        : Set averaging ratio in percent\n"
-           "    -s basename     : Set basenanme for saving data\n"
+           "    -s basename     : Set basename for saving data\n"
            "    -g WxH@XxY      : Set window geometry to W x H pixels\n"
            "\n"
            "  Configuration syntax for -c matches RECORDER_TRACES syntax\n"
