@@ -1052,7 +1052,7 @@ void recorder_chans_delete(recorder_chans_p chans)
     {
         if (rec->trace == RECORDER_CHAN_MAGIC)
             rec->trace = 0;
-        for (i = 0; i < 4; i++)
+        for (i = 0; i < (int) array_size(rec->exported); i++)
             rec->exported[i] = NULL;
     }
 
@@ -1968,7 +1968,7 @@ void recorder_trace_entry(recorder_info *info, recorder_entry *entry)
                             recorder_format, recorder_show, recorder_output);
 
     // Export channels to shared memory
-    for (i = 0; i < 4; i++)
+    for (i = 0; i < array_size(info->exported); i++)
     {
         recorder_chan_p exported = info->exported[i];
         if (exported)
@@ -2087,7 +2087,7 @@ static void recorder_export(recorder_info *rec, const char *value, bool multi)
     char *names = strdup(value);
     char *next  = names;
     int   t;
-    for (t = 0; next && t < 4; t++)
+    for (t = 0; next && t < (int) array_size(rec->exported); t++)
     {
         char *name = next;
         next = strchr(next, ',');
