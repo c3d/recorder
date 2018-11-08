@@ -2145,8 +2145,8 @@ int recorder_trace_set(const char *param_spec)
 #if HAVE_REGEX_H
     regex_t         re;
     regmatch_t      rm;
-#endif // HAVE_REGEX_H
     static char     error[128];
+#endif // HAVE_REGEX_H
 
     // Facilitate usage such as: recorder_trace_set(getenv("RECORDER_TRACES"))
     if (!param_spec)
