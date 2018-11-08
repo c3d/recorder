@@ -21,7 +21,7 @@
 
 QT += charts
 
-INCPATH += ..
+INCLUDEPATH += ..
 
 HEADERS += recorder_view.h
 
