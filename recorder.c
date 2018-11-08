@@ -42,6 +42,7 @@
 #include <sys/stat.h>
 
 
+#define array_size(a)   (sizeof(a) / sizeof(a[0]))
 
 // ============================================================================
 //
@@ -389,7 +390,7 @@ static void recorder_dump_entry(recorder_info      *rec,
     char           *dst_end       = buffer + sizeof buffer - 1;
     const char     *fmt           = entry->format;
     unsigned        arg_index     = 0;
-    const unsigned  max_arg_index = sizeof(entry->args)/sizeof(entry->args[0]);
+    const unsigned  max_arg_index = array_size(entry->args);
 
     // Exit if we get there for a long-format second entry
     if (!fmt)
@@ -1952,7 +1953,6 @@ static const char *recorder_type_name[] =
     "UNSIGNED",          // Unsigned value
     "REAL"               // Real number
 };
-#define array_size(a)   (sizeof(a) / sizeof(a[0]))
 
 
 void recorder_trace_entry(recorder_info *info, recorder_entry *entry)
