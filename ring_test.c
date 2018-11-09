@@ -21,6 +21,7 @@
 
 #include "recorder_ring.h"
 #include "recorder.h"
+#include "alt_drand48.h"
 
 #include <stdio.h>
 #include <pthread.h>
@@ -149,15 +150,11 @@ unsigned count_read_overflow = 0;
 unsigned thread_id = 0;
 unsigned threads_to_stop = 0;
 
-#ifdef CONFIG_MINGW
-#define lrand48() rand()
-#endif // CONFIG_MINGW
-
 void dawdle(unsigned minimumMs)
 {
     struct timespec tm;
     tm.tv_sec = 0;
-    tm.tv_nsec =  + minimumMs * (1000 * 1000 + lrand48() % 2000000);
+    tm.tv_nsec =  + minimumMs * (1000 * 1000 + drand48() * 2000000);
     RECORD(Pauses, "Pausing %ld.%03dus", tm.tv_nsec / 1000, tm.tv_nsec % 1000);
     nanosleep(&tm, NULL);
 }
@@ -226,7 +223,7 @@ void *writer_thread(void *data)
 
     while (!threads_to_stop)
     {
-        int index = lrand48() % numberOfTests;
+        int index = drand48() * numberOfTests;
         const char *str = testStrings[index];
         int len = strlen(str);
         VERBOSE("Write #%02d '%s' size %u", tid, str, len);
