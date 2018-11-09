@@ -1713,7 +1713,6 @@ RECORDER(signals, 32, "Information about signals");
 
 // Saved old actions
 #if HAVE_SIGACTION
-typedef void (*sig_fn)(int, siginfo_t *, void *);
 static struct sigaction old_action[NSIG] = { };
 
 static void signal_handler(int sig, siginfo_t *info, void *ucontext)
@@ -1727,8 +1726,7 @@ static void signal_handler(int sig, siginfo_t *info, void *ucontext)
             strsignal(sig), sig);
 
     // Restore previous handler in case we crash during the dump
-    struct sigaction next;
-    sigaction(sig, &old_action[sig], &next);
+    sigaction(sig, &old_action[sig], NULL);
     recorder_dump();
 }
 
@@ -1742,14 +1740,19 @@ void recorder_dump_on_signal(int sig)
         return;
 
     struct sigaction action;
+
+    // already set?
+    sigaction(sig, NULL, &action);
+    if ((action.sa_flags & SA_SIGINFO) != 0 && action.sa_sigaction == signal_handler)
+        return;
+    old_action[sig] = action;
+
     action.sa_sigaction = signal_handler;
     sigemptyset(&action.sa_mask);
     action.sa_flags = SA_SIGINFO;
-    sigaction(sig, &action, &old_action[sig]);
+    sigaction(sig, &action, NULL);
     record(signals, "Recorder dump handler %p for signal %u, old action=%p",
            signal_handler, sig, old_action[sig].sa_sigaction);
-    if (old_action[sig].sa_sigaction == signal_handler)
-        old_action[sig].sa_sigaction = (sig_fn) SIG_DFL;
 }
 
 #else // !HAVE_SIGACTION
