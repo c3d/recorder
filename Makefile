@@ -24,7 +24,7 @@ CONFIG=sigaction <regex.h> <sys/mman.h> drand48 libregex
 
 # For pkg-config generation
 PACKAGE_NAME=recorder
-PACKAGE_VERSION=1.0.2
+PACKAGE_VERSION=1.0.3
 PACKAGE_DESCRIPTION=A low-overhead, real-time flight recorder for C/C++
 PACKAGE_URL="http://github.com/c3d/recorder"
 PACKAGE_REQUIRES=

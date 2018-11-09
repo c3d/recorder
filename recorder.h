@@ -37,7 +37,7 @@ extern "C" {
 //
 // ============================================================================
 
-#define RECORDER_CURRENT_VERSION                RECORDER_VERSION(1,2)
+#define RECORDER_CURRENT_VERSION                RECORDER_VERSION(1,3)
 #define RECORDER_VERSION(major,minor)           ((major)<<16|(minor))
 #define RECORDER_VERSION_MAJOR(version)         (((version) >> 16) & 0xFFFF)
 #define RECORDER_VERSION_MINOR(version)         ((version) & 0xFFFF)
