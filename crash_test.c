@@ -41,10 +41,10 @@ RECORDER(MAIN, 64, "Primary recorder for crash_test.c");
 
 static void signal_handler(int sig)
 {
-    RECORD(MAIN, "Signal handler for %d called", sig);
+    record(MAIN, "Signal handler for %d called", sig);
     fprintf(stderr, "Signal handler for %d called\n", sig);
 
-    RECORD(MAIN, "Restoring default signal handler");
+    record(MAIN, "Restoring default signal handler");
     signal(sig, SIG_DFL);
     exit(0);
 }
@@ -52,9 +52,9 @@ static void signal_handler(int sig)
 
 int main(int argc, char **argv)
 {
-    RECORD(MAIN, "Starting crash test program");
+    record(MAIN, "Starting crash test program");
 
-    RECORD(MAIN, "Installing signal handler %p", signal_handler);
+    record(MAIN, "Installing signal handler %p", signal_handler);
 #ifdef SIGBUS
     signal(SIGBUS, signal_handler);
 #endif // SIGBUS
@@ -62,13 +62,13 @@ int main(int argc, char **argv)
     signal(SIGSEGV, signal_handler);
 #endif // SIGSEGV
 
-    RECORD(MAIN, "Installing recorder default signal handlers");
+    record(MAIN, "Installing recorder default signal handlers");
     recorder_dump_on_common_signals(0, 0);
 
-    RECORD(MAIN, "Dereferencing a NULL pointer, ptr=%p", ptr);
+    record(MAIN, "Dereferencing a NULL pointer, ptr=%p", ptr);
     *ptr = 0;
 
-    RECORD(MAIN, "Checking results, ptr=%p failed=%d", ptr, failed);
+    record(MAIN, "Checking results, ptr=%p failed=%d", ptr, failed);
     if (failed)
         fprintf(stderr, "The test failed (signal handler not invoked");
     else

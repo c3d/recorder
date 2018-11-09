@@ -134,7 +134,7 @@ typedef struct recorder_entry
 
 
 /// A global counter indicating the order of entries across recorders.
-/// This is incremented atomically for each RECORD() call.
+/// this is incremented atomically for each record() call.
 /// It must be exposed because all XYZ_record() implementations need to
 /// touch the same shared variable in order to provide a global order.
 extern uintptr_t recorder_order;
@@ -524,6 +524,7 @@ static void recorder_tweak_activate_##Name(void)                        \
 #define RECORD_X(Name, Format, ...)   RECORD_TOO_MANY_ARGS(printf(Format, __VA_ARGS__))
 
 // Faster version that does not record time, about 2x faster on x86
+#define record_fast(Name, ...)     RECORD_FAST(Name, __VA_ARGS__)
 #define RECORD_FAST(Name,Format,...)                                    \
     RECORD_(RECORD_FAST,RECORD_COUNT_(__VA_ARGS__),Name,Format,##__VA_ARGS__)
 #define RECORD_FAST_0(Name, Format)                             \
@@ -752,7 +753,7 @@ do {                                                            \
     if (_interval >= _print_interval &&                                 \
         recorder_ring_compare_exchange(_last_second,_known,_end_time))  \
     {                                                                   \
-        RECORD(Recorder,                                                \
+        record(Recorder,                                                \
                Operation " %.2f " Name "/s, total %lu, "                \
                "%.2f loops/s, avg duration %.2f us, ",                  \
                _total_last_second * _scale,                             \

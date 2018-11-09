@@ -20,7 +20,7 @@ multi-CPU programs. It lets you instrument their execution with
 non-intrusive `printf`-like *record statements*, that capture what is
 happening in your program. Here is what a `RECORD` statement looks like:
 
-    RECORD(main, "Program %s started with %d arguments", argv[0], argc);
+    record(main, "Program %s started with %d arguments", argv[0], argc);
 
 These `RECORD` statements are very inexpensive (less than 0.1
 microsecond on a modern PC), so you can leave them in your code all
@@ -142,7 +142,7 @@ which begins with the name of the recorder as declared with
 works mostly like `printf`, but takes a first argument specifying the
 name of the recorder:
 
-    RECORD(MOVES, "Move disk from %s to %s\n", name[left], name[right]);
+    record(MOVES, "Move disk from %s to %s\n", name[left], name[right]);
 
 The trailing `\n` in the format string is optional. At recorder dump
 time, separate records will always be printed on separate lines.
@@ -173,11 +173,11 @@ string is a compiler constant, you can use this flag safely.
 
     // OK if 0 <= i and i < 5, can use the '%+s' format
     const char *array[5] = { "ONE", "TWO", "THREE", "FOUR", "FIVE" };
-    RECORD(Main, "Looking at %+s", array[i]);
+    record(Main, "Looking at %+s", array[i]);
 
     // Not OK because the value of the string has been freed at dump time
     char *tempStr = strdup("Hello");
-    RECORD(Main, "You will see a pointer at dump time here: %s", tempStr);
+    record(Main, "You will see a pointer at dump time here: %s", tempStr);
     free(tempStr); // At dump time, the string no longer exists
 
 Note that if tracing is enabled for a given recorder, the string will be
@@ -280,7 +280,7 @@ e.g. for real-time display using the `recorder_scope` application.
 For example, consider the following `RECORD` statement, taken from the
 `recorder_test.c` example:
 
-    RECORD(SpeedInfo, "Iterations per millisecond: %lu (%f ns)",
+    record(SpeedInfo, "Iterations per millisecond: %lu (%f ns)",
            k - last_k, 1e6 / (k - last_k));
 
 This `RECORD` statements stores two data elements in the `SpeedInfo`
@@ -336,13 +336,13 @@ iterations, you could use code like the following:
     if (RECORDER_TRACE(foo_loops))
     {
         intptr_t loops = RECORDER_TRACE(foo_loops);
-        RECORD(foo_loops, "Testing foo() duration");
+        record(foo_loops, "Testing foo() duration");
         uintptr_t start = recorder_tick();
         double sum = 0.0;
         for (int i = 0; i < loops; i++)
             sum += foo();
         uintptr_t duration = recorder_tick() - start;
-        RECORD(foo_loops, "Average duration %.3f us, average value %f",
+        record(foo_loops, "Average duration %.3f us, average value %f",
                1e6 * duration / RECORDER_HZ / loops,
                sum / loops);
     }
@@ -466,8 +466,8 @@ or printed was the same, `"Speed test %u", i`:
 
 Function                        | Xeon  | Mac   | Pi    | Pi-2  |
 --------------------------------|-------|-------|-------|-------|
-`RECORD_FAST`                   |  20ns |  20ns | 129ns |  124ns|
-`RECORD`                        |  35ns |  64ns |1070ns |  726ns|
+`record_fast`                   |  20ns |  20ns | 129ns |  124ns|
+`record`                        |  35ns |  64ns |1070ns |  726ns|
 `gettimeofday`                  |  16ns |  36ns | 913ns |  675ns|
 `memcpy` (512 bytes)            |  26ns |  15ns |1669ns |  499ns|
 `malloc` (512 bytes)            |  40ns |  61ns | 603ns |  499ns|
@@ -484,18 +484,18 @@ Scalability depending on number of threads
 
 Function                    | Xeon  | Mac   | Pi    | Pi-2  |
 ----------------------------|-------|-------|-------|-------|
-`RECORD_FAST` * 1           |  20ns | 21ns  | 137ns | 133ns |
-`RECORD_FAST` * 2           |  92ns | 86ns  | 137ns | 110ns |
-`RECORD_FAST` * 4           |  94ns | 76ns  | 137ns | 152ns |
-`RECORD_FAST` * 8           |  57ns | 55ns  | 137ns | 152ns |
-`RECORD_FAST` * 16          |  52ns | 52ns  | 137ns | 152ns |
-`RECORD_FAST` * 32          |  52ns | 54ns  | 137ns | 152ns |
-`RECORD` * 1                |  37ns | 60ns  |1315ns | 742ns |
-`RECORD` * 2                |  97ns | 93ns  |1076ns | 412ns |
-`RECORD` * 4                |  95ns | 71ns  |1080ns | 224ns |
-`RECORD` * 8                |  59ns | 54ns  |1083ns | 224ns |
-`RECORD` * 16               |  54ns | 50ns  |1084ns | 224ns |
-`RECORD` * 32               |  54ns | 53ns  |1372ns | 224ns |
+`record_fast` * 1           |  20ns | 21ns  | 137ns | 133ns |
+`record_fast` * 2           |  92ns | 86ns  | 137ns | 110ns |
+`record_fast` * 4           |  94ns | 76ns  | 137ns | 152ns |
+`record_fast` * 8           |  57ns | 55ns  | 137ns | 152ns |
+`record_fast` * 16          |  52ns | 52ns  | 137ns | 152ns |
+`record_fast` * 32          |  52ns | 54ns  | 137ns | 152ns |
+`record` * 1                |  37ns | 60ns  |1315ns | 742ns |
+`record` * 2                |  97ns | 93ns  |1076ns | 412ns |
+`record` * 4                |  95ns | 71ns  |1080ns | 224ns |
+`record` * 8                |  59ns | 54ns  |1083ns | 224ns |
+`record` * 16               |  54ns | 50ns  |1084ns | 224ns |
+`record` * 32               |  54ns | 53ns  |1372ns | 224ns |
 
 
 The platforms that were tested are:
@@ -535,7 +535,7 @@ order ending in 80 is between those ending in 78 and 79):
 
 
 This is normal behaviour under heavy load, but requires an
-explanation. The `RECORD` statements can be performed simultaneously
+explanation. The `record` statements can be performed simultaneously
 from multiple threads. If there is "contention", i.e. if multiple CPUs
 are attempting to write at the same time, one CPU may acquire its
 order and timestamp *before* another CPU, but may end up writing the
@@ -673,9 +673,9 @@ following code in `recorder_test.c`:
 The `RECORDER_TRACES` has indicated that you want to share the
 `SpeedTest` record as four columns, named `tid`, `value`, `mod` and
 `delay`. These corresponds to the four arguments in the following
-`RECORD` in the `recorder_test.c` program:
+`record` in the `recorder_test.c` program:
 
-        RECORD(SpeedTest, "[thread %u] Recording %u, mod %u after
+        record(SpeedTest, "[thread %u] Recording %u, mod %u after
  %ld",
             tid, i, i % 500, current_time - last_time);
 

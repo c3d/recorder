@@ -56,7 +56,7 @@ unsigned pauses_count = 0;
 #define INFO(...)                                                       \
     do                                                                  \
     {                                                                   \
-        RECORD(MAIN, __VA_ARGS__);                                      \
+        record(MAIN, __VA_ARGS__);                                      \
         char buf[256];                                                  \
         snprintf(buf, sizeof(buf), __VA_ARGS__);                        \
         puts(buf);                                                      \
@@ -67,8 +67,8 @@ unsigned pauses_count = 0;
 #define FAIL(...)                                                       \
     do                                                                  \
     {                                                                   \
-        RECORD(MAIN, "FAILURE");                                        \
-        RECORD(MAIN, __VA_ARGS__);                                      \
+        record(MAIN, "FAILURE");                                        \
+        record(MAIN, __VA_ARGS__);                                      \
         char buf[256];                                                  \
         snprintf(buf, sizeof(buf), __VA_ARGS__);                        \
         puts(buf);                                                      \
@@ -83,7 +83,7 @@ void dawdle(unsigned minimumMs, unsigned deltaMs)
     struct timespec tm;
     tm.tv_sec  = 0;
     tm.tv_nsec = (minimumMs + drand48() * deltaMs) * 1000000;
-    RECORD(Pauses, "Pausing #%u %ld.%03dus",
+    record(Pauses, "Pausing #%u %ld.%03dus",
            recorder_ring_fetch_add(pauses_count, 1),
            tm.tv_nsec / 1000, tm.tv_nsec % 1000);
     nanosleep(&tm, NULL);
@@ -102,7 +102,7 @@ void *recorder_thread(void *thread)
     {
         i++;
         uintptr_t current_time = recorder_tick();
-        RECORD(SpeedTest, "[thread %u] Recording %u, mod %u after %ld", tid, i, i % 500,
+        record(SpeedTest, "[thread %u] Recording %u, mod %u after %ld", tid, i, i % 500,
             current_time - last_time);
         last_time = current_time;
         if (RECORDER_TWEAK(sleep_time))
@@ -166,7 +166,7 @@ void flight_recorder_test(int argc, char **argv)
 
         INFO("Launching %lu %s recorder thread%s",
              count, i ? "fast" : "normal", count>1?"s":"");
-        RECORD(MAIN, "Starting %s speed test for %us with %u threads",
+        record(MAIN, "Starting %s speed test for %us with %u threads",
                i ? "fast" : "normal", howLong, count);
 
         pthread_t tid;
@@ -185,7 +185,7 @@ void flight_recorder_test(int argc, char **argv)
 
         while(threads_to_stop)
         {
-            RECORD(Pauses, "Waiting for recorder threads to stop, %u remaining",
+            record(Pauses, "Waiting for recorder threads to stop, %u remaining",
                    threads_to_stop);
             dawdle(1, 0);
         }
@@ -212,22 +212,22 @@ void flight_recorder_test(int argc, char **argv)
              (unsigned) (howLong * 1000000000ULL / recorder_count));
     }
 
-    RECORD(Special, "Sizeof int=%u intptr_t=%u float=%u double=%u",
+    record(Special, "Sizeof int=%u intptr_t=%u float=%u double=%u",
            sizeof(int), sizeof(intptr_t), sizeof(float), sizeof(double));
 
-    RECORD(Special, "Float      3.1415 = %f", 3.1415f);
-    RECORD(Special, "Float    X 3.1415 = %x", 3.1415f);
-    RECORD(Special, "Double     3.1415 = %f", 3.1415);
-    RECORD(Special, "Double   X 3.1415 = %x", 3.1415);
-    RECORD(Special, "Large %d %u %ld %lu %f %s",
+    record(Special, "Float      3.1415 = %f", 3.1415f);
+    record(Special, "Float    X 3.1415 = %x", 3.1415f);
+    record(Special, "Double     3.1415 = %f", 3.1415);
+    record(Special, "Double   X 3.1415 = %x", 3.1415);
+    record(Special, "Large %d %u %ld %lu %f %s",
            1,2u,3l,4lu,5.0,"six");
-    RECORD(Special, "Larger %d %u %ld %lu %f %s %p %g",
+    record(Special, "Larger %d %u %ld %lu %f %s %p %g",
            1,2u,3l,4lu,5.0,"six",(void *) 7,8.0);
-    RECORD(Special, "Largest %d %u %ld %lu %f %s %p %g %x %lu %u",
+    record(Special, "Largest %d %u %ld %lu %f %s %p %g %x %lu %u",
            1,2u,3l,4lu,5.0,"six",(void *) 7,8.0, 9, 10, 11);
-    RECORD(Special, "Format '%8s' '%-8s' '%8.2f' '%-8.2f'",
+    record(Special, "Format '%8s' '%-8s' '%8.2f' '%-8.2f'",
            "abc", "def", 1.2345, 2.3456);
-    RECORD(Special, "Format '%*s' '%*.*f'",
+    record(Special, "Format '%*s' '%*.*f'",
            8, "abc", 8, 2, 1.2345);
 
     recorder_configure_type('E', show_struct);
@@ -247,7 +247,7 @@ void flight_recorder_test(int argc, char **argv)
         while(true)
         {
             k++;
-            RECORD(FastSpeedTest, "[thread %u] Recording %u, mod %u",
+            record(FastSpeedTest, "[thread %u] Recording %u, mod %u",
                    (unsigned) (200 * sin(0.03 * k) * sin (0.000718231*k) + 200),
                    (unsigned) (k * drand48()),
                    k % 627);
@@ -255,7 +255,7 @@ void flight_recorder_test(int argc, char **argv)
             uintptr_t tick = recorder_tick();
             if (tick - last_tick > RECORDER_HZ/1000)
             {
-                RECORD(SpeedInfo, "Iterations per millisecond: %lu (%f ns)",
+                record(SpeedInfo, "Iterations per millisecond: %lu (%f ns)",
                        k - last_k, 1e6 / (k - last_k));
                 last_k = k;
                 last_tick = tick;

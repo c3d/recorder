@@ -48,7 +48,7 @@ void hanoi_record(int n, post left, post right, post middle)
 {
     if (n == 1)
     {
-        RECORD(MOVE,"Move disk from %s to %s", postName[left], postName[right]);
+        record(MOVE,"Move disk from %s to %s", postName[left], postName[right]);
     }
     else
     {

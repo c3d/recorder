@@ -155,26 +155,26 @@ void dawdle(unsigned minimumMs)
     struct timespec tm;
     tm.tv_sec = 0;
     tm.tv_nsec =  + minimumMs * (1000 * 1000 + drand48() * 2000000);
-    RECORD(Pauses, "Pausing %ld.%03dus", tm.tv_nsec / 1000, tm.tv_nsec % 1000);
+    record(Pauses, "Pausing %ld.%03dus", tm.tv_nsec / 1000, tm.tv_nsec % 1000);
     nanosleep(&tm, NULL);
 }
 
 
 bool writer_block(recorder_ring_t *rb, ringidx_t oldW, ringidx_t lastW)
 {
-    RECORD(Writes, "Blocking write old=%u last=%u", oldW, lastW);
+    record(Writes, "Blocking write old=%u last=%u", oldW, lastW);
 
     recorder_ring_fetch_add(count_write_blocked, 1);
 
     /* Wait until reader is beyond the last item we are going to write */
-    RECORD(Writes,"Blocking write %zu-%zu", oldW, lastW);
+    record(Writes,"Blocking write %zu-%zu", oldW, lastW);
     while ((intptr_t) (lastW - rb->reader) >= (intptr_t) (rb->size - 1))
     {
         recorder_ring_fetch_add(count_write_spins, 1);
         VERBOSE("Blocking write ahead %d %zu-%zu",
                 (int) (lastW - rb->reader - rb->size),
                 oldW, lastW);
-        RECORD(Pauses,"Blocking write ahead %d %zu-%zu",
+        record(Pauses,"Blocking write ahead %d %zu-%zu",
                (int) (lastW - rb->reader - rb->size),
                oldW, lastW);
         dawdle(5);
@@ -182,7 +182,7 @@ bool writer_block(recorder_ring_t *rb, ringidx_t oldW, ringidx_t lastW)
     VERBOSE("Unblocked write ahead %d %zu-%zu",
             (int) (lastW - rb->reader - rb->size),
             oldW, lastW);
-    RECORD(Writes, "Unblocking old=%u last=%u",
+    record(Writes, "Unblocking old=%u last=%u",
            oldW, lastW);
 
     /* It's now safe to keep writing */
@@ -192,22 +192,22 @@ bool writer_block(recorder_ring_t *rb, ringidx_t oldW, ringidx_t lastW)
 
 bool commit_block(recorder_ring_t *rb, ringidx_t commit, ringidx_t oldW)
 {
-    RECORD(Writes, "Blocking commit current=%u need=%u", commit, oldW);
+    record(Writes, "Blocking commit current=%u need=%u", commit, oldW);
 
     recorder_ring_fetch_add(count_commit_blocked, 1);
 
     /* Wait until reader is beyond the last item we are going to write */
-    RECORD(Reads,"Blocking commit %zu-%zu", commit, oldW);
+    record(Reads,"Blocking commit %zu-%zu", commit, oldW);
     while (rb->commit != oldW)
     {
         recorder_ring_fetch_add(count_commit_spins, 1);
         VERBOSE("Blocking commit, at %zu, need %zu", rb->commit, oldW);
-        RECORD(Pauses,"Blocking commit %zu-%zu-%zu", commit, rb->commit, oldW);
+        record(Pauses,"Blocking commit %zu-%zu-%zu", commit, rb->commit, oldW);
         dawdle(1);
     }
     VERBOSE("Unblocked commit was %zu, needed %zu, now %zu",
             commit, oldW, rb->commit);
-    RECORD(Writes, "Unblocking commit, was %zu, needed %zu, now %zu",
+    record(Writes, "Unblocking commit, was %zu, needed %zu, now %zu",
            commit, oldW, rb->commit);
 
     /* It's now safe to keep writing */
@@ -219,7 +219,7 @@ void *writer_thread(void *data)
 {
     const unsigned numberOfTests = sizeof(testStrings) / sizeof(*testStrings);
     unsigned tid = recorder_ring_fetch_add(thread_id, 1);
-    RECORD(MAIN, "Entering writer thread %u", tid);
+    record(MAIN, "Entering writer thread %u", tid);
 
     while (!threads_to_stop)
     {
@@ -228,34 +228,34 @@ void *writer_thread(void *data)
         int len = strlen(str);
         VERBOSE("Write #%02d '%s' size %u", tid, str, len);
         recorder_ring_fetch_add(count_writes, 1);
-        RECORD(Writes, "Writing '%s'", str);
+        record(Writes, "Writing '%s'", str);
         ringidx_t wr = 0;
         size_t size = buffer_block_write(str, len,
                                          writer_block, commit_block, &wr);
-        RECORD(Writes, "Wrote '%s' size %zu at index %u", str, size, wr);
+        record(Writes, "Wrote '%s' size %zu at index %u", str, size, wr);
         recorder_ring_fetch_add(count_written, 1);
 
         VERBOSE("Wrote #%02d '%s' at offset %lu-%lu size %u",
                 tid, str, wr, wr + len - 1, len);
     }
     unsigned toStop = recorder_ring_fetch_add(threads_to_stop, -1U);
-    RECORD(MAIN, "Exiting thread %u, stopping %u more", tid, toStop);
+    record(MAIN, "Exiting thread %u, stopping %u more", tid, toStop);
     return NULL;
 }
 
 
 bool reader_block(recorder_ring_t *rb, ringidx_t curR, ringidx_t lastR)
 {
-    RECORD(Reads, "Blocked curR=%zu lastR=%zu", curR, lastR);
+    record(Reads, "Blocked curR=%zu lastR=%zu", curR, lastR);
     recorder_ring_fetch_add(count_read_blocked, 1);
     while ((intptr_t) (rb->commit - lastR) < 0)
     {
         recorder_ring_fetch_add(count_read_spins, 1);
         VERBOSE("Blocking read commit=%zu lastR=%zu", rb->commit, lastR);
-        RECORD(Pauses, "Blocking read commit=%zu last=%zu", rb->commit, lastR);
+        record(Pauses, "Blocking read commit=%zu last=%zu", rb->commit, lastR);
         dawdle(1);
     }
-    RECORD(Reads, "Unblocking commit=%zu lastR=%zu", rb->commit, lastR);
+    record(Reads, "Unblocking commit=%zu lastR=%zu", rb->commit, lastR);
     return true; // We waited until commit caught up, so we can keep reading
 }
 
@@ -265,7 +265,7 @@ unsigned overflow_handler_called = 0;
 bool reader_overflow(recorder_ring_t *rb, ringidx_t curR, ringidx_t minR)
 {
     size_t  skip = minR - curR;
-    RECORD(Reads, "Overflow currentR=%u minR=%u skip=%u", curR, minR, skip);
+    record(Reads, "Overflow currentR=%u minR=%u skip=%u", curR, minR, skip);
 
     recorder_ring_fetch_add(count_read_overflow, 1);
     VERBOSE("Reader overflow %zu reader %zu -> %zu, skip %zu",
@@ -273,7 +273,7 @@ bool reader_overflow(recorder_ring_t *rb, ringidx_t curR, ringidx_t minR)
     recorder_ring_fetch_add(overflow_handler_called, 1);
 
 
-    RECORD(Reads, "End overflow minReader=%u skip=%u", minR, skip);
+    record(Reads, "End overflow minReader=%u skip=%u", minR, skip);
 
     // Writer actually blocks until reader catches up, so we can keep reading
     return 1;
@@ -286,7 +286,7 @@ void *reader_thread(void *data)
     unsigned tid = recorder_ring_fetch_add(thread_id, 1);
     ringidx_t rd = 0;
 
-    RECORD(MAIN, "Entering reader thread tid %u", tid);
+    record(MAIN, "Entering reader thread tid %u", tid);
 
     while (threads_to_stop != 1)
     {
@@ -312,7 +312,7 @@ void *reader_thread(void *data)
                 FAIL("Blocking read did not get data");
             }
         }
-        RECORD(Reads, "Index %u Readable: %u, Size: %u, Overflow %u",
+        record(Reads, "Index %u Readable: %u, Size: %u, Overflow %u",
                rd, readable, size, overflow);
         if (size == 0)
             continue;
@@ -332,7 +332,7 @@ void *reader_thread(void *data)
         unsigned index = initial - 'A';
         const char *test = testStrings[index];
         unsigned testLen = strlen(test);
-        RECORD(Reads, "Initial %c (%d), expecting '%s' length %u",
+        record(Reads, "Initial %c (%d), expecting '%s' length %u",
                initial, initial, test, testLen);
 
         // Read the rest of the buffer based on input length
@@ -341,7 +341,7 @@ void *reader_thread(void *data)
         size += buffer_block_read(buf + size, testLen - size, &rd,
                                   reader_block, reader_overflow);
         recorder_ring_fetch_add(count_read, 1);
-        RECORD(Reads, "Index %u: Read %u bytes out of %u at index %u",
+        record(Reads, "Index %u: Read %u bytes out of %u at index %u",
                rd, size, testLen);
 
         if (testLen != size)
@@ -365,7 +365,7 @@ void *reader_thread(void *data)
     }
 
     unsigned toStop = recorder_ring_fetch_add(threads_to_stop, -1);
-    RECORD(MAIN, "Exiting reader thread tid %u, %u more to stop", tid, toStop);
+    record(MAIN, "Exiting reader thread tid %u, %u more to stop", tid, toStop);
 
     return NULL;
 }
@@ -375,7 +375,7 @@ int ringbuffer_test(int argc, char **argv)
 {
     pthread_t tid;
 
-    RECORD(MAIN, "Entering ringbuffer test argc=%d", argc);
+    record(MAIN, "Entering ringbuffer test argc=%d", argc);
     INFO("Launching reader thread");
     pthread_create(&tid, NULL, reader_thread, NULL);
 
@@ -396,12 +396,12 @@ int ringbuffer_test(int argc, char **argv)
     unsigned sleepTime = howLong;
     do { sleepTime =  sleep(sleepTime); } while (sleepTime);
     INFO("Testing completed successfully:");
-    RECORD(MAIN, "Stopping threads");
+    record(MAIN, "Stopping threads");
     threads_to_stop = count + 1;
 
     while(threads_to_stop)
     {
-        RECORD(Pauses, "Waiting for ring test threads to stop, %u remaining",
+        record(Pauses, "Waiting for ring test threads to stop, %u remaining",
                threads_to_stop);
         dawdle(1);
     }
@@ -467,12 +467,12 @@ void compare_performance_of_common_operations(unsigned loops)
     void *         ptrs[256] = { NULL };
 
 #define TEST(Info, Code)                                        \
-    RECORD(Timing, "Test: " Info);                              \
+    record(Timing, "Test: " Info);                              \
     start = recorder_tick();                                    \
     for (i = 0; i < loops; i++) { Code; }                       \
     duration = recorder_tick() - start;                         \
     cost = 1e9 * duration / RECORDER_HZ / loops;                \
-    RECORD(Timing, Info " cost is %.6f ns", cost);
+    record(Timing, Info " cost is %.6f ns", cost);
 
     TEST("regular ring_write", speed_test_write(&entry, 1));
     TEST("special ring_write", special_ring_write(&speed_test.ring, &entry));
@@ -507,7 +507,7 @@ void compare_performance_of_common_operations(unsigned loops)
          special_ring_write(&speed_test.ring, &entry));
 #endif
 
-    TEST("RECORD", RECORD(SpeedTest, "Speed test %u", i));
+    TEST("RECORD", record(SpeedTest, "Speed test %u", i));
     TEST("RECORD_FAST", RECORD_FAST(SpeedTest, "Speed test %u", i));
 
     TEST("malloc(512)",

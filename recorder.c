@@ -600,7 +600,7 @@ void *recorder_configure_output(void *output)
 //   Configure the output stream
 // ----------------------------------------------------------------------------
 {
-    RECORD(recorders, "Configure output %p from %p", output, recorder_output);
+    record(recorders, "Configure output %p from %p", output, recorder_output);
     void *previous = recorder_output;
     recorder_output = output;
     return previous;
@@ -622,7 +622,7 @@ recorder_show_fn  recorder_configure_show(recorder_show_fn show)
 //   Configure the function used to output data to the stream
 // ----------------------------------------------------------------------------
 {
-    RECORD(recorders, "Configure show %p from %p", show, recorder_show);
+    record(recorders, "Configure show %p from %p", show, recorder_show);
     recorder_show_fn previous = recorder_show;
     recorder_show = show;
     return previous;
@@ -730,7 +730,7 @@ recorder_format_fn recorder_configure_format(recorder_format_fn format)
 //   Configure the function used to format entries
 // ----------------------------------------------------------------------------
 {
-    RECORD(recorders, "Configure format %p from %p", format, recorder_format);
+    record(recorders, "Configure format %p from %p", format, recorder_format);
     recorder_format_fn previous = recorder_format;
     recorder_format = format;
     return previous;
@@ -744,7 +744,7 @@ recorder_type_fn recorder_configure_type(uint8_t id,
 // ----------------------------------------------------------------------------
 {
     recorder_type_fn previous = recorder_types[id];
-    RECORD(recorders, "Configure type '%c' to %p from %p", id, type, previous);
+    record(recorders, "Configure type '%c' to %p from %p", id, type, previous);
     recorder_types[id] = type;
     return previous;
 }
@@ -846,7 +846,7 @@ unsigned recorder_dump(void)
 //   Dump all entries, sorted by their global 'order' field
 // ----------------------------------------------------------------------------
 {
-    RECORD(recorders, "Recorder dump");
+    record(recorders, "Recorder dump");
     return recorder_sort(".*", recorder_format,recorder_show,recorder_output);
 }
 
@@ -856,7 +856,7 @@ unsigned recorder_dump_for(const char *what)
 //   Dump all entries for recorder with names matching 'what'
 // ----------------------------------------------------------------------------
 {
-    RECORD(recorders, "Recorder dump for %+s", what);
+    record(recorders, "Recorder dump for %+s", what);
     return recorder_sort(what, recorder_format,recorder_show,recorder_output);
 }
 
@@ -967,16 +967,16 @@ recorder_chans_p recorder_chans_new(const char *file)
 {
 #ifndef HAVE_SYS_MMAN_H
     // Some version of MinGW do not have <sys/mman.h>
-    RECORD(recorders_error,
+    record(recorders_error,
            "Cannot create export channels %s on system without mmap",
            file);
     return NULL;
 #else // HAVE_SYS_MMAN_H
-    RECORD(recorders, "Create export channels %s", file);
+    record(recorders, "Create export channels %s", file);
     printf("Creating new %s\n", file);
     if (!file)
     {
-        RECORD(recorders_error, "NULL export file");
+        record(recorders_error, "NULL export file");
         return NULL;
     }
 
@@ -984,7 +984,7 @@ recorder_chans_p recorder_chans_new(const char *file)
     int fd = open(file, O_RDWR|O_CREAT|O_TRUNC, (mode_t) 0600);
     if (fd == -1)
     {
-        RECORD(recorders_error,
+        record(recorders_error,
                "Unable to create exports file %s: %s (%d)",
                file, strerror(errno), errno);
         return NULL;
@@ -994,7 +994,7 @@ recorder_chans_p recorder_chans_new(const char *file)
     size_t map_size = MAP_SIZE;
     if (!recorder_shans_file_extend(fd, map_size))
     {
-        RECORD(recorders_error,
+        record(recorders_error,
                "Unable to create initial mapping for exports file %s: %s (%d)",
                file, strerror(errno), errno);
         close(fd);
@@ -1009,7 +1009,7 @@ recorder_chans_p recorder_chans_new(const char *file)
                            fd, offset);
     if (map_addr == MAP_FAILED)
     {
-        RECORD(recorders_error, "Unable to mmap %s: %s (%d)",
+        record(recorders_error, "Unable to mmap %s: %s (%d)",
                file, strerror(errno), errno);
         close(fd);
         return NULL;
@@ -1085,7 +1085,7 @@ recorder_chan_p recorder_chan_new(recorder_chans_p chans,
 // ----------------------------------------------------------------------------
 {
 #ifndef HAVE_SYS_MMAN_H
-    RECORD(recorders_error, "recorder_chan_new called on system without mmap");
+    record(recorders_error, "recorder_chan_new called on system without mmap");
     return NULL;
 #else // HAVE_SYS_MMAN_H
     recorder_shans_p   shans       = chans->map_addr;
@@ -1111,7 +1111,7 @@ recorder_chan_p recorder_chan_new(recorder_chans_p chans,
         size_t map_size = (new_offset / MAP_SIZE + 1) * MAP_SIZE;
         if (!recorder_shans_file_extend(chans->fd, map_size))
         {
-            RECORD(recorders_error,
+            record(recorders_error,
                    "Could not extend mapping to %zu bytes: %s (%d)",
                    map_size, strerror(errno), errno);
             return NULL;
@@ -1122,7 +1122,7 @@ recorder_chan_p recorder_chan_new(recorder_chans_p chans,
                               chans->fd, 0);
         if (map_addr == MAP_FAILED)
         {
-            RECORD(recorders_error,
+            record(recorders_error,
                    "Unable to extend mmap to %zu bytes, errno=%d (%s)",
                    map_size, errno, strerror(errno));
             return NULL;
@@ -1255,16 +1255,16 @@ recorder_chans_p recorder_chans_open(const char *file)
 // ----------------------------------------------------------------------------
 {
 #ifndef HAVE_SYS_MMAN_H
-    RECORD(recorders_error,
+    record(recorders_error,
            "Cannot open export channels %s on system without mmap",
            file);
     return NULL;
 #else // HAVE_SYS_MMAN_H
-    RECORD(recorders, "Open export channels %s", file);
+    record(recorders, "Open export channels %s", file);
     int fd = open(file, O_RDWR);
     if (fd == -1)
     {
-        RECORD(recorders_error,
+        record(recorders_error,
                "Unable to open %s for reading: %s (%d)",
                file, strerror(errno), errno);
         return NULL;
@@ -1272,7 +1272,7 @@ recorder_chans_p recorder_chans_open(const char *file)
     struct stat stat;
     if (fstat(fd, &stat) != 0)
     {
-        RECORD(recorders_error,
+        record(recorders_error,
                "Unable to stat %s: %s (%d)",
                file, strerror(errno), errno);
         return NULL;
@@ -1291,15 +1291,15 @@ recorder_chans_p recorder_chans_open(const char *file)
         shans->version != RECORDER_CHAN_VERSION)
     {
         if (map_addr == MAP_FAILED)
-            RECORD(recorders_error,
+            record(recorders_error,
                    "Unable to map %s file for reading: %s (%d)",
                    file, strerror(errno), errno);
         if (shans->magic != RECORDER_CHAN_MAGIC)
-            RECORD(recorders_error,
+            record(recorders_error,
                    "Wrong magic number, got %x instead of %x",
                    shans->magic, RECORDER_CHAN_MAGIC);
         if (shans->version != RECORDER_CHAN_VERSION)
-            RECORD(recorders_error,
+            record(recorders_error,
                    "Wrong exports file version, got %x instead of %x",
                    shans->version, RECORDER_CHAN_VERSION);
 
@@ -1335,13 +1335,13 @@ recorder_chans_p recorder_chans_open(const char *file)
             return chans;
 
         // The serial number changed - Program restarted at wrong time?
-        RECORD(recorders_warning,
+        record(recorders_warning,
                "Export channels serial changed, retry #%d", retries);
         recorder_chans_close(chans);
         retries++;
     }
 
-    RECORD(recorders_error, "Too many retries mapping %s, giving up", file);
+    record(recorders_error, "Too many retries mapping %s, giving up", file);
     return NULL;
 #endif // HAVE_SYS_MMAN_H
 }
@@ -1384,7 +1384,7 @@ bool recorder_chans_configure(recorder_chans_p chans,
     size_t           avail = recorder_ring_writable(cmds);
     if (avail < len)
     {
-        RECORD(recorders_warning,
+        record(recorders_warning,
                "Insufficient space in command buffer, %u < %u", avail, len);
         return false;
     }
@@ -1621,7 +1621,7 @@ static recorder_type recorder_type_from_format(const char *format,
         {
             if (!index)
             {
-                RECORD(recorders, "Export type at index %u in %s is %u",
+                record(recorders, "Export type at index %u in %s is %u",
                        start_index, start_format, result);
                 return result;
             }
@@ -1631,7 +1631,7 @@ static recorder_type recorder_type_from_format(const char *format,
         }
     }
 
-    RECORD(recorders_warning,
+    record(recorders_warning,
            "Unknown format directive at index %u in %s",
            start_index, start_format);
     return RECORDER_INVALID;
@@ -1683,7 +1683,7 @@ void recorder_background_dump(const char *what)
     if (strcmp(what, "all") == 0)
         what = ".*";
     pthread_create(&tid, NULL, background_dump, (void *) what);
-    RECORD(recorders, "Started background dump thread for %s, thread %p",
+    record(recorders, "Started background dump thread for %s, thread %p",
            what, (void *) tid);
 }
 
@@ -1716,7 +1716,7 @@ static void signal_handler(int sig, siginfo_t *info, void *ucontext)
 //    Dump the recorder when receiving a signal
 // ----------------------------------------------------------------------------
 {
-    RECORD(signals, "Received signal %+s (%d) si_addr=%p, dumping recorder",
+    record(signals, "Received signal %+s (%d) si_addr=%p, dumping recorder",
            strsignal(sig), sig, info->si_addr);
     fprintf(stderr, "Received signal %s (%d), dumping recorder\n",
             strsignal(sig), sig);
@@ -1741,7 +1741,7 @@ void recorder_dump_on_signal(int sig)
     sigemptyset(&action.sa_mask);
     action.sa_flags = SA_SIGINFO;
     sigaction(sig, &action, &old_action[sig]);
-    RECORD(signals, "Recorder dump handler %p for signal %u, old action=%p",
+    record(signals, "Recorder dump handler %p for signal %u, old action=%p",
            signal_handler, sig, old_action[sig].sa_sigaction);
     if (old_action[sig].sa_sigaction == signal_handler)
         old_action[sig].sa_sigaction = (sig_fn) SIG_DFL;
@@ -1758,7 +1758,7 @@ static void signal_handler(int sig)
 //   Dump the recorder when receiving the given signal
 // ----------------------------------------------------------------------------
 {
-    RECORD(signals, "Received signal %d, dumping recorder", sig);
+    record(signals, "Received signal %d, dumping recorder", sig);
     fprintf(stderr, "Received signal %d, dumping recorder\n", sig);
 
     // Restore previous handler
@@ -1779,7 +1779,7 @@ void recorder_dump_on_signal(int sig)
     if (sig < 0 || sig >= NSIG)
         return;
     old_handler[sig] = signal(sig, signal_handler);
-    RECORD(signals, "Recorder dump handler %p for signal %u, old handler=%p",
+    record(signals, "Recorder dump handler %p for signal %u, old handler=%p",
            signal_handler, sig, old_handler[sig]);
     if (old_handler[sig] == signal_handler)
         old_handler[sig] = (sig_fn) SIG_DFL;
@@ -1855,7 +1855,7 @@ void recorder_dump_on_common_signals(unsigned add, unsigned remove)
     unsigned sig;
     unsigned signals = (add | RECORDER_TWEAK(recorder_signals)) & ~remove;
 
-    RECORD(signals, "Activating dump for signal mask 0x%X", signals);
+    record(signals, "Activating dump for signal mask 0x%X", signals);
     for (sig = 0; signals; sig++)
     {
         unsigned mask = 1U << sig;
@@ -1901,11 +1901,11 @@ void recorder_activate (recorder_info *recorder)
 {
     if (recorder->next)
     {
-        RECORD(recorders_error, "Re-activating %+s (%p)",
+        record(recorders_error, "Re-activating %+s (%p)",
                recorder->name, recorder);
         return;
     }
-    RECORD(recorders, "Activating '%+s' (%p)", recorder->name, recorder);
+    record(recorders, "Activating '%+s' (%p)", recorder->name, recorder);
     recorder_info  *head = recorders;
     do { recorder->next = head; }
     while (!recorder_ring_compare_exchange(recorders, head, recorder));
@@ -1919,11 +1919,11 @@ void recorder_tweak_activate (recorder_tweak *tweak)
 {
     if (tweak->next)
     {
-        RECORD(recorders_error, "Re-activating tweak %+s (%p)",
+        record(recorders_error, "Re-activating tweak %+s (%p)",
                tweak->name, tweak);
         return;
     }
-    RECORD(recorders, "Activating tweak '%+s' (%p)", tweak->name, tweak);
+    record(recorders, "Activating tweak '%+s' (%p)", tweak->name, tweak);
     recorder_tweak  *head = tweaks;
     do { tweak->next = head; }
     while (!recorder_ring_compare_exchange(tweaks, head, tweak));
@@ -1980,7 +1980,7 @@ void recorder_trace_entry(recorder_info *info, recorder_entry *entry)
             size_t           size   = ring->size;
             recorder_type    none   = RECORDER_NONE;
 
-            RECORD(recorders, "Channel #%u '%+s' type %u %+s",
+            record(recorders, "Channel #%u '%+s' type %u %+s",
                    i,
                    (const char *) shan + shan->name,
                    shan->type,
@@ -2036,7 +2036,7 @@ static void *background_configuration_check(void *ignored)
         size_t cmdlen = recorder_ring_readable(&shans->commands, NULL);
         if (cmdlen)
         {
-            RECORD(recorders, "Got shared-memory command len %zu", cmdlen);
+            record(recorders, "Got shared-memory command len %zu", cmdlen);
             recorder_ring_read(&shans->commands,buffer,cmdlen,NULL,NULL,NULL);
             buffer[cmdlen] = 0;
             recorder_trace_set(buffer);
@@ -2067,7 +2067,7 @@ static void recorder_share(const char *path)
         pthread_t tid;
         atexit(recorder_atexit_cleanup);
         pthread_create(&tid, NULL, background_configuration_check, NULL);
-        RECORD(recorders, "Started background configuration thread\n");
+        record(recorders, "Started background configuration thread\n");
     }
 }
 
@@ -2110,7 +2110,7 @@ static void recorder_export(recorder_info *rec, const char *value, bool multi)
             sprintf(chan_name, "%s/%s", rec->name, name);
         }
 
-        RECORD(recorders, "Exporting channel %+s for index %u in %+s\n",
+        record(recorders, "Exporting channel %+s for index %u in %+s\n",
                name, t, rec->name);
         if (!chan || strcmp(recorder_chan_name(chan), name) != 0)
         {
@@ -2152,7 +2152,7 @@ int recorder_trace_set(const char *param_spec)
     if (!param_spec)
         return 0;
 
-    RECORD(recorder_traces, "Setting traces to %s", param_spec);
+    record(recorder_traces, "Setting traces to %s", param_spec);
 
     // Loop splitting input at ':' and ' ' boundaries
     do
@@ -2220,7 +2220,7 @@ int recorder_trace_set(const char *param_spec)
                 if (*end != 0)
                 {
                     rc = RECORDER_TRACE_INVALID_VALUE;
-                    RECORD(recorder_traces,
+                    record(recorder_traces,
                            "Invalid numerical value %s (ends with %c)",
                            original + (value_ptr - param),
                            *end);
@@ -2254,7 +2254,7 @@ int recorder_trace_set(const char *param_spec)
             if (value_ptr)
                 recorder_share(value_ptr);
             else
-                RECORD(recorder_traces, "No argument to 'share', ignored");
+                record(recorder_traces, "No argument to 'share', ignored");
         }
         else if (strcmp(param, "dump") == 0)
         {
@@ -2289,11 +2289,11 @@ int recorder_trace_set(const char *param_spec)
                     for (rec = recorders; rec; rec = rec->next)
                     {
                         int re_result = param_match(rec->name);
-                        RECORD(recorder_traces, "Numerical testing %+s = %+s",
+                        record(recorder_traces, "Numerical testing %+s = %+s",
                                rec->name, re_result ? "YES" : "NO");
                         if (re_result)
                         {
-                            RECORD(recorder_traces,
+                            record(recorder_traces,
                                    "Set %+s from %ld to %ld",
                                    rec->name, rec->trace, value);
                             rec->trace = value;
@@ -2304,7 +2304,7 @@ int recorder_trace_set(const char *param_spec)
                         int re_result = param_match(tweak->name);
                         if (re_result)
                         {
-                            RECORD(recorder_traces,
+                            record(recorder_traces,
                                    "Set tweak %+s from %ld to %ld",
                                    tweak->name, tweak->trace, value);
                             tweak->trace = value;
@@ -2322,11 +2322,11 @@ int recorder_trace_set(const char *param_spec)
                     for (rec = recorders; rec; rec = rec->next)
                     {
                         int re_result = param_match(rec->name);
-                        RECORD(recorder_traces, "Textual testing %+s = %+s",
+                        record(recorder_traces, "Textual testing %+s = %+s",
                                rec->name, re_result ? "YES" : "NO");
                         if (re_result)
                         {
-                            RECORD(recorder_traces,
+                            record(recorder_traces,
                                    "Share %+s under name %s",
                                    rec->name, value_ptr);
                             recorder_export(rec, value_ptr, matches > 1);
@@ -2342,7 +2342,7 @@ int recorder_trace_set(const char *param_spec)
                 rc = RECORDER_TRACE_INVALID_NAME;
 #if HAVE_REGEX_H
                 regerror(status, &re, error, sizeof(error));
-                RECORD(recorder_traces, "regcomp returned %d: %s",
+                record(recorder_traces, "regcomp returned %d: %s",
                        status, error);
 #endif // HAVE_REGEX_H
             }
