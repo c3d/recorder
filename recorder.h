@@ -51,6 +51,14 @@ extern "C" {
 // ============================================================================
 //  Within gdb, you can use: 'p recorder_dump()' to get a dump of what
 //  happened in your program until this point
+//
+//  Ownership of `const char *` strings:
+//  In general, when a 'const char *' argument is given, it is expected
+//  that its lifetime will be sufficient for the duration of all its uses.
+//  The application is responsible for enforcing this rule. In particular,
+//      recorder_traces_set(getenv("RECORDER_TRACES"));
+//  is considered a correct usage. Overwriting the environment
+//  afterwards is considered an evil and bogus mis-use of the library.
 
 // Dump all recorder entries for all recorders, sorted between recorders
 extern unsigned recorder_dump(void);
