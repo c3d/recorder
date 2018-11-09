@@ -21,6 +21,7 @@
 
 #include "recorder_ring.h"
 #include "recorder.h"
+#include "config.h"
 
 #include <math.h>
 #include <pthread.h>
