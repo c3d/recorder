@@ -626,6 +626,9 @@ The `recorder_scope` application takes the following command-line arguments:
 * `-g WxH@XxY` sets the window geometry to WxH pixels and the window
   position to X,Y.
 
+In the recorder scope window, hitting the `t`, `a`, `n` or `m` key
+toggles the corresponding setting (timing, average, normal and min/max views).
+
 
 ### Example
 
