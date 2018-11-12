@@ -28,7 +28,7 @@
 #include <QtWidgets/QVBoxLayout>
 
 
-void usage(const char *progname)
+static void usage(const char *progname)
 // ----------------------------------------------------------------------------
 //   Display usage information about the program
 // ----------------------------------------------------------------------------
