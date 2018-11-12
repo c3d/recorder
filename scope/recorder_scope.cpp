@@ -46,7 +46,7 @@ void usage(const char *progname)
            "    -a              : Show/hide average graph\n"
            "    -n              : Show/hide normal vaue graph\n"
            "    -r ratio        : Set averaging ratio in percent\n"
-           "    -s basename     : Set basename for saving data\n"
+           "    -b basename     : Set basename for saving data\n"
            "    -g WxH@XxY      : Set window geometry to W x H pixels\n"
            "\n"
            "  Configuration syntax for -c matches RECORDER_TRACES syntax\n"
@@ -141,7 +141,7 @@ int main(int argc, char *argv[])
             else
                 RecorderView::averagingRatio = ratio * 0.01;
         }
-        else if (arg == "-s" && a+1 < argc)
+        else if (arg == "-b" && a+1 < argc)
         {
             RecorderView::saveBaseName = argv[++a];
         }
