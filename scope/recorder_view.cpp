@@ -517,8 +517,8 @@ void RecorderView::keyPressEvent(QKeyEvent *event)
         for (auto s : seriesList)
             data.append(s->pointsVector());
 
-        const char *cname = (name + ".csv").toUtf8().data();
-        FILE *f = fopen(cname, "w");
+        QByteArray cname = (name + ".csv").toUtf8();
+        FILE *f = fopen(cname.data(), "w");
         if (f)
         {
             size_t columns = data.size();
@@ -539,7 +539,7 @@ void RecorderView::keyPressEvent(QKeyEvent *event)
         }
         else
         {
-            fprintf(stderr, "Error opening %s: %s\n", cname, strerror(errno));
+            fprintf(stderr, "Error opening %s: %s\n", cname.data(), strerror(errno));
         }
     }
 }
