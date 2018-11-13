@@ -55,7 +55,6 @@ size_t    recorder_chan_writable(recorder_chan_p chan);
 ringidx_t recorder_chan_writer(recorder_chan_p chan);
 ringidx_t recorder_chan_reader(recorder_chan_p chan);
 size_t    recorder_chan_item_size(recorder_chan_p chan);
-ringidx_t recorder_chan_writer(recorder_chan_p chan);
 
 
 // ============================================================================
