@@ -1906,9 +1906,11 @@ void recorder_activate (recorder_info *recorder)
         return;
     }
     record(recorders, "Activating '%+s' (%p)", recorder->name, recorder);
-    recorder_info  *head = recorders;
-    do { recorder->next = head; }
-    while (!recorder_ring_compare_exchange(recorders, head, recorder));
+    recorder_info  *head;
+    do {
+        head = recorders;
+        recorder->next = head;
+    } while (!recorder_ring_compare_exchange(recorders, head, recorder));
 }
 
 
@@ -1924,9 +1926,11 @@ void recorder_tweak_activate (recorder_tweak *tweak)
         return;
     }
     record(recorders, "Activating tweak '%+s' (%p)", tweak->name, tweak);
-    recorder_tweak  *head = tweaks;
-    do { tweak->next = head; }
-    while (!recorder_ring_compare_exchange(tweaks, head, tweak));
+    recorder_tweak  *head;
+    do {
+        head = tweaks;
+        tweak->next = head;
+    } while (!recorder_ring_compare_exchange(tweaks, head, tweak));
 }
 
 
