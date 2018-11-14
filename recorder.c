@@ -1905,6 +1905,8 @@ void recorder_activate (recorder_info *recorder)
         return;
     }
     record(recorders, "Activating '%+s' (%p)", recorder->name, recorder);
+
+    // Lock-free insertion. Note that compare_exchange updates head if it fails
     recorder_info  *head = recorders;
     do { recorder->next = head; }
     while (!recorder_ring_compare_exchange(recorders, head, recorder));
@@ -1923,6 +1925,8 @@ void recorder_tweak_activate (recorder_tweak *tweak)
         return;
     }
     record(recorders, "Activating tweak '%+s' (%p)", tweak->name, tweak);
+
+    // Lock-free insertion. Note that compare_exchange updates head if it fails
     recorder_tweak  *head = tweaks;
     do { tweak->next = head; }
     while (!recorder_ring_compare_exchange(tweaks, head, tweak));
