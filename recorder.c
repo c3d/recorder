@@ -35,6 +35,7 @@
 #include <string.h>
 #include <unistd.h>
 #include <errno.h>
+#include <inttypes.h>
 #include <sys/time.h>
 #if HAVE_SYS_MMAN_H
 #include <sys/mman.h>
@@ -2241,16 +2242,16 @@ int recorder_trace_set(const char *param_spec)
                            rec->name, rec->trace ? "*" : " ",
                            rec->description);
                 else
-                    printf("%20s : %s = %ld (0x%lX)\n",
+                    printf("%20s : %s = %"PRIdPTR" (0x%"PRIXPTR")\n",
                            rec->name,
                            rec->description,
-                           (long) rec->trace, (long) rec->trace);
+                           rec->trace, rec->trace);
 
             printf("List of available tweaks:\n");
             for (tweak = tweaks; tweak; tweak = tweak->next)
-                printf("%20s : %s = %ld (0x%lX) \n",
+                printf("%20s : %s = %"PRIdPTR" (0x%"PRIXPTR") \n",
                        tweak->name, tweak->description,
-                       (long) tweak->trace, (long) tweak->trace);
+                       tweak->trace, tweak->trace);
         }
         else if (strcmp(param, "share") == 0)
         {
@@ -2267,7 +2268,7 @@ int recorder_trace_set(const char *param_spec)
         {
             recorder_info *rec;
             for (rec = recorders; rec; rec = rec->next)
-                fprintf(stderr, "Recorder %s trace %ld (0x%lX)\n",
+                fprintf(stderr, "Recorder %s trace %"PRIdPTR" (0x%"PRIXPTR")\n",
                         rec->name, rec->trace, rec->trace);
         }
         else
