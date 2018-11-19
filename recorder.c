@@ -42,6 +42,35 @@
 #endif // HAVE_SYS_MMAN_H
 #include <sys/stat.h>
 
+#if HAVE_REGEX_H
+typedef regex_t pattern_t;
+#define pattern_comp(re, what) regcomp(re, what, REG_EXTENDED|REG_ICASE)
+#define pattern_free(re) regfree(re)
+
+static inline bool pattern_match(regex_t *re, const char *s)
+{
+    regmatch_t rm;
+    return regexec(re, s, 1, &rm, 0) == 0 &&
+        rm.rm_so == 0 && s[rm.rm_eo] == 0;
+}
+#else
+typedef const char *pattern_t;
+
+static inline int pattern_comp(pattern_t *re, const char *what)
+{
+    *re = what;
+    return 0;
+}
+
+static inline bool pattern_match(pattern_t *re, const char *s)
+{
+    return strstr(*re, s) != NULL;
+}
+
+static inline void pattern_free(pattern_t *re)
+{
+}
+#endif
 
 #define array_size(a)   (sizeof(a) / sizeof(a[0]))
 
@@ -782,13 +811,8 @@ unsigned recorder_sort(const char *what,
     recorder_entry *entry;
     unsigned        dumped = 0;
 
-#if HAVE_REGEX_H
-    regex_t         re;
-    regmatch_t      rm;
-    int status = regcomp(&re, what, REG_EXTENDED|REG_ICASE);
-#else
-    int status = 0;
-#endif
+    pattern_t re;
+    int status = pattern_comp(&re, what);
 
     recorder_ring_fetch_add(recorder_dumping, 1);
     while (status == 0)
@@ -801,14 +825,8 @@ unsigned recorder_sort(const char *what,
         for (rec = recorders; rec; rec = rec->next)
         {
             // Skip recorders that don't match the pattern
-#if HAVE_REGEX_H
-            if (regexec(&re, rec->name, 1, &rm, 0) != 0 ||
-                rm.rm_so != 0 || rec->name[rm.rm_eo] != 0)
+            if (!pattern_match(&re, rec->name))
                 continue;
-#else
-            if (!strstr(what, rec->name))
-                continue;
-#endif // HAVE_REGEX_H
 
             // Loop while this recorder is readable and we can find next order
             entry = recorder_peek(&rec->ring);
@@ -833,9 +851,7 @@ unsigned recorder_sort(const char *what,
     }
     recorder_ring_fetch_add(recorder_dumping, -1);
 
-#if HAVE_REGEX_H
-    regfree(&re);
-#endif // HAVE_REGEX_H
+    pattern_free(&re);
 
     return dumped;
 }
@@ -1402,13 +1418,8 @@ recorder_chan_p recorder_chan_find(recorder_chans_p  chans,
 //   Find a recorder_chan with the given name in the recorder_chan list
 // ----------------------------------------------------------------------------
 {
-#if HAVE_REGEX_H
-    regex_t         re;
-    regmatch_t      rm;
-    int             status = regcomp(&re, pattern, REG_EXTENDED|REG_ICASE);
-#else
-    int             status = 0;
-#endif // HAVE_REGEX_H
+    pattern_t re;
+    int             status = pattern_comp(&re, pattern);
     recorder_chan_p first  = after ? after->next : chans->head;
     recorder_chan_p chan   = NULL;;
 
@@ -1417,19 +1428,11 @@ recorder_chan_p recorder_chan_find(recorder_chans_p  chans,
         for (chan = first; chan; chan = chan->next)
         {
             const char *name = recorder_chan_name(chan);
-#if HAVE_REGEX_H
-            if (regexec(&re, name, 1, &rm, 0) == 0 &&
-                rm.rm_so == 0 && name[rm.rm_eo] == 0)
+            if (pattern_match(&re, name))
                 break;
-#else
-            if (strstr(pattern, name))
-                break;
-#endif // HAVE_REGEX_H
         }
     }
-#if HAVE_REGEX_H
-    regfree(&re);
-#endif // HAVE_REGEX_H
+    pattern_free(&re);
     return chan;
 }
 
@@ -2148,11 +2151,6 @@ int recorder_trace_set(const char *param_spec)
     int             rc   = RECORDER_TRACE_OK;
     recorder_info  *rec;
     recorder_tweak *tweak;
-#if HAVE_REGEX_H
-    regex_t         re;
-    regmatch_t      rm;
-    static char     error[128];
-#endif // HAVE_REGEX_H
 
     // Facilitate usage such as: recorder_trace_set(getenv("RECORDER_TRACES"))
     if (!param_spec)
@@ -2278,15 +2276,8 @@ int recorder_trace_set(const char *param_spec)
             if (strcmp(param, "all") == 0)
                 param = (char *) ".*";
 
-#if HAVE_REGEX_H
-            int status = regcomp(&re, param, REG_EXTENDED|REG_ICASE);
-#define param_match(name)                               \
-            (regexec(&re, (name), 1, &rm, 0) == 0 &&    \
-             rm.rm_so == 0 && (name)[rm.rm_eo] == 0)
-#else
-            int status = 0;
-#define param_match(name)     (strstr(param, (name)) != NULL)
-#endif // HAVE_REGEX_H
+            pattern_t re;
+            int status = pattern_comp(&re, param);
             if (status == 0)
             {
                 if (numerical)
@@ -2294,7 +2285,7 @@ int recorder_trace_set(const char *param_spec)
                     // Numerical value: set the corresponding trace
                     for (rec = recorders; rec; rec = rec->next)
                     {
-                        int re_result = param_match(rec->name);
+                        bool re_result = pattern_match(&re, rec->name);
                         record(recorder_traces, "Numerical testing %+s = %+s",
                                rec->name, re_result ? "YES" : "NO");
                         if (re_result)
@@ -2307,7 +2298,7 @@ int recorder_trace_set(const char *param_spec)
                     }
                     for (tweak = tweaks; tweak; tweak = tweak->next)
                     {
-                        int re_result = param_match(tweak->name);
+                        bool re_result = pattern_match(&re, tweak->name);
                         if (re_result)
                         {
                             record(recorder_traces,
@@ -2322,12 +2313,12 @@ int recorder_trace_set(const char *param_spec)
                     // Non-numerical: Activate corresponding exports
                     unsigned matches = 0;
                     for (rec = recorders; rec; rec = rec->next)
-                        if (param_match(rec->name))
+                        if (pattern_match(&re, rec->name))
                             matches++;
 
                     for (rec = recorders; rec; rec = rec->next)
                     {
-                        int re_result = param_match(rec->name);
+                        bool re_result = pattern_match(&re, rec->name);
                         record(recorder_traces, "Textual testing %+s = %+s",
                                rec->name, re_result ? "YES" : "NO");
                         if (re_result)
@@ -2339,14 +2330,13 @@ int recorder_trace_set(const char *param_spec)
                         }
                     }
                 }
-#if HAVE_REGEX_H
-                regfree(&re);
-#endif // HAVE_REGEX_H
+                pattern_free(&re);
             }
             else
             {
                 rc = RECORDER_TRACE_INVALID_NAME;
 #if HAVE_REGEX_H
+                static char     error[128];
                 regerror(status, &re, error, sizeof(error));
                 record(recorder_traces, "regcomp returned %d: %s",
                        status, error);
