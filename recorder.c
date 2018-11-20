@@ -2330,7 +2330,6 @@ int recorder_trace_set(const char *param_spec)
                         }
                     }
                 }
-                pattern_free(&re);
             }
             else
             {
@@ -2342,6 +2341,7 @@ int recorder_trace_set(const char *param_spec)
                        status, error);
 #endif // HAVE_REGEX_H
             }
+            pattern_free(&re);
         }
 
         if (alloc)
