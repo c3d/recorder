@@ -949,6 +949,7 @@ static inline recorder_shan_p recorder_shared(recorder_chan_p chan)
 //
 // ============================================================================
 
+#ifdef HAVE_SYS_MMAN_H
 static bool recorder_shans_file_extend(int fd, off_t new_size)
 // ----------------------------------------------------------------------------
 //    Extend a file to the given size
@@ -958,6 +959,7 @@ static bool recorder_shans_file_extend(int fd, off_t new_size)
         lseek(fd, new_size-1, SEEK_SET) != -1 &&
         write(fd, "", 1) == 1;
 }
+#endif // HAVE_SYS_MMAN_H
 
 
 recorder_chans_p recorder_chans_new(const char *file)
