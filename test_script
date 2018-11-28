@@ -1,0 +1,31 @@
+#!/bin/bash
+HOSTCPUS=8
+
+
+echo Test,Clients Threads,Servers Threads,Tasks,Successful requests,Client iterations,Thread iterations,Failed requests,Enqueue duration,Dequeue duration
+for THREADS in 1 4 8 16 32; do
+    for TASKS in 1 4 8 16; do
+        for TEST in bm sl; do
+            for RUN in 1 2 3; do
+                eval `LD_LIBRARY_PATH=. ./${TEST}_test_test 1 $THREADS 2 $TASKS | grep -v '#'`
+                if [ $HANDLERS -ne $DONES -o $HANDLERS -ne $SUCCESSFUL_REQUESTS ]
+                then
+                    echo '*** BAD TEST: H='$HANDLERS' D='$DONES' S='$SUCCESSFUL_REQUESTS
+                fi
+
+                echo $TEST,                         \
+                     $CLIENT_THREADS,               \
+                     $SERVER_THREADS,               \
+                     $TASKS,                        \
+                     $SUCCESSFUL_REQUESTS,          \
+                     $CLIENT_ITERATIONS,            \
+                     $THREAD_ITERATIONS,            \
+                     $FAILED_REQUESTS,              \
+                     $ENQUEUE_DURATION_NS,          \
+                     $DEQUEUE_DURATION_NS
+
+                sleep 5
+            done
+        done
+    done
+done

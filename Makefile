@@ -30,9 +30,13 @@ PACKAGE_URL="http://github.com/c3d/recorder"
 PACKAGE_REQUIRES=
 PACKAGE_BUGS=christophe@dinechin.org
 
-LDFLAGS  = -lpthread -lm
+LDFLAGS = -lpthread -lm
 
-TESTS=  hanoi_test.c recorder_test.c ring_test.c crash_test.c
+TESTS=  ll_test.c	\
+	bm_test.c	\
+	sl_test.c
+
+#	hanoi_test.c recorder_test.c ring_test.c crash_test.c
 TEST_ARGS_hanoi_test=20 | grep "End fast recording Hanoi with 20 iterations"
 
 MIQ=make-it-quick/
