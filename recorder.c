@@ -702,7 +702,7 @@ static void recorder_format_entry(recorder_show_fn show,
     if (*end_of_fileline == 0)       // Play it ultra-safe
         end_of_fileline = message;
 
-    int size = RECORDER_TWEAK(recorder_location);
+    int size = (int) RECORDER_TWEAK(recorder_location);
     if (size)
     {
         int fileline_size = (int) (end_of_fileline - message);
@@ -717,7 +717,7 @@ static void recorder_format_entry(recorder_show_fn show,
     }
     message = end_of_fileline;
 
-    size = RECORDER_TWEAK(recorder_function);
+    size = (int) RECORDER_TWEAK(recorder_function);
     if (size)
     {
         if (size != 1)
@@ -2162,7 +2162,7 @@ int recorder_trace_set(const char *param_spec)
     do
     {
         // Default value is 1 if not specified
-        int         value     = 1;
+        intptr_t    value     = 1;
         char       *param     = (char *) next;
         const char *original  = param;
         char       *value_ptr = NULL;
@@ -2220,7 +2220,7 @@ int recorder_trace_set(const char *param_spec)
             numerical = isdigit(*value_ptr) || *value_ptr == '-';
             if (numerical)
             {
-                value = strtol(value_ptr, &end, 0);
+                value = (intptr_t) strtol(value_ptr, &end, 0);
                 if (*end != 0)
                 {
                     rc = RECORDER_TRACE_INVALID_VALUE;
