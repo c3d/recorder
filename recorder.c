@@ -2266,7 +2266,6 @@ int recorder_trace_set(const char *param_spec)
         }
         else if (strcmp(param, "traces") == 0)
         {
-            recorder_info *rec;
             for (rec = recorders; rec; rec = rec->next)
                 fprintf(stderr, "Recorder %s trace %"PRIdPTR" (0x%"PRIXPTR")\n",
                         rec->name, rec->trace, rec->trace);
