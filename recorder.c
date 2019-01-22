@@ -42,32 +42,57 @@
 #endif // HAVE_SYS_MMAN_H
 #include <sys/stat.h>
 
+
+
+// ============================================================================
+//
+//   Utility functions wrapping pattern maching irrespective of regex.h
+//
+// ============================================================================
+
 #if HAVE_REGEX_H
+
+// In the regexp.h case, we use real regular expressions
 typedef regex_t pattern_t;
-#define pattern_comp(re, what) regcomp(re, what, REG_EXTENDED|REG_ICASE)
-#define pattern_free(re) regfree(re)
+#define pattern_comp(re, what)  regcomp(re, what, REG_EXTENDED|REG_ICASE)
+#define pattern_free(re)        regfree(re)
 
 static inline bool pattern_match(regex_t *re, const char *s)
+// ----------------------------------------------------------------------------
+//   Match input string against a given "true" regexp
+// ----------------------------------------------------------------------------
 {
     regmatch_t rm;
     return regexec(re, s, 1, &rm, 0) == 0 &&
         rm.rm_so == 0 && s[rm.rm_eo] == 0;
 }
-#else
+
+#else // !HAVE_REGEX_H
+
+// In the non regexp.h case, we degrade to string comparisons
 typedef const char *pattern_t;
 
 static inline int pattern_comp(pattern_t *re, const char *what)
+// ----------------------------------------------------------------------------
+//   No real regexp compilation in that case
+// ----------------------------------------------------------------------------
 {
     *re = what;
     return 0;
 }
 
 static inline bool pattern_match(pattern_t *re, const char *s)
+// ----------------------------------------------------------------------------
+//   No regexp matching, replace with string search
+// ----------------------------------------------------------------------------
 {
     return strstr(*re, s) != NULL;
 }
 
 static inline void pattern_free(pattern_t *re)
+// ----------------------------------------------------------------------------
+//   No need to free input string
+// ----------------------------------------------------------------------------
 {
 }
 #endif
