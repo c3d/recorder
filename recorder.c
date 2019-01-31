@@ -524,6 +524,10 @@ static void recorder_dump_entry(recorder_info      *rec,
                 case 'z':
                 case 'q':
                 case 'v':
+#ifdef _WIN32
+                    // On Windows size specifiers "I", "I32", "I64"
+                case 'I':
+#endif
                     break;
                 case '+':
                     safe_pointer = true;
