@@ -27,6 +27,6 @@ HEADERS += recorder_view.h
 
 SOURCES += recorder_view.cpp    \
            recorder_scope.cpp   \
-           recorder_slider.cpp  \
-           ../recorder.c        \
-           ../recorder_ring.c
+           recorder_slider.cpp
+
+LIBS += -L.. -lrecorder

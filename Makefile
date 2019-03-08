@@ -47,3 +47,5 @@ scope: .ALWAYS
 	cd scope && make
 scope/Makefile:
 	cd scope && qmake
+.install: $(DO_INSTALL=scope/recorder_scope.$(DO_INSTALL)_exe)
+scope/recorder_scope.$(DO_INSTALL)_exe: scope
