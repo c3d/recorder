@@ -24,8 +24,8 @@
 #include <stdlib.h>
 
 
-RECORDER(MOVE, 1024, "Moving pieces around")
-RECORDER(TIMING, 32, "Timing information")
+RECORDER(MOVE, 1024, "Moving pieces around");
+RECORDER(TIMING, 32, "Timing information");
 
 typedef enum post { LEFT, MIDDLE, RIGHT } post;
 const char *postName[] = { "LEFT", "MIDDLE", "RIGHT" };

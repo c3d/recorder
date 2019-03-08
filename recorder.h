@@ -324,7 +324,11 @@ static void recorder_activate_##Name(void)                              \
 /* ----------------------------------------------------------------*/   \
 {                                                                       \
     recorder_activate(RECORDER_INFO(Name));                             \
-}
+}                                                                       \
+                                                                        \
+/* Purposefully generate compile error if macro not followed by ; */    \
+extern void recorder_activate(recorder_info *recorder)
+
 
 
 #define RECORDER_TWEAK_DEFINE(Name, Value, Info)                        \
