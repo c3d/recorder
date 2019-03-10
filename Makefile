@@ -21,6 +21,7 @@ HEADERS=recorder_ring.h recorder.h
 PRODUCTS=recorder.dll
 PRODUCTS_VERSION=$(PACKAGE_VERSION)
 CONFIG=sigaction <regex.h> <sys/mman.h> drand48 libregex
+MANPAGES=$(wildcard man/man3/*.3)
 
 # For pkg-config generation
 PACKAGE_NAME=recorder

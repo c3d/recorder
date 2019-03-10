@@ -1,0 +1,334 @@
+.\" ****************************************************************************
+.\"  record.3                                                 recorder library
+.\" ****************************************************************************
+.\"
+.\"   File Description:
+.\"
+.\"     Man page for the recorder library
+.\"
+.\"     This documents record(3) and record_fast(3)
+.\"
+.\"
+.\"
+.\"
+.\"
+.\"
+.\" ****************************************************************************
+.\"  (C) 2019 Christophe de Dinechin <christophe@dinechin.org>
+.\" %%%LICENSE_START(LGPLv3+_DOC_FULL)
+.\" This is free documentation; you can redistribute it and/or
+.\" modify it under the terms of the GNU General Public License as
+.\" published by the Free Software Foundation; either version 2 of
+.\" the License, or (at your option) any later version.
+.\"
+.\" The GNU General Public License's references to "object code"
+.\" and "executables" are to be interpreted as the output of any
+.\" document formatting or typesetting system, including
+.\" intermediate and printed output.
+.\"
+.\" This manual is distributed in the hope that it will be useful,
+.\" but WITHOUT ANY WARRANTY; without even the implied warranty of
+.\" MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+.\" GNU General Public License for more details.
+.\"
+.\" You should have received a copy of the GNU General Public
+.\" License along with this manual; if not, see
+.\" <http://www.gnu.org/licenses/>.
+.\" %%%LICENSE_END
+.\" ****************************************************************************
+
+.TH record 3  "2019-03-09" "1.0" "Recorder Library"
+
+.\" ----------------------------------------------------------------------------
+.SH NAME
+.\" ----------------------------------------------------------------------------
+record, record_fast \- Fast event logging in circular buffers
+
+
+.\" ----------------------------------------------------------------------------
+.SH SYNOPSIS
+.\" ----------------------------------------------------------------------------
+.nf
+.B #include <recorder/recorder.h>
+.PP
+.BI "ringidx_t record(recorder_name " recname ", const char *" format ", ...);"
+.BI "ringidx_t record_fast(recorder_name " recname ", const char *" format ", ...);"
+.fi
+.PP
+
+
+.\" ----------------------------------------------------------------------------
+.SH DESCRIPTION
+.\" ----------------------------------------------------------------------------
+.PP
+The
+.BR record()
+function stores an event in the recorder identified by
+.I recname.
+The event record includes a time stamp provided by the
+.BR gettimeofday(3)
+function (or a similar absolute time function), as well as the
+.I format
+string and up to 12 additional arguments. The
+.I format
+string should follow the
+.BR printf(3)
+conventions, with the exceptions and additions indicated below.
+
+.PP
+The
+.BR record_fast()
+reuses the time stamp of the previous
+.BR record()
+function for the same recorder, making it approximately twice as fast
+on some modern systems. The cost difference should be in the order
+of the cost of a call like
+.BR gettimeofday(3)
+
+.PP
+Event recording code is designed to remain active in your program at
+all times. Unlike typical
+.BR printf(3)
+messages, events recorded by
+.BR record()
+are not generally intended to be seen immediately, but rather to be
+shown laster, for example in case of crash. See
+.BR recorder_dump(3).
+Formatting only happens when the message is actually printed.
+
+.PP
+Events can also be
+.IR traced
+on a per-recorder basis. In that case, the
+.BR record()
+and
+.BR record_fast()
+functions will immediately format their output. See
+.BR recorder_set_trace(3)
+
+.SS Automatic end of line
+.PP
+Event records are always printed on an individual line. It is not
+necessary to add a \fB\en\fR character at the end of the format
+string. If one is present, it will have no effect.
+
+.EX
+    record(my_recorder, "Hello");
+    record(my_recorder, "World\n");
+.EE
+
+.PP
+The use of \fB\en\fR at other positions in the string is
+possible and has the usual effect.
+
+.SS Formatting character strings: %s and %+s
+.PP
+Since formatting an event may happen at an unknown time after its
+recording, the \fB%s\fR and \f%S\fR formats are treated like \fB%p\fR
+unless formatting happens as part of tracing. If you are passing a
+character string that is known to be constant, or at least still valid
+when it will be formatted, then you can use the \fB%+s\fR format
+instead.
+
+.EX
+    const char *name[2] = { "false", "true" };
+    record(my_recorder, "Value %d is %+s", value, name[!!value]);
+.EE
+
+
+.SS Extended format characters
+.PP
+It is possible to configure additional format characters. See
+.BR recorder_configure_type.
+When this function is used, format strings may deviate notably from
+the
+.BR printf(3)
+standard, or may conflict with other extensions to that standard.
+
+
+.\" ----------------------------------------------------------------------------
+.SH RETURN VALUE
+.\" ----------------------------------------------------------------------------
+.PP
+The return value is the index of the event that was recorded. This
+value is rarely useful and can generally be ignored.
+
+
+.\" ----------------------------------------------------------------------------
+.SH BUGS
+.\" ----------------------------------------------------------------------------
+.PP
+There is a limit to the number of arguments that can be passed to
+.BR record()
+and
+.BR record_fast().
+As of version 1.0, the maximum number is 12. If that number is
+exceeded, the compilation error message is not friendly.
+
+.PP
+Bugs should be reported using https://github.com/c3d/recorder/issues.
+
+
+.\" ----------------------------------------------------------------------------
+.SH EXAMPLES
+.\" ----------------------------------------------------------------------------
+.PP
+The program below records its input arguments, and crashes if passed
+.I crash
+as the first command-line argument.
+.PP
+.in +4n
+.EX
+#include <recorder/recorder.h>
+#include <string.h>
+
+RECORDER(program_args, 32, "Program command-line arguments");
+int main(int argc, char **argv)
+{
+    int a;
+    recorder_dump_on_common_signals(0, 0);
+    for (a = 0; a < argc; a++)
+        record(program_args, "Argument %d is %+s", a, argv[a]);
+
+    if (argc >= 2 && strcmp(argv[1], "crash") == 0)
+    {
+        char *ptr = NULL;
+        strcpy(ptr, argv[1]);
+    }
+}
+.EE
+.in -4n
+.PP
+When a crash occurs, previously recorded events are printed out on the
+console.
+
+.PP
+The program below is an instrumented version of the classical
+recursive Fibonacci computation. It uses several recorders
+corresponding to different types of events, and activates warnings and
+errors in a way that can be configured by setting an environment variable.
+.PP
+.in +4n
+.EX
+#include <recorder/recorder.h>
+#include <string.h>
+#include <stdio.h>
+#include <stdlib.h>
+
+RECORDER(fib_main,    32, "Loops in fib function");
+RECORDER(fib_loops,   32, "Loops in fib function");
+RECORDER(fib_warning, 32, "Warnings in fib function");
+RECORDER(fib_error,   32, "Errors in fib function");
+
+int fib(int n)
+{
+    if (n <= 1) {
+        if (n < 0)
+            record(fib_error, "fib is undefined for negative value %d", n);
+        return n;
+    }
+    record(fib_loops, "Computing fib(%d)", n);
+    int result = fib(n-1) + fib(n-2);
+    record(fib_loops, "Computed fib(%d) = %d", n, result);
+    return result;
+}
+
+int main(int argc, char **argv)
+{
+    int a;
+    recorder_dump_on_common_signals(0, 0);
+    recorder_trace_set(".*_warning=35 .*_error");
+    recorder_trace_set(getenv("FIB_TRACES"));
+    for (a = 1; a < argc; a++) {
+        int n = atoi(argv[a]);
+        if (n >= RECORDER_TRACE(fib_warning))
+            record(fib_warning, "Computing for %d may take a while", n);
+        printf("fib(%d) = %d\n", n, fib(n));
+        if (n >= RECORDER_TRACE(fib_warning))
+            record(fib_warning, "Computation for %d finally completed", n);
+    }
+}
+.EE
+.in -4n
+.PP
+This program will produce an output similar to the following:
+.PP
+.in +4n
+.EX
+% fib 1 2 3 4 10 20 30 35 10 40 -1 
+fib(1) = 1
+fib(2) = 1
+fib(3) = 2
+fib(4) = 3
+fib(10) = 55
+fib(20) = 6765
+fib(30) = 832040
+[2714667 0.177725] fib_warning: Computing for 35 may take a while
+fib(35) = 9227465
+[32575370 1.859156] fib_warning: Computation for 35 finally completed
+fib(10) = 55
+[32575547 1.859171] fib_warning: Computing for 40 may take a while
+fib(40) = 102334155
+[363735828 20.527882] fib_warning: Computation for 40 finally completed
+[363735829 20.527887] fib_error: fib is undefined for negative value -1
+fib(-1) = -1
+.EE
+.in -4n
+The first column in trace outputs is the number of events that were
+recorded. THe second column is the time in seconds since the program
+started.
+
+.PP
+The same program can also be run with additional tracing or warnings,
+for example:
+.PP
+.in +4n
+.EX
+% FIB_TRACES="recorder_location fib_loops fib_warning=3" /tmp/fib 3 4 
+/tmp/fib.c:33:[82 0.000496] fib_warning: Computing for 3 may take a while
+/tmp/fib.c:18:[83 0.000561] fib_loops: Computing fib(3)
+/tmp/fib.c:18:[84 0.000570] fib_loops: Computing fib(2)
+/tmp/fib.c:20:[85 0.000575] fib_loops: Computed fib(2) = 1
+/tmp/fib.c:20:[86 0.000581] fib_loops: Computed fib(3) = 2
+fib(3) = 2
+/tmp/fib.c:36:[87 0.000590] fib_warning: Computation for 3 finally completed
+/tmp/fib.c:33:[88 0.000596] fib_warning: Computing for 4 may take a while
+/tmp/fib.c:18:[89 0.000601] fib_loops: Computing fib(4)
+/tmp/fib.c:18:[90 0.000607] fib_loops: Computing fib(3)
+/tmp/fib.c:18:[91 0.000612] fib_loops: Computing fib(2)
+/tmp/fib.c:20:[92 0.000619] fib_loops: Computed fib(2) = 1
+/tmp/fib.c:20:[93 0.000625] fib_loops: Computed fib(3) = 2
+/tmp/fib.c:18:[94 0.000664] fib_loops: Computing fib(2)
+/tmp/fib.c:20:[95 0.000707] fib_loops: Computed fib(2) = 1
+/tmp/fib.c:20:[96 0.000724] fib_loops: Computed fib(4) = 3
+fib(4) = 3
+/tmp/fib.c:36:[97 0.000741] fib_warning: Computation for 4 finally completed
+.EE
+.in -4n
+
+.\" ----------------------------------------------------------------------------
+.SH SEE ALSO
+.\" ----------------------------------------------------------------------------
+.BR RECORDER_DEFINE (3),
+.BR RECORDER_DECLARE (3)
+.br
+.BR recorder_trace_set (3)
+.br
+.BR recorder_dump (3),
+.BR recorder_dump_for (3),
+.br
+.BR recorder_configure_output (3),
+.BR recorder_configure_show (3)
+.br
+.BR recorder_configure_format (3),
+.BR recorder_configure_type (3)
+
+.PP
+Additional documentation and tutorials can be found
+at https://github.com/c3d/recorder.
+
+
+.\" ----------------------------------------------------------------------------
+.SH AUTHOR
+.\" ----------------------------------------------------------------------------
+Original recorder library and documentation written by Christophe de Dinechin
