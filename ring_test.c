@@ -391,7 +391,7 @@ int ringbuffer_test(int argc, char **argv)
         pthread_create(&tid, NULL, writer_thread, NULL);
 
 
-    unsigned howLong = argc >= 3 ? atoi(argv[2]) : 10;
+    unsigned howLong = argc >= 3 ? atoi(argv[2]) : 1;
     INFO("Testing in progress, please wait about %ds", howLong);
     unsigned sleepTime = howLong;
     do { sleepTime =  sleep(sleepTime); } while (sleepTime);
@@ -547,6 +547,6 @@ int main(int argc, char **argv)
     ringbuffer_test(argc, argv);
     if (failed)
         recorder_dump();        // Try to figure out what failed
-    compare_performance_of_common_operations(10000000);
+    compare_performance_of_common_operations(100000);
     return failed;
 }
