@@ -6,7 +6,7 @@ License:	LGPLv3+
 Url:		https://github.com/c3d/%{name}
 Source:		https://github.com/c3d/%{name}/archive/v%{version}/%{name}-%{version}.tar.gz
 BuildRequires:	make >= 3.82
-BuildRequires:  make-it-quick >= 0.2
+BuildRequires:  make-it-quick >= 0.2.1
 BuildRequires:  gcc
 BuildRequires:  gcc-c++
 
