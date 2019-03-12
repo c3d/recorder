@@ -576,7 +576,8 @@ static void recorder_dump_entry(recorder_info      *rec,
             if (special)
             {
                 uintptr_t arg = entry->args[arg_index++];
-                dst += special(rec->trace | safe_pointer,
+                intptr_t tracing = recorder_dumping ? 0 : rec->trace;
+                dst += special(safe_pointer | tracing,
                                format_buffer, dst, dst_end - dst, arg);
             }
             else if (floating_point)
