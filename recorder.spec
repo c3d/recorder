@@ -31,6 +31,7 @@ data collected by librecorder
 
 %build
 %make_build COLORIZE= TARGET=opt
+%make_build COLORIZE= TARGET=opt AUTHORS NEWS
 (cd scope && qmake-qt5 && make)
 
 %check
@@ -46,6 +47,8 @@ data collected by librecorder
 %{_libdir}/lib%{name}.so.*
 %license LICENSE
 %doc README.md
+%doc AUTHORS
+%doc NEWS
 
 %post -p /sbin/ldconfig
 %postun -p /sbin/ldconfig
