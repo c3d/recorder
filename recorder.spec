@@ -57,7 +57,8 @@ data collected by librecorder
 %{_libdir}/lib%{name}.so
 %{_includedir}/%{name}/*
 %{_datadir}/pkgconfig/%{name}.pc
-%{_mandir}/man3/record.3.gz
+%{_mandir}/man3/*.3.gz
+%{_mandir}/man1/*.1.gz
 
 %files scope
 %{_bindir}/recorder_scope

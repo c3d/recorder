@@ -1,0 +1,353 @@
+.\" ****************************************************************************
+.\"  record_configure_type.3                                 recorder library
+.\" ****************************************************************************
+.\"
+.\"   File Description:
+.\"
+.\"     Man page for the recorder library
+.\"
+.\"     This documents
+.\"       record_configure_type(3)
+.\"
+.\"
+.\"
+.\"
+.\" ****************************************************************************
+.\"  (C) 2019 Christophe de Dinechin <christophe@dinechin.org>
+.\" %%%LICENSE_START(LGPLv3+_DOC_FULL)
+.\" This is free documentation; you can redistribute it and/or
+.\" modify it under the terms of the GNU General Public License as
+.\" published by the Free Software Foundation; either version 2 of
+.\" the License, or (at your option) any later version.
+.\"
+.\" The GNU General Public License's references to "object code"
+.\" and "executables" are to be interpreted as the output of any
+.\" document formatting or typesetting system, including
+.\" intermediate and printed output.
+.\"
+.\" This manual is distributed in the hope that it will be useful,
+.\" but WITHOUT ANY WARRANTY; without even the implied warranty of
+.\" MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+.\" GNU General Public License for more details.
+.\"
+.\" You should have received a copy of the GNU General Public
+.\" License along with this manual; if not, see
+.\" <http://www.gnu.org/licenses/>.
+.\" %%%LICENSE_END
+.\" ****************************************************************************
+
+.TH recorder_configure_type 3  "2019-03-09" "1.0" "Recorder Library"
+
+.\" ----------------------------------------------------------------------------
+.SH NAME
+.\" ----------------------------------------------------------------------------
+record_configure_type \- Configure format characters for event records
+
+
+.\" ----------------------------------------------------------------------------
+.SH SYNOPSIS
+.\" ----------------------------------------------------------------------------
+.nf
+.B #include <recorder/recorder.h>
+.PP
+.BI "typedef size_t (*recorder_type_fn)(intptr_t " trace ","
+.BI "                                   const char *" format ","
+.BI "                                    char *" buffer ","
+.BI "                                    size_t" length ","
+.BI "                                    uintptr_t" data ");"
+.BI "recorder_type_fn   recorder_configure_type(uint8_t" id ", recorder_type_fn" type ");"
+
+.fi
+.PP
+
+
+.\" ----------------------------------------------------------------------------
+.SH DESCRIPTION
+.\" ----------------------------------------------------------------------------
+.PP
+The
+.BR record_configure_type
+configures a type formatting character identified by
+.I id
+that can then be used in
+.BR record(3)
+format strings.
+This is normally used to add special extensions to the printf format
+that deal with to frequently used data types in the program. In the
+example below, we use
+.B "record_configure_type('t', todo_format)"
+so that the
+.B %t
+format sequence will format
+.B struct todo *
+pointers.
+
+.PP
+The function identified by
+.I type
+is called to perform the actual data formatting. It receives the
+following arguments:
+
+.TP
+.I trace
+is the tracing value associated to the recorder. This can be used to
+implement safe pointer rendering similar to
+.B %+s
+i.e. only derefrence the given pointer if you know that it is safe to
+do so. Note that if the format string is
+.BI "%+"id
+then the value of
+.I trace
+will be non-zero.
+
+.TP
+.I format
+is the actual format string, which allows your
+.I type
+function to handle format modifiers or precision indicators similar to
+the way printf does.
+
+.TP
+.I buffer
+is the buffer where your function should write its output.
+
+.TP
+.I length
+is the amount of space available in the buffer.
+
+.TP
+.I data
+is the actual value stored in the recorder event, for example a
+pointer to your data.
+
+
+.\" ----------------------------------------------------------------------------
+.SH RETURN VALUE
+.\" ----------------------------------------------------------------------------
+.PP
+The return value of
+.B recorder_configure_type()
+is the previous function handling the given format identifier.
+
+.PP
+The
+.I type
+function should return the size it would have written, in the same way
+.BR snprintf(3)
+does, i.e. the number of characters that it would have written,
+irrespective of the size of the buffer.
+
+
+.\" ----------------------------------------------------------------------------
+.SH EXAMPLES
+.\" ----------------------------------------------------------------------------
+.PP
+The following program uses
+.B recorder_configure_type()
+to associate the function
+.B todo_format()
+to the
+.B %t
+format sequence. The function interprets its argument as a
+.B struct todo *
+pointer. The main program builds a to-do list from command-line
+arguments, but it contains a subtle bug that causes it to crash if any
+of the arguments happens to be "crash".
+
+.PP
+.in +4n
+.EX
+#include <recorder/recorder.h>
+#include <string.h>
+#include <stdlib.h>
+#include <stdio.h>
+
+RECORDER(todo, 32, "To-Do List");
+
+typedef struct todo
+{
+    const char *name;
+    struct todo *next;
+} todo;
+
+size_t todo_format(intptr_t tracing,
+                   const char *format,
+                   char *buffer, size_t size,
+                   uintptr_t arg)
+{
+    struct todo *t = (struct todo *) arg;
+    if (!tracing || !t)
+        return snprintf(buffer, size, "%p", arg);
+    return snprintf(buffer, size, "todo@%p('%s')", t, t->name);
+}
+
+int main(int argc, char **argv)
+{
+    int a;
+    todo *list = NULL;
+    int crash = 0;
+    recorder_dump_on_common_signals(0, 0);
+    recorder_configure_type('t', todo_format);
+    for (a = 1; a < argc; a++)
+    {
+        record(todo, "Argument %d is '%+s'", a, argv[a]);
+        todo *next = malloc(sizeof(todo));
+        next->name = argv[a];
+        next->next = list;
+        record(todo, "Created entry %t previous was %t", next, list);
+        list = next;
+        crash += strcmp(argv[a], "crash") == 0;
+    }
+
+    while (list || crash)
+    {
+        todo *next = list->next;
+        record(todo, "Had item %t", list);
+        free(list);
+        list = next;
+    }
+}
+.EE
+.in -4n
+
+.PP
+The following shows what happens if you run the program normally
+.PP
+.in +4n
+.EX
+.B % todo eat pray love
+.EE
+.in -4n
+
+.PP
+The following shows what happens if you trace the program: the
+.B struct todo *
+values are formatted, showing additional information.
+
+.in +4n
+.EX
+.B % RECORDER_TRACES=todo todo eat pray love
+[34 0.000273] todo: Argument 1 is 'eat'
+[35 0.000339] todo: Created entry todo@0x50ba80('eat') previous was (nil)
+[36 0.000352] todo: Argument 2 is 'pray'
+[37 0.000360] todo: Created entry todo@0x50ba60('pray') previous was todo@0x50ba80('eat')
+[38 0.000368] todo: Argument 3 is 'love'
+[39 0.000373] todo: Created entry todo@0x50ba40('love') previous was todo@0x50ba60('pray')
+[40 0.000386] todo: Had item todo@0x50ba40('love')
+[41 0.000394] todo: Had item todo@0x50ba60('pray')
+[42 0.000477] todo: Had item todo@0x50ba80('eat')
+.EE
+.in -4n
+
+.PP
+The following shows what happens if the program crashes due to bad
+input: the crash dump no longer indicates the content of the todo
+pointers, since it would be unsafe to dereference them at that time.
+
+.PP
+.in +4n
+.EX
+.B % todo crash and burn
+[...]
+[25 0.000052] recorders: Configure type 't' to 0x4011c6 from (nil)
+[26 0.000067] todo: Argument 1 is 'crash'
+[27 0.000146] todo: Created entry 0x1f9d260 previous was (nil)
+[28 0.000150] todo: Argument 2 is 'and'
+[29 0.000150] todo: Created entry 0x1f9d280 previous was 0x1f9d260
+[30 0.000150] todo: Argument 3 is 'burn'
+[31 0.000150] todo: Created entry 0x1f9d2a0 previous was 0x1f9d280
+[32 0.000151] todo: Had item 0x1f9d2a0
+[33 0.000152] todo: Had item 0x1f9d280
+[34 0.000152] todo: Had item 0x1f9d260
+[35 0.000172] signals: Received signal Segmentation fault (11) si_addr=0x8, dumping recorder
+[36 0.000209] recorders: Recorder dump
+.EE
+.in -4n
+
+.PP
+Finally, the following shows what happens if you activate tracing and
+the program crashes. In that case, the tracing part at the top shows
+the detailed information. However, during the crash dump, the same
+events are replayed again (putting them in context with other events),
+this time without dereferencing the pointer.
+
+.PP
+.in +4n
+.EX
+.B % RECORDER_TRACES=todo todo crash and burn
+[...]
+[34 0.000184] todo: Argument 1 is 'crash'
+[35 0.000240] todo: Created entry todo@0xf6aa80('crash') previous was (nil)
+[36 0.000250] todo: Argument 2 is 'and'
+[37 0.000255] todo: Created entry todo@0xf6aa60('and') previous was todo@0xf6aa80('crash')
+[38 0.000260] todo: Argument 3 is 'burn'
+[39 0.000265] todo: Created entry todo@0xf6aa40('burn') previous was todo@0xf6aa60('and')
+[40 0.000270] todo: Had item todo@0xf6aa40('burn')
+[41 0.000275] todo: Had item todo@0xf6aa60('and')
+[42 0.000279] todo: Had item todo@0xf6aa80('crash')
+[...]
+[33 0.000180] recorders: Configure type 't' to 0x4011c6 from (nil)
+[34 0.000184] todo: Argument 1 is 'crash'
+[35 0.000240] todo: Created entry 0xf6aa80 previous was (nil)
+[36 0.000250] todo: Argument 2 is 'and'
+[37 0.000255] todo: Created entry 0xf6aa60 previous was 0xf6aa80
+[38 0.000260] todo: Argument 3 is 'burn'
+[39 0.000265] todo: Created entry 0xf6aa40 previous was 0xf6aa60
+[40 0.000270] todo: Had item 0xf6aa40
+[41 0.000275] todo: Had item 0xf6aa60
+[42 0.000279] todo: Had item 0xf6aa80
+[43 0.000297] signals: Received signal Segmentation fault (11) si_addr=0x8, dumping recorder
+[44 0.000309] recorders: Recorder dump
+.EE
+.in -4n
+
+
+.\" ----------------------------------------------------------------------------
+.SH BUGS
+.\" ----------------------------------------------------------------------------
+.PP
+Using this function will render your format strings wildly
+incompatible with the standard
+.BR printf(3)
+format, possibly making your code less readable.
+
+.PP
+There is a very limited number of possible type identifiers. Using
+this feature in a shared library may cause conflicts with other code
+that would also want to override the same format character.
+
+.PP
+It is possible to override standard format characters using this
+function. Whether this is a bug or a feature remains to be seen.
+
+.PP
+Bugs should be reported using https://github.com/c3d/recorder/issues.
+
+
+.\" ----------------------------------------------------------------------------
+.SH SEE ALSO
+.\" ----------------------------------------------------------------------------
+.BR RECORDER_DEFINE (3),
+.BR RECORDER_DECLARE (3)
+.br
+.BR recorder_trace_set (3)
+.BR RECORDER_TRACE (3)
+.br
+.BR recorder_dump (3),
+.BR recorder_dump_for (3),
+.br
+.BR recorder_configure_output (3),
+.BR recorder_configure_show (3)
+.br
+.BR recorder_configure_format (3),
+.BR recorder_configure_type (3)
+
+.PP
+Additional documentation and tutorials can be found
+at https://github.com/c3d/recorder.
+
+
+.\" ----------------------------------------------------------------------------
+.SH AUTHOR
+.\" ----------------------------------------------------------------------------
+Written by Christophe de Dinechin

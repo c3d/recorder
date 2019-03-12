@@ -1,0 +1,249 @@
+.\" ****************************************************************************
+.\"  record_scope.1                                            recorder library
+.\" ****************************************************************************
+.\"
+.\"   File Description:
+.\"
+.\"     Man page for the recorder library
+.\"
+.\"     This documents
+.\"       recorder_scope(1)
+.\"
+.\"
+.\"
+.\"
+.\" ****************************************************************************
+.\"  (C) 2019 Christophe de Dinechin <christophe@dinechin.org>
+.\" %%%LICENSE_START(LGPLv3+_DOC_FULL)
+.\" This is free documentation; you can redistribute it and/or
+.\" modify it under the terms of the GNU General Public License as
+.\" published by the Free Software Foundation; either version 2 of
+.\" the License, or (at your option) any later version.
+.\"
+.\" The GNU General Public License's references to "object code"
+.\" and "executables" are to be interpreted as the output of any
+.\" document formatting or typesetting system, including
+.\" intermediate and printed output.
+.\"
+.\" This manual is distributed in the hope that it will be useful,
+.\" but WITHOUT ANY WARRANTY; without even the implied warranty of
+.\" MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+.\" GNU General Public License for more details.
+.\"
+.\" You should have received a copy of the GNU General Public
+.\" License along with this manual; if not, see
+.\" <http://www.gnu.org/licenses/>.
+.\" %%%LICENSE_END
+.\" ****************************************************************************
+
+.TH recorder_scope 1  "2019-03-09" "1.0" "Recorder Library"
+
+.\" ----------------------------------------------------------------------------
+.SH NAME
+.\" ----------------------------------------------------------------------------
+record_scope \- A real-time graphing tool for recorded data
+
+
+.\" ----------------------------------------------------------------------------
+.SH SYNOPSIS
+.\" ----------------------------------------------------------------------------
+.B recorder_scope
+[options]
+.I channels
+
+
+.\" ----------------------------------------------------------------------------
+.SH DESCRIPTION
+.\" ----------------------------------------------------------------------------
+
+The
+.B recorder_scope
+program graphs the data collected by selected
+.BR record(3)
+statements in a program. It can also be used to update recorder
+configuration in real-time while the instrumented program is running.
+
+.PP
+The
+.I channels
+to display are selected using regular expressions. They must have been
+shared by the instrumented program using
+.TR recorder_trace_set(3)
+typically by setting the
+.B RECORDER_TRACES
+environment variable.
+
+.\" ----------------------------------------------------------------------------
+.SH OPTIONS
+.\" ----------------------------------------------------------------------------
+
+.PP
+The program accepts the following options:
+
+.TP
+.B \-c config
+Send the configuration command to the instrumented program. This makes
+it possible for example to dynamically adjust tracing options.
+
+.TP
+.B \-s slider
+Setup a slider on the user interface that can be used to control a
+specific trace value, see
+.BR RECORDER_TRACE(3).
+The slider syntax is
+.IR name = initial : min : max
+where
+.I name
+is the name of the recorder to configure,
+.I initial
+is its initial value,
+.I min
+is the lowest possible value on the slider and
+.I max
+is the highest possible value on the slider.
+
+.TP
+.B \-d duration
+Set the maximum duration in seconds for the data being displayed on the
+window. Data older than this duration will not be shown.
+
+.TP
+.B \-w samples
+Set the sample window, i.e. the maximum number of samples displayed
+simultaneously. A value of 0 will automatically select the window
+width in pixels.
+
+.TP
+.B \-t
+Toggle timing display in the graphs. The same effect can be achieved
+while the program is running using the 't' key.
+
+.TP
+.B \-m
+Toggle display of minimum and maximum values in the graphs. The same effect can be achieved
+while the program is running using the 'm' key.
+
+.TP
+.B \-a
+Toggle display of running average values in the graphs. The same
+effect can be achieved while the program is running using the 'a' key.
+
+.TP
+.B \-n
+Toggle display of the normal values in the graphs (for example if
+you are only interested in min and max values). The same
+effect can be achieved while the program is running using the 'n' key.
+
+.TP
+.B \-r ratio
+Set averaging ratio for \-m and \-a options, in percent.
+
+.TP
+.B \-b basename
+Set the basename for file when saving data or screen shots.
+
+.TP
+.B \-g WxH@XxY
+Set the window geometry to W x H pixels at position (X, Y)
+
+.\" ----------------------------------------------------------------------------
+.SH EXAMPLES
+.\" ----------------------------------------------------------------------------
+.PP
+If the instrumented program contains the following recorder instrumentation:
+
+.PP
+.EX
+    int rate = RECORDER_TWEAK(rate);
+    record(my_recorder, "The value of %d is %d", x, y * rate);
+.EE
+
+.PP
+then the values of
+.I x
+and
+.I y
+can be exported by running the program instrumented. For example,
+setting the environment variable
+.B RECORDER_TRACES
+to the value
+.B "my_recorder=x_value,y_value"
+will export the first two data values in recorder
+.I my_recorder
+under the names
+.I x_value
+and
+.I y_value
+for use by
+.B recorder_scope.
+
+.PP
+To graph these values, you would use:
+
+.PP
+.EX
+    % recorder_scope x_value y_value
+.EE
+
+
+.PP
+To enable tracing for all recorders whose names end in "error":
+
+.PP
+.EX
+    % recorder_scope -c '.*error'
+.EE
+
+.PP
+To set the 'rate' tweak to 10, giving the value of
+.B RECORDER_TRACE(rate)
+or
+.B RECORDER_TWEAK(rate)
+the value 10:
+
+.PP
+.EX
+    % recorder_scope -c 'rate=10'
+.EE
+
+.PP
+To adjust the value of 'rate' using a slider starting at value 10 and
+where the values can be set between 10 and 39:
+
+.PP
+.EX
+    % recorder_scope -s 'rate=10:2:39'
+.EE
+
+
+.\" ----------------------------------------------------------------------------
+.SH BUGS
+.\" ----------------------------------------------------------------------------
+.PP
+The
+.B recorder_scope
+program normally attempts to use OpenGL for faster rendering. This may
+not be convenient for example over a remote X11 connexion. In that
+case, you should set the environment variable
+.B RECORDER_NOGL=1
+and will have significantly lower performance.
+
+
+.PP
+Bugs should be reported using https://github.com/c3d/recorder/issues.
+
+
+.\" ----------------------------------------------------------------------------
+.SH SEE ALSO
+.\" ----------------------------------------------------------------------------
+.BR record(3), recorder_trace_set(3)
+
+.PP
+Additional documentation and tutorials can be found
+at https://github.com/c3d/recorder.
+
+
+.\" ----------------------------------------------------------------------------
+.SH AUTHOR
+.\" ----------------------------------------------------------------------------
+Written by Christophe de Dinechin

@@ -1,12 +1,12 @@
 .\" ****************************************************************************
-.\"  record.3                                                 recorder library
+.\"  recorder_dump.3                                           recorder library
 .\" ****************************************************************************
 .\"
 .\"   File Description:
 .\"
 .\"     Man page for the recorder library
 .\"
-.\"     This documents record(3) and record_fast(3)
+.\"     This documents recorder_dump(3), recorder_dump_for(3), recorder_sort(3)
 .\"
 .\"
 .\"
@@ -37,12 +37,20 @@
 .\" %%%LICENSE_END
 .\" ****************************************************************************
 
-.TH record 3  "2019-03-09" "1.0" "Recorder Library"
+.TH recorder_dump 3  "2019-03-09" "1.0" "Recorder Library"
 
 .\" ----------------------------------------------------------------------------
 .SH NAME
 .\" ----------------------------------------------------------------------------
-record, record_fast \- Fast event logging in circular buffers
+recorder_dump \- Dump all recorder entries
+.br
+recorder_dump_for \- Dump selected recorders
+.br
+recorder_sort \- Fine-controlled recorder dump
+.br
+recorder_dump_on_signal \- Dump the recorder when receiving a signal
+.br
+recorder_dump_on_common_signals \- Dump the recorder for standard signals
 
 
 .\" ----------------------------------------------------------------------------
@@ -51,8 +59,31 @@ record, record_fast \- Fast event logging in circular buffers
 .nf
 .B #include <recorder/recorder.h>
 .PP
-.BI "ringidx_t record(recorder_name " recname ", const char *" format ", ...);"
-.BI "ringidx_t record_fast(recorder_name " recname ", const char *" format ", ...);"
+.BI "typedef unsigned (*recorder_show_fn) (const char *" text ","
+.BI "                                      size_t" len ","
+.BI "                                      void *" output ");"
+.BI "typedef void (*recorder_format_fn)(recorder_show_fn " show ","
+.BI "                                   void *" output ","
+.BI "                                   const char * "label ","
+.BI "                                   const char *" location ","
+.BI "                                   uintptr_t" order ","
+.BI "                                   uintptr_t" timestamp ","
+.BI "                                   const char *" message ");"
+.BI "typedef size_t (*recorder_type_fn)(intptr_t " trace ","
+.BI "                                   const char *" format ","
+.BI "                                   char *" buffer ","
+.BI "                                   size_t" length ","
+.BI "                                   uintptr_t" data ");"
+.PP
+.BI "unsigned recorder_dump(void);"
+.BI "unsigned recorder_dump_for(const char *" pattern ");"
+.BI "unsigned recorder_sort(const char *" pattern ","
+.BI "                       recorder_format_fn " format ","
+.BI "                       recorder_show_fn " show ","
+.BI "                       void * " show_arg ");"
+.BI "void recorder_dump_on_signal(int " signal ");"
+.BI "void recorder_dump_on_common_signals(unsigned " add ","
+.BI "                                     unsigned " remove ");"
 .fi
 .PP
 
@@ -62,96 +93,97 @@ record, record_fast \- Fast event logging in circular buffers
 .\" ----------------------------------------------------------------------------
 .PP
 The
-.BR record()
-function stores an event in the recorder identified by
-.I recname.
-The event record includes a time stamp provided by the
-.BR gettimeofday(3)
-function (or a similar absolute time function), as well as the
+.BR recorder_dump()
+function dumps the content of all the event recorders, in the order in
+which they were recorded. The
+.BR recorder_dump_for()
+function only dumps the recorders selected by the regular expression
+.I pattern.
+The
+.BR recorder_sort()
+function dumps the recorders selected by regular expression
+.I pattern
+using
 .I format
-string and up to 12 additional arguments. The
-.I format
-string should follow the
-.BR printf(3)
-conventions, with the exceptions and additions indicated below.
+to format an event record,
+.I show
+to show it, and passing
+.I show_arg
+to the function
+.I show.
+
+.PP
+Calls to
+.BR recorder_dump()
+and
+.BR recorder_dump_for()
+are equivalents to calls to
+.BR recorder_sort
+where standard default values for
+.I format,
+.I show
+and
+.I arg.
+These values can be changed using
+.BR recorder_configure_format(3),
+.BR recorder_configure_show(3)
+and
+.BR recorder_configure_output(3)
+respectively.
 
 .PP
 The
-.BR record_fast()
-reuses the time stamp of the previous
-.BR record()
-function for the same recorder, making it approximately twice as fast
-on some modern systems. The cost difference should be in the order
-of the cost of a call like
-.BR gettimeofday(3)
-
-.PP
-Event recording code is designed to remain active in your program at
-all times. Unlike typical
-.BR printf(3)
-messages, events recorded by
-.BR record()
-are not generally intended to be seen immediately, but rather to be
-shown laster, for example in case of crash. See
-.BR recorder_dump(3).
-Formatting only happens when the message is actually printed.
-
-.PP
-Events can also be
-.IR traced
-on a per-recorder basis. In that case, the
-.BR record()
+.BR recorder_dump_on_signal()
+function ensures that
+.BR recorder_dump()
+is called if the programs receives the given signal.
+The
+.BR recorder_dump_on_common_signals()
+ensures that a recorder dump happens if any of a common set of
+signals is received by the program (SIGQUIT, SIGILL, SIGABRT, SIGBUS,
+SIGSEGV, SIGSYS, SIGXCPU, SIGXFSZ, SIGINFO, SIGUSR1, SIGUSR2,
+SIGSTKFLT and SIGPWR, insofar as they are defined for the operating system).
+The
+.I add
 and
-.BR record_fast()
-functions will immediately format their output. See
-.BR recorder_set_trace(3)
-
-.SS Automatic end of line
-.PP
-Event records are always printed on an individual line. It is not
-necessary to add a \fB\en\fR character at the end of the format
-string. If one is present, it will have no effect.
-
-.EX
-    record(my_recorder, "Hello");
-    record(my_recorder, "World\n");
-.EE
-
-.PP
-The use of \fB\en\fR at other positions in the string is
-possible and has the usual effect.
-
-.SS Formatting character strings: %s and %+s
-.PP
-Since formatting an event may happen at an unknown time after its
-recording, the \fB%s\fR and \f%S\fR formats are treated like \fB%p\fR
-unless formatting happens as part of tracing. If you are passing a
-character string that is known to be constant, or at least still valid
-when it will be formatted, then you can use the \fB%+s\fR format
-instead.
-
-.EX
-    const char *name[2] = { "false", "true" };
-    record(my_recorder, "Value %d is %+s", value, name[!!value]);
-.EE
-
-
-.SS Extended format characters
-.PP
-It is possible to configure additional format characters. See
-.BR recorder_configure_type.
-When this function is used, format strings may deviate notably from
-the
-.BR printf(3)
-standard, or may conflict with other extensions to that standard.
+.I remove
+are bit masks that can be used to add or remove other signals compared
+to the default list.
 
 
 .\" ----------------------------------------------------------------------------
 .SH RETURN VALUE
 .\" ----------------------------------------------------------------------------
 .PP
-The return value is the index of the event that was recorded. This
-value is rarely useful and can generally be ignored.
+The
+.BR recorder_dump(),
+.BR recorder_dump_for()
+and
+.BR recorder_sort()
+functions return the number of event records that were dumped.
+
+
+.\" ----------------------------------------------------------------------------
+.SH ENVIRONMENT VARIABLES
+.\" ----------------------------------------------------------------------------
+.PP
+The
+.BR recorder_dump_on_common_signals()
+function also reads the following environment variables:
+
+.TP
+.B RECORDER_TRACES
+A trace description, in the format expected by
+.TR recorder_trace_set(3).
+
+.TP
+.B RECORDER_TWEAKS
+Like RECORDER_TRACES, but normally used for tweaking configuration
+values as opposed to tracing.
+
+.TP
+.B RECORDER_DUMP
+Activates a background thread to dump the given pattern at regular intervals.
 
 
 .\" ----------------------------------------------------------------------------
@@ -291,17 +323,15 @@ fib(4) = 3
 .EE
 .in -4n
 
-
 .\" ----------------------------------------------------------------------------
 .SH BUGS
 .\" ----------------------------------------------------------------------------
 .PP
-There is a limit to the number of arguments that can be passed to
-.BR record()
-and
-.BR record_fast().
-As of version 1.0, the maximum number is 12. If that number is
-exceeded, the compilation error message is not friendly.
+The current signal handling mechanism does not yet use
+.BR sigaltstack(2)
+and consequently is not robust to stack overflow. It is also known to
+fail for repeated signals. SIGINFO (and the associated Control-T
+keyboard shortcut) do not exist on Linux, which is a pity.
 
 .PP
 Bugs should be reported using https://github.com/c3d/recorder/issues.
@@ -312,9 +342,6 @@ Bugs should be reported using https://github.com/c3d/recorder/issues.
 .\" ----------------------------------------------------------------------------
 .BR RECORDER_DEFINE (3),
 .BR RECORDER_DECLARE (3)
-.br
-.BR recorder_trace_set (3)
-.BR RECORDER_TRACE (3)
 .br
 .BR recorder_dump (3),
 .BR recorder_dump_for (3),

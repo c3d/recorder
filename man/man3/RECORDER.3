@@ -1,12 +1,12 @@
 .\" ****************************************************************************
-.\"  record.3                                                 recorder library
+.\"  RECORDER.3                                                recorder library
 .\" ****************************************************************************
 .\"
 .\"   File Description:
 .\"
 .\"     Man page for the recorder library
 .\"
-.\"     This documents record(3) and record_fast(3)
+.\"     This documents RECORDER, RECORDER_DEFINE and RECORDER_DECLARE
 .\"
 .\"
 .\"
@@ -37,12 +37,12 @@
 .\" %%%LICENSE_END
 .\" ****************************************************************************
 
-.TH record 3  "2019-03-09" "1.0" "Recorder Library"
+.TH RECORDER 3  "2019-03-09" "1.0" "Recorder Library"
 
 .\" ----------------------------------------------------------------------------
 .SH NAME
 .\" ----------------------------------------------------------------------------
-record, record_fast \- Fast event logging in circular buffers
+RECORDER, RECORDER_DEFINE, RECORDER_DECLARE \- Declare and define buffers to record events
 
 
 .\" ----------------------------------------------------------------------------
@@ -51,8 +51,9 @@ record, record_fast \- Fast event logging in circular buffers
 .nf
 .B #include <recorder/recorder.h>
 .PP
-.BI "ringidx_t record(recorder_name " recname ", const char *" format ", ...);"
-.BI "ringidx_t record_fast(recorder_name " recname ", const char *" format ", ...);"
+.BI "#define RECORDER(" recname ", " recsize ", " rechelp ") ..."
+.BI "#define RECORDER_DEFINE(" recname ", " recsize ", " rechelp ") ..."
+.BI "#define RECORDER_DECLARE(" recname ") ..."
 .fi
 .PP
 
@@ -62,96 +63,51 @@ record, record_fast \- Fast event logging in circular buffers
 .\" ----------------------------------------------------------------------------
 .PP
 The
-.BR record()
-function stores an event in the recorder identified by
-.I recname.
-The event record includes a time stamp provided by the
-.BR gettimeofday(3)
-function (or a similar absolute time function), as well as the
-.I format
-string and up to 12 additional arguments. The
-.I format
-string should follow the
-.BR printf(3)
-conventions, with the exceptions and additions indicated below.
+.BR RECORDER()
+macro defines a buffer named
+.I recname
+to store up to
+.I recsize
+events for use by the
+.BR record (3)
+function. The
+.I rechelp
+string is self-documentation describing the events stored in the buffer.
+This self-documentation can be displayed by activating the
+.BR help
+trace, see
+.BR recorder_set_trace (3).
 
 .PP
 The
-.BR record_fast()
-reuses the time stamp of the previous
-.BR record()
-function for the same recorder, making it approximately twice as fast
-on some modern systems. The cost difference should be in the order
-of the cost of a call like
-.BR gettimeofday(3)
+.BR RECORDER_DECLARE()
+macro declares an event recorder, and can be used in header files.
 
 .PP
-Event recording code is designed to remain active in your program at
-all times. Unlike typical
-.BR printf(3)
-messages, events recorded by
-.BR record()
-are not generally intended to be seen immediately, but rather to be
-shown laster, for example in case of crash. See
-.BR recorder_dump(3).
-Formatting only happens when the message is actually printed.
+The 
+.BR RECORDER_DEFINE()
+macro is an alias for
+.BR RECORDER(),
+the intention being that you would use
+.BR RECORDER()
+for event recorders that are local to a file, or a
+.BR RECORDER_DECLARE()
+(in the header file) paired with
+.BR RECORDER_DEFINE()
+(in a non-header file) for event recorders that are shared across
+multiple translation units.
 
 .PP
-Events can also be
-.IR traced
-on a per-recorder basis. In that case, the
-.BR record()
-and
-.BR record_fast()
-functions will immediately format their output. See
-.BR recorder_set_trace(3)
-
-.SS Automatic end of line
-.PP
-Event records are always printed on an individual line. It is not
-necessary to add a \fB\en\fR character at the end of the format
-string. If one is present, it will have no effect.
-
-.EX
-    record(my_recorder, "Hello");
-    record(my_recorder, "World\n");
-.EE
+These macros should be used at file scope, i.e. where a function
+definition or global variable is allowed.
 
 .PP
-The use of \fB\en\fR at other positions in the string is
-possible and has the usual effect.
-
-.SS Formatting character strings: %s and %+s
-.PP
-Since formatting an event may happen at an unknown time after its
-recording, the \fB%s\fR and \f%S\fR formats are treated like \fB%p\fR
-unless formatting happens as part of tracing. If you are passing a
-character string that is known to be constant, or at least still valid
-when it will be formatted, then you can use the \fB%+s\fR format
-instead.
-
-.EX
-    const char *name[2] = { "false", "true" };
-    record(my_recorder, "Value %d is %+s", value, name[!!value]);
-.EE
-
-
-.SS Extended format characters
-.PP
-It is possible to configure additional format characters. See
-.BR recorder_configure_type.
-When this function is used, format strings may deviate notably from
-the
-.BR printf(3)
-standard, or may conflict with other extensions to that standard.
-
-
-.\" ----------------------------------------------------------------------------
-.SH RETURN VALUE
-.\" ----------------------------------------------------------------------------
-.PP
-The return value is the index of the event that was recorded. This
-value is rarely useful and can generally be ignored.
+Each recorder is associated with a
+.I trace value
+which is an integer value that can be read using
+.BR RECORDER_TRACE (3).
+See
+.BR recorder_trace_set (3).
 
 
 .\" ----------------------------------------------------------------------------
@@ -296,12 +252,7 @@ fib(4) = 3
 .SH BUGS
 .\" ----------------------------------------------------------------------------
 .PP
-There is a limit to the number of arguments that can be passed to
-.BR record()
-and
-.BR record_fast().
-As of version 1.0, the maximum number is 12. If that number is
-exceeded, the compilation error message is not friendly.
+Incorrect use of the macros generally results in nonsensical compiler diagnostics.
 
 .PP
 Bugs should be reported using https://github.com/c3d/recorder/issues.
@@ -310,8 +261,8 @@ Bugs should be reported using https://github.com/c3d/recorder/issues.
 .\" ----------------------------------------------------------------------------
 .SH SEE ALSO
 .\" ----------------------------------------------------------------------------
-.BR RECORDER_DEFINE (3),
-.BR RECORDER_DECLARE (3)
+.BR record (3),
+.BR record_fast (3)
 .br
 .BR recorder_trace_set (3)
 .BR RECORDER_TRACE (3)
