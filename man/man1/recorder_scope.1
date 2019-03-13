@@ -71,7 +71,11 @@ shared by the instrumented program using
 .TR recorder_trace_set(3)
 typically by setting the
 .B RECORDER_TRACES
-environment variable.
+environment variable, or any other method that your program uses
+to pass a recorder configuration string to the
+.BR recorder_trace_set(3)
+function.
+
 
 .\" ----------------------------------------------------------------------------
 .SH OPTIONS
@@ -226,8 +230,6 @@ environment variable. That variable should be set consistently between
 the instrumented program and the
 .BR recorder_scope
 application.
-
-
 
 
 .\" ----------------------------------------------------------------------------
