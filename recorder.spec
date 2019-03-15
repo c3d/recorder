@@ -31,14 +31,13 @@ data collected by librecorder
 
 %build
 %make_build COLORIZE= TARGET=opt
-%make_build COLORIZE= TARGET=opt AUTHORS NEWS
 (cd scope && qmake-qt5 && make)
 
 %check
 %make_build COLORIZE= TARGET=opt check
 
 %install
-%make_install COLORIZE= TARGET=opt
+%make_install COLORIZE= TARGET=opt DOC_INSTALL=
 (cd scope && \
      %{__install} -d %{?buildroot}%{_bindir}/ && \
      %{__install} recorder_scope %{?buildroot}%{_bindir}/ )
