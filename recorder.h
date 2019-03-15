@@ -37,10 +37,11 @@ extern "C" {
 //
 // ============================================================================
 
-#define RECORDER_CURRENT_VERSION                RECORDER_VERSION(1,4)
-#define RECORDER_VERSION(major,minor)           ((major)<<16|(minor))
-#define RECORDER_VERSION_MAJOR(version)         (((version) >> 16) & 0xFFFF)
-#define RECORDER_VERSION_MINOR(version)         ((version) & 0xFFFF)
+#define RECORDER_CURRENT_VERSION                RECORDER_VERSION(1,0,5)
+#define RECORDER_VERSION(majr,minr,ptch)        ((majr)<<16|((minr)<<8|(ptch)))
+#define RECORDER_VERSION_MAJOR(version)         (((version) >> 16) & 0xFF)
+#define RECORDER_VERSION_MINOR(version)         (((version) >>  8)& 0xFF)
+#define RECORDER_VERSION_PATCH(version)         (((version) >>  0)& 0xFF)
 
 
 

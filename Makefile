@@ -25,7 +25,7 @@ MANPAGES=$(wildcard man/man3/*.3 man/man1/*.1)
 
 # For pkg-config generation
 PACKAGE_NAME=recorder
-PACKAGE_VERSION=1.0.4
+PACKAGE_VERSION=1.0.5
 PACKAGE_DESCRIPTION=A low-overhead, real-time flight recorder for C/C++
 PACKAGE_URL="http://github.com/c3d/recorder"
 PACKAGE_REQUIRES=

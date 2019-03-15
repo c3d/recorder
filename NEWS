@@ -1,3 +1,11 @@
+v1.0.5          Release 1.0.5: Minor packaging improvements
+    
+    - Do not generate NEWS and AUTHORS, now checked in
+    - Explain that the root of trust is recorder_trace_set, not RECORDER_TRACES
+    - Add ENVIRONMENT VARIABLES section to recorder_scope.1 man page
+    - Fix location of recorder_scope man page
+    - Avoid duplicate file warnings during packaging
+
 v1.0.4          Add man pages and fix a crash risk when tracing with custom types
 
 v1.0.3          Release 1.0.3
