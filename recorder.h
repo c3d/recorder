@@ -1,10 +1,10 @@
 #ifndef RECORDER_H
 #define RECORDER_H
-// ****************************************************************************
-//  recorder.h                                               Recorder project
-// ****************************************************************************
+// *****************************************************************************
+// recorder.h                                                   Recorder project
+// *****************************************************************************
 //
-//   File Description:
+// File description:
 //
 //     Record information about what's going on in the application
 //     (Lifted from ELFE / XL / Tao with specific improvements)
@@ -15,11 +15,26 @@
 //
 //
 //
-// ****************************************************************************
-// This document is released under the GNU LGPL version 3
-// See http://www.gnu.org/copyleft/lgpl.html and Matthew 25:22 for details
-//  (C) 1992-2018 Christophe de Dinechin <christophe@dinechin.org>
-// ****************************************************************************
+// *****************************************************************************
+// This software is licensed under the GNU General Public License v3
+// (C) 2017-2019, Christophe de Dinechin <christophe@dinechin.org>
+// *****************************************************************************
+// This file is part of Recorder
+//
+// Recorder is free software: you can r redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// Recorder is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with Recorder, in a file named COPYING.
+// If not, see <https://www.gnu.org/licenses/>.
+// *****************************************************************************
 
 #include "recorder_ring.h"
 #include <stdarg.h>

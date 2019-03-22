@@ -44,7 +44,7 @@ data collected by librecorder
 
 %files
 %{_libdir}/lib%{name}.so.*
-%license LICENSE
+%license COPYING
 %doc README.md
 %doc AUTHORS
 %doc NEWS
