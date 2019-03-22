@@ -1,5 +1,5 @@
 Name:		recorder
-Version:	1.0.5
+Version:	1.0.6
 Release:	1%{?dist}
 Summary:	A lock-free, real-time flight recorder for your C or C++ programs
 License:	LGPLv3+

@@ -1,3 +1,8 @@
+v1.0.6          Update copyright headers
+    
+    - Headers are now updated using an automated tool
+    - Moved LICENSE to COPYING to conform with GNU recommendations
+
 v1.0.5          Release 1.0.5: Minor packaging improvements
     
     - Do not generate NEWS and AUTHORS, now checked in
