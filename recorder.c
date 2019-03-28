@@ -684,7 +684,7 @@ void *recorder_configure_output(void *output)
 
 static unsigned recorder_print(const char *ptr, size_t len, void *file_arg)
 // ----------------------------------------------------------------------------
-//   The default printing function - prints to stderr
+//   The default printing function - prints to stdout
 // ----------------------------------------------------------------------------
 {
     FILE *file = file_arg ? file_arg : stdout;
