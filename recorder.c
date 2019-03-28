@@ -743,10 +743,10 @@ void *recorder_configure_output(void *output)
 
 static unsigned recorder_print(const char *ptr, size_t len, void *file_arg)
 // ----------------------------------------------------------------------------
-//   The default printing function - prints to stdout
+//   The default printing function - prints to stderr
 // ----------------------------------------------------------------------------
 {
-    FILE *file = file_arg ? file_arg : stdout;
+    FILE *file = file_arg ? file_arg : stderr;
     return (unsigned) fprintf(file, "%.*s\n", (int) len, ptr);
 }
 
@@ -2387,23 +2387,23 @@ int recorder_trace_set(const char *param_spec)
         }
         else if (strcmp(param, "help") == 0 || strcmp(param, "list") == 0)
         {
-            printf("List of available recorders:\n");
+            fprintf(stderr, "List of available recorders:\n");
             for (rec = recorders; rec; rec = rec->next)
                 if (rec->trace <= 1)
-                    printf("%20s%s: %s\n",
+                    fprintf(stderr, "%20s%s: %s\n",
                            rec->name, rec->trace ? "*" : " ",
                            rec->description);
                 else
-                    printf("%20s : %s = %"PRIdPTR" (0x%"PRIXPTR")\n",
+                    fprintf(stderr, "%20s : %s = %"PRIdPTR" (0x%"PRIXPTR")\n",
                            rec->name,
                            rec->description,
                            rec->trace, rec->trace);
 
-            printf("List of available tweaks:\n");
+            fprintf(stderr, "List of available tweaks:\n");
             for (tweak = tweaks; tweak; tweak = tweak->next)
-                printf("%20s : %s = %"PRIdPTR" (0x%"PRIXPTR") \n",
-                       tweak->name, tweak->description,
-                       tweak->trace, tweak->trace);
+                fprintf(stderr, "%20s : %s = %"PRIdPTR" (0x%"PRIXPTR") \n",
+                        tweak->name, tweak->description,
+                        tweak->trace, tweak->trace);
         }
         else if (strcmp(param, "share") == 0)
         {

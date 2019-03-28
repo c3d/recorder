@@ -51,7 +51,7 @@ PACKAGE_BUGS=christophe@dinechin.org
 LDFLAGS  = -lpthread -lm
 
 TESTS=  hanoi_test.c recorder_test.c ring_test.c crash_test.c
-TEST_ARGS_hanoi_test=20 | grep "End fast recording Hanoi with 20 iterations"
+TEST_ARGS_hanoi_test=20 2>&1| grep "End fast recording Hanoi with 20 iterations"
 
 MIQ=make-it-quick/
 include $(MIQ)rules.mk

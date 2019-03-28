@@ -223,6 +223,20 @@ configured by a recorder tweak named `recorder_dump_sleep`, which
 defaults to 100 ms. The background dump can be stopped by calling the
 `recorder_background_stop` function.
 
+Recorder output normally goes to standard error `stderr`, although it
+is possible to redirect the output using one of the following methods:
+
+* By using the `@output` command, for example from the
+ `RECORDER_TRACES` environment variable if your applciation supports
+  it,
+
+* By passing a `FILE *` to `recorder_configure_output` in your
+  application,
+
+* By replacing the output function entirely using `recorder_configure_show`,
+  in which case this function is free to interpret the recorder output
+  pointer in any way you wish. Note that doing so disables the
+  `@output` command.
 
 ## Recorder tracing
 
@@ -252,7 +266,7 @@ The following names in a trace specification denote *command* which
 perform specific actions.
 
 * The `list` and `help` commands will print the list of available
-  recorders on `stdout`.
+  recorders on `stderr`.
 
 * The `all` value will be turned into the catch-all `.*`
   regular expression.
