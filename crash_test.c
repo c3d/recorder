@@ -57,7 +57,7 @@ RECORDER(MAIN, 64, "Primary recorder for crash_test.c");
 static void signal_handler(int sig)
 {
     record(MAIN, "Signal handler for %d called", sig);
-    fprintf(stderr, "Signal handler for %d called\n", sig);
+    printf("Signal handler for %d called\n", sig);
 
     record(MAIN, "Restoring default signal handler");
     signal(sig, SIG_DFL);
