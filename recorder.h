@@ -388,8 +388,9 @@ static void recorder_tweak_activate_##Name(void)                        \
 //
 // ============================================================================
 
-#define record(Name, ...)     RECORD(Name, __VA_ARGS__)
-#define RECORD(Name, Format,...)                                        \
+#define record(Name, ...)               RECORD_MACRO(Name, __VA_ARGS__)
+#define RECORD(Name,...)                RECORD_MACRO(Name, __VA_ARGS__)
+#define RECORD_MACRO(Name, Format,...)                                  \
     RECORD_(RECORD,RECORD_COUNT_(__VA_ARGS__),Name,Format,##__VA_ARGS__)
 #define RECORD_(RECORD,RCOUNT,Name,Format,...)                          \
     RECORD__(RECORD,RCOUNT,Name,Format,## __VA_ARGS__)
