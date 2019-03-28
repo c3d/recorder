@@ -774,7 +774,7 @@ static void recorder_format_entry(recorder_show_fn show,
             dst = dst_end;
     }
 
-    if (UINTPTR_MAX >= 0x7fffffff) // Static if to detect how to display time
+    if (RECORDER_64BIT) // Static if to detect how to display time
     {
         // Time stamp in us, show in seconds
         dst += snprintf(dst, dst_end - dst,
@@ -1358,7 +1358,10 @@ recorder_chans_p recorder_chans_open(const char *file)
             record(recorders_error,
                    "Unable to map %s file for reading: %s (%d)",
                    file, strerror(errno), errno);
-        if (shans->magic != RECORDER_CHAN_MAGIC)
+        if (shans->magic == (RECORDER_CHAN_MAGIC ^ RECORDER_64BIT))
+            record(recorders_error,
+                   "Mismatch between 32-bit and 64-bit recorder data");
+        else if (shans->magic != RECORDER_CHAN_MAGIC)
             record(recorders_error,
                    "Wrong magic number, got %x instead of %x",
                    shans->magic, RECORDER_CHAN_MAGIC);
@@ -1936,10 +1939,10 @@ uintptr_t recorder_tick(void)
     static uintptr_t initialTick = 0;
     struct timeval t;
     gettimeofday(&t, NULL);
-#if INTPTR_MAX < 0x8000000
-    uintptr_t tick = t.tv_sec * 1000ULL + t.tv_usec / 1000;
-#else
+#if RECORDER_64BIT
     uintptr_t tick = t.tv_sec * 1000000ULL + t.tv_usec;
+#else
+    uintptr_t tick = t.tv_sec * 1000ULL + t.tv_usec / 1000;
 #endif
     if (!initialTick)
         initialTick = tick;

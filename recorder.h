@@ -57,7 +57,7 @@ extern "C" {
 #define RECORDER_VERSION_MAJOR(version)         (((version) >> 16) & 0xFF)
 #define RECORDER_VERSION_MINOR(version)         (((version) >>  8)& 0xFF)
 #define RECORDER_VERSION_PATCH(version)         (((version) >>  0)& 0xFF)
-
+#define RECORDER_64BIT                          (INTPTR_MAX > 0x7fffffff)
 
 
 // ============================================================================
@@ -813,10 +813,10 @@ typedef union recorder_data
 {
     intptr_t    signed_value;
     uintptr_t   unsigned_value;
-#if INTPTR_MAX < 0x8000000
-    float       real_value;
-#else // Large enough intptr_t
+#if RECORDER_64BIT
     double      real_value;
+#else // Small intptr_t, so we save 32-bit float values
+    float       real_value;
 #endif // INTPTR_MAX
 } recorder_data;
 
@@ -824,8 +824,9 @@ typedef union recorder_data
 typedef struct recorder_chans *recorder_chans_p;
 typedef struct recorder_chan  *recorder_chan_p;
 
-#define RECORDER_CHAN_MAGIC           0xC0DABABE // Historical reference
-#define RECORDER_CHAN_VERSION         0x010002   // Version 1.0.2
+// Magic number in export channel is different for 32-bit and 64-bit values
+#define RECORDER_CHAN_MAGIC           (0xC0DABABE ^ RECORDER_64BIT)
+#define RECORDER_CHAN_VERSION         RECORDER_VERSION(1,0,5)
 #define RECORDER_EXPORT_SIZE          2048
 
 extern const char *recorder_export_file(void);
@@ -914,10 +915,10 @@ extern uintptr_t recorder_tick(void);
 #endif
 
 #ifndef RECORDER_HZ
-#if INTPTR_MAX < 0x8000000
-#define RECORDER_HZ     1000
-#else // Large enough intptr_t
+#if RECORDER_64BIT
 #define RECORDER_HZ     1000000
+#else // Small time stamp, do not generate huge values
+#define RECORDER_HZ     1000
 #endif // INTPTR_MAX
 #endif // RECORDER_HZ
 
