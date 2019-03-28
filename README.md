@@ -248,18 +248,31 @@ recorder), sets the recorder trace for `bar` to `0`, and sets all
 recorders with a name matching regular expression `b[a-z]z.*` to
 value `3`, for example `boz` and `bbz`.
 
-The following values for the trace specification have special meaning:
+The following names in a trace specification denote *command* which
+perform specific actions.
 
-* The `list` and `help` values will print the list of available
+* The `list` and `help` commands will print the list of available
   recorders on `stdout`.
 
 * The `all` value will be turned into the catch-all `.*`
   regular expression.
 
+* The `output` command will select a file as output for the recorder,
+  and the `output_append` variant will append to the given file. For
+  example, you can write to `/my/file` using `output=/my/file`.
+
 * The `share` value can be used to set the file name used for sharing
   information in real-time between a recorder appplication and an
-  application using that data.
+  application using that data. Note that another way to achieve the
+  same objective is to use the `RECORDER_SHARE` environment variable.
 
+* THe `dump` command causes a recorder dump. This is mostly useful
+  over a remote control session, see `recorder_scope` below.
+
+If the name of a command conflicts with the name of a recorder, the
+recorder will be selected, and you can force the selection of the
+command by prefixing it with `@`. For example, if a recorder is called
+`output`, you can still output to a file with `@output=/my/file`.
 
 ## Using the `RECORDER_TRACES` and `RECORDER_DUMP` environment variables
 

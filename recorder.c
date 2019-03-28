@@ -2294,8 +2294,98 @@ int recorder_trace_set(const char *param_spec)
             }
         }
 
-        // Check special names
-        if (strcmp(param, "help") == 0 || strcmp(param, "list") == 0)
+        // Check recorders that match the given regexp.
+        // We start with recorder names, so that if a recorder named
+        // 'help' exists, it is considered instead of 'help command.
+        // To force the command to be considered, you need @help
+        unsigned matches = 0;
+        if (*param != '@')
+        {
+            if (strcmp(param, "all") == 0)
+                param = (char *) ".*";
+
+            pattern_t re;
+            int status = pattern_comp(&re, param);
+            if (status == 0)
+            {
+                if (numerical)
+                {
+                    // Numerical value: set the corresponding trace
+                    for (rec = recorders; rec; rec = rec->next)
+                    {
+                        bool re_result = pattern_match(&re, rec->name);
+                        record(recorder_traces, "Numerical testing %+s = %+s",
+                               rec->name, re_result ? "YES" : "NO");
+                        if (re_result)
+                        {
+                            record(recorder_traces,
+                                   "Set %+s from %ld to %ld",
+                                   rec->name, rec->trace, value);
+                            rec->trace = value;
+                            matches++;
+                        }
+                    }
+                    for (tweak = tweaks; tweak; tweak = tweak->next)
+                    {
+                        bool re_result = pattern_match(&re, tweak->name);
+                        if (re_result)
+                        {
+                            record(recorder_traces,
+                                   "Set tweak %+s from %ld to %ld",
+                                   tweak->name, tweak->trace, value);
+                            tweak->trace = value;
+                            matches++;
+                        }
+                    }
+                }
+                else
+                {
+                    // Non-numerical: Activate corresponding exports
+                    for (rec = recorders; rec; rec = rec->next)
+                        if (pattern_match(&re, rec->name))
+                            matches++;
+
+                    for (rec = recorders; rec; rec = rec->next)
+                    {
+                        bool re_result = pattern_match(&re, rec->name);
+                        record(recorder_traces, "Textual testing %+s = %+s",
+                               rec->name, re_result ? "YES" : "NO");
+                        if (re_result)
+                        {
+                            record(recorder_traces,
+                                   "Share %+s under name %s",
+                                   rec->name, value_ptr);
+                            recorder_export(rec, value_ptr, matches > 1);
+                        }
+                    }
+                }
+            }
+            else
+            {
+                rc = RECORDER_TRACE_INVALID_NAME;
+#if HAVE_REGEX_H
+                static char     error[128];
+                regerror(status, &re, error, sizeof(error));
+                record(recorder_traces, "regcomp returned %d: %s",
+                       status, error);
+#endif // HAVE_REGEX_H
+            }
+            pattern_free(&re);
+        }
+        else
+        {
+            // We got @ at beginning of parameter: this must be a command
+            param++;
+        }
+
+        // Check if we already matched a parameter, otherwise check commands
+        if (matches > 0)
+        {
+            // We found matching parameters, don't process command
+            record(recorder_traces, "%u %+s impacted", matches,
+                   matches > 1 ? "traces were" : "trace was");
+        }
+        else if (strcmp(param, "help") == 0 || strcmp(param, "list") == 0)
         {
             printf("List of available recorders:\n");
             for (rec = recorders; rec; rec = rec->next)
@@ -2362,75 +2452,7 @@ int recorder_trace_set(const char *param_spec)
         }
         else
         {
-            if (strcmp(param, "all") == 0)
-                param = (char *) ".*";
-
-            pattern_t re;
-            int status = pattern_comp(&re, param);
-            if (status == 0)
-            {
-                if (numerical)
-                {
-                    // Numerical value: set the corresponding trace
-                    for (rec = recorders; rec; rec = rec->next)
-                    {
-                        bool re_result = pattern_match(&re, rec->name);
-                        record(recorder_traces, "Numerical testing %+s = %+s",
-                               rec->name, re_result ? "YES" : "NO");
-                        if (re_result)
-                        {
-                            record(recorder_traces,
-                                   "Set %+s from %ld to %ld",
-                                   rec->name, rec->trace, value);
-                            rec->trace = value;
-                        }
-                    }
-                    for (tweak = tweaks; tweak; tweak = tweak->next)
-                    {
-                        bool re_result = pattern_match(&re, tweak->name);
-                        if (re_result)
-                        {
-                            record(recorder_traces,
-                                   "Set tweak %+s from %ld to %ld",
-                                   tweak->name, tweak->trace, value);
-                            tweak->trace = value;
-                        }
-                    }
-                }
-                else
-                {
-                    // Non-numerical: Activate corresponding exports
-                    unsigned matches = 0;
-                    for (rec = recorders; rec; rec = rec->next)
-                        if (pattern_match(&re, rec->name))
-                            matches++;
-
-                    for (rec = recorders; rec; rec = rec->next)
-                    {
-                        bool re_result = pattern_match(&re, rec->name);
-                        record(recorder_traces, "Textual testing %+s = %+s",
-                               rec->name, re_result ? "YES" : "NO");
-                        if (re_result)
-                        {
-                            record(recorder_traces,
-                                   "Share %+s under name %s",
-                                   rec->name, value_ptr);
-                            recorder_export(rec, value_ptr, matches > 1);
-                        }
-                    }
-                }
-            }
-            else
-            {
-                rc = RECORDER_TRACE_INVALID_NAME;
-#if HAVE_REGEX_H
-                static char     error[128];
-                regerror(status, &re, error, sizeof(error));
-                record(recorder_traces, "regcomp returned %d: %s",
-                       status, error);
-#endif // HAVE_REGEX_H
-            }
-            pattern_free(&re);
+            record(recorder_warning, "Nothing matched %s", param);
         }
 
         if (alloc)
