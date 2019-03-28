@@ -20,7 +20,12 @@ multi-CPU programs. It lets you instrument their execution with
 non-intrusive `printf`-like *record statements*, that capture what is
 happening in your program. Here is what a `RECORD` statement looks like:
 
-    record(main, "Program %s started with %d arguments", argv[0], argc);
+    RECORD(main, "Program %s started with %d arguments", argv[0], argc);
+
+In that example, `main` is the name of the recorder holding the
+data. We can declare it to hold 32 entries with a declaration like:
+
+    RECORDER(main, 32, "This is 'main', used in the example above");
 
 These `RECORD` statements are very inexpensive (less than 0.1
 microsecond on a modern PC), so you can leave them in your code all
@@ -28,12 +33,11 @@ the time, even for optimized code. See *Performance considerations* at
 end of this document for details.
 
 The `RECORD` can also be written in lowercase, as `record`, if you
-don't want macros standing out in your regular code.
+don't want macros standing out in your regular code. Having two
+spellings makes it possible to `#undef` either `RECORD` or `record` in
+case of conflict with existing names in your source code.
 
-In that example, `main` is the name of the recorder holding the
-data. We can declare it to hold 32 entries with a declaration like:
-
-    RECORDER(main, 32, "This is 'main', used in the example above");
+    record(main, "Program %s started with %d arguments", argv[0], argc);
 
 When something bad happens or from within a debugger, you can
 *dump the recorder* by calling the `recorder_dump()` function. This
