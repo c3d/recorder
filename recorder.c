@@ -2322,6 +2322,34 @@ int recorder_trace_set(const char *param_spec)
                 fprintf(stderr, "Recorder %s trace %"PRIdPTR" (0x%"PRIXPTR")\n",
                         rec->name, rec->trace, rec->trace);
         }
+        else if (strcmp(param, "output") == 0 ||
+                 strcmp(param, "output_append") == 0)
+        {
+            if (recorder_show != recorder_print)
+            {
+                record(recorders_warning,
+                       "Not changing output for unknown recorder_show");
+            }
+            else if (value_ptr == NULL)
+            {
+                record(recorders_warning,
+                       "output / output_append expect a file name");
+            }
+            else
+            {
+                const char *mode = param[sizeof("output")-1] == '_' ? "a" : "w";
+                FILE *f = fopen(value_ptr, mode);
+                if (f != NULL)
+                {
+#if HAVE_SETLINEBUF
+                    setlinebuf(f);
+#endif // HAVE_SETLINEBUF
+                    f = recorder_configure_output(f);
+                    if (f)
+                        fclose(f);
+                }
+            }
+        }
         else
         {
             if (strcmp(param, "all") == 0)
