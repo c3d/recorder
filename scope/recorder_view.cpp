@@ -148,9 +148,6 @@ void RecorderView::setup()
 
         while (true)
         {
-            int colorIndex = i++ % numColors;
-            QLineSeries *series = new QLineSeries;
-
             type = hasNormal    ? (hasNormal = false,   NORMAL)
                 :  hasMin       ? (hasMin = false,      MINIMUM)
                 :  hasMax       ? (hasMax = false,      MAXIMUM)
@@ -159,6 +156,9 @@ void RecorderView::setup()
                 :  NONE;
             if (type == NONE)
                  break;
+
+            int colorIndex = i++ % numColors;
+            QLineSeries *series = new QLineSeries;
 
             chart->addSeries(series);
             seriesList.append(series);
