@@ -47,6 +47,7 @@
 #include <string.h>
 #include <time.h>
 #include <unistd.h>
+#include <inttypes.h>
 
 
 int failed = 0;
@@ -166,7 +167,7 @@ size_t show_struct(intptr_t trace,
 void flight_recorder_test(int argc, char **argv)
 {
     int i, j;
-    uintptr_t count = argc >= 2 ? atoi(argv[1]) : 16;
+    unsigned count = argc >= 2 ? atoi(argv[1]) : 16;
     unsigned howLong = argc >= 3 ? atoi(argv[2]) : 1;
 
     INFO("Testing recorder version %u.%02u.%02u",
@@ -181,7 +182,7 @@ void flight_recorder_test(int argc, char **argv)
     {
         recorder_count = 0;
 
-        INFO("Launching %lu %s recorder thread%s",
+        INFO("Launching %u %s recorder thread%s",
              count, i ? "fast" : "normal", count>1?"s":"");
         record(MAIN, "Starting %s speed test for %us with %u threads",
                i ? "fast" : "normal", howLong, count);
@@ -206,25 +207,25 @@ void flight_recorder_test(int argc, char **argv)
                    threads_to_stop);
             dawdle(1, 0);
         }
-        INFO("%s test: all threads have stopped, %lu iterations",
+        INFO("%s test: all threads have stopped, %"PRIuPTR" iterations",
              i ? "Fast" : "Normal", recorder_count);
 
         recorder_count += (recorder_count == 0);
         printf("Recorder test analysis (%s):\n"
-               "  Iterations            = %8lu\n"
-               "  Iterations / ms       = %8lu\n"
+               "  Iterations            = %8"PRIuPTR"\n"
+               "  Iterations / ms       = %8"PRIuPTR"\n"
                "  Duration per record   = %8uns\n"
-               "  Number of threads     = %8lu\n",
+               "  Number of threads     = %8u\n",
                i ? "Fast version" : "Normal version",
                recorder_count,
                recorder_count / (howLong * 1000),
                (unsigned) (howLong * 1000000000ULL / recorder_count),
                count);
 
-        INFO("Recorder test complete (%s), %lu threads.",
+        INFO("Recorder test complete (%s), %u threads.",
              i ? "Fast version" : "Normal version", count);
-        INFO("  Iterations      = %10lu", recorder_count);
-        INFO("  Iterations / ms = %10lu", recorder_count / (howLong * 1000));
+        INFO("  Iterations      = %10"PRIuPTR, recorder_count);
+        INFO("  Iterations / ms = %10"PRIuPTR, recorder_count / (howLong * 1000));
         INFO("  Record cost     = %10uns",
              (unsigned) (howLong * 1000000000ULL / recorder_count));
     }
