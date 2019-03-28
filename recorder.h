@@ -183,6 +183,9 @@ typedef struct recorder_tweak
 } recorder_tweak;
 
 
+// List all the activated recorders
+extern recorder_info *recorder_list(void);
+
 
 // ============================================================================
 //

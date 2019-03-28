@@ -496,7 +496,7 @@ uintptr_t       recorder_order   = 0;
 unsigned        recorder_dumping = 0;
 
 /// List of the currently active flight recorders (ring buffers)
-recorder_info * recorders        = NULL;
+static recorder_info * recorders        = NULL;
 
 /// List of the currently active tweaks
 recorder_tweak *tweaks           = NULL;
@@ -979,6 +979,15 @@ unsigned recorder_dump_for(const char *what)
 {
     record(recorder, "Recorder dump for %+s", what);
     return recorder_sort(what, recorder_format,recorder_show,recorder_output);
+}
+
+
+recorder_info *recorder_list(void)
+// ----------------------------------------------------------------------------
+//   Return the list of recorders
+// ----------------------------------------------------------------------------
+{
+    return recorders;
 }
 
 
