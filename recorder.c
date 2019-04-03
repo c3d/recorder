@@ -138,6 +138,15 @@ RECORDER_TWEAK_DEFINE(recorder_export_size, 2048,
                       "Number of samples stored when exporting records");
 RECORDER_TWEAK_DEFINE(recorder_configuration_sleep, 100,
                       "Sleep time between configuration checks (ms)");
+RECORDER_TWEAK_DEFINE(recorder_time_precision,
+                        RECORDER_HZ > 100000 ?  6
+                      : RECORDER_HZ >  10000 ?  5
+                      : RECORDER_HZ >   1000 ?  4
+                      : RECORDER_HZ >    100 ?  3
+                      : RECORDER_HZ >     10 ?  2
+                      : RECORDER_HZ >      1 ?  1
+                      :                         0,
+                      "Precision for displaying time");
 
 
 
@@ -846,24 +855,14 @@ static void recorder_format_entry(recorder_show_fn show,
             dst = dst_end;
     }
 
-    if (RECORDER_64BIT) // Static if to detect how to display time
-    {
-        // Time stamp in us, show in seconds
-        dst += snprintf(dst, dst_end - dst,
-                        "[%lu %.6f] %s: %s",
-                        (unsigned long) order,
-                        (double) timestamp / RECORDER_HZ,
-                        label, message);
-    }
-    else
-    {
-        // Time stamp  in ms, show in seconds
-        dst += snprintf(dst, dst_end - dst,
-                        "[%lu %.3f] %s: %s",
-                        (unsigned long) order,
-                        (double) timestamp / RECORDER_HZ,
-                        label, message);
-    }
+    // Time stamp in us, show in seconds
+    dst += snprintf(dst, dst_end - dst,
+                    "[%"PRIuPTR" %.*f] %s: %s",
+                    order,
+                    (int) RECORDER_TWEAK(recorder_time_precision),
+                    (double) timestamp / RECORDER_HZ,
+                    label, message);
+
     // In case snprintf overflowed
     if (dst > dst_end)
         dst = dst_end;
@@ -1969,11 +1968,7 @@ uintptr_t recorder_tick(void)
     static uintptr_t initialTick = 0;
     struct timeval t;
     gettimeofday(&t, NULL);
-#if RECORDER_64BIT
-    uintptr_t tick = t.tv_sec * 1000000ULL + t.tv_usec;
-#else
-    uintptr_t tick = t.tv_sec * 1000ULL + t.tv_usec / 1000;
-#endif
+    uintptr_t tick = t.tv_sec * RECORDER_HZ + t.tv_usec / (1000000/RECORDER_HZ);
     if (!initialTick)
         initialTick = tick;
     return tick - initialTick;
