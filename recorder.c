@@ -62,16 +62,9 @@
 
 // ============================================================================
 //
-//   Available recorders exposed by recorder library
+//    File-specific constants
 //
 // ============================================================================
-
-RECORDER(recorder,              32, "Recorder operations and configuration");
-RECORDER(recorder_warning,       8, "Recorder warnings");
-RECORDER(recorder_error,         8, "Recorder errors");
-RECORDER(recorder_signals,      32, "Recorder signal handling");
-RECORDER(recorder_traces,       64, "Recorder traces");
-
 
 enum
 {
@@ -117,9 +110,34 @@ enum
 #endif // SIGPWR
 };
 
+
+
+// ============================================================================
+//
+//   Available recorders exposed by recorder library
+//
+// ============================================================================
+
+RECORDER(recorder,              32, "Recorder operations and configuration");
+RECORDER(recorder_warning,       8, "Recorder warnings");
+RECORDER(recorder_error,         8, "Recorder errors");
+RECORDER(recorder_signals,      32, "Recorder signal handling");
+RECORDER(recorder_traces,       64, "Recorder traces");
+
+
 RECORDER_TWEAK_DEFINE(recorder_signals_mask,
                       RECORDER_SIGNALS_MASK,
                       "Recorder default mask for signals to catch");
+RECORDER_TWEAK_DEFINE(recorder_location, 0,
+                      "Set to show location in recorder dumps");
+RECORDER_TWEAK_DEFINE(recorder_function, 0,
+                      "Set to show function in recorder dumps");
+RECORDER_TWEAK_DEFINE(recorder_dump_sleep, 100,
+                      "Sleep time between background dumps (ms)");
+RECORDER_TWEAK_DEFINE(recorder_export_size, 2048,
+                      "Number of samples stored when exporting records");
+RECORDER_TWEAK_DEFINE(recorder_configuration_sleep, 100,
+                      "Sleep time between configuration checks (ms)");
 
 
 
@@ -778,11 +796,6 @@ recorder_show_fn  recorder_configure_show(recorder_show_fn show)
 #if defined(_MSC_VER) && _MSC_VER < 1900
 #  define snprintf  _snprintf
 #endif
-
-RECORDER_TWEAK_DEFINE(recorder_location, 0,
-                      "Set to show location in recorder dumps");
-RECORDER_TWEAK_DEFINE(recorder_function, 0,
-                      "Set to show function in recorder dumps");
 
 static void recorder_format_entry(recorder_show_fn show,
                                   void *output,
@@ -1767,9 +1780,6 @@ static recorder_type recorder_type_from_format(const char *format,
 //
 // ============================================================================
 
-RECORDER_TWEAK_DEFINE(recorder_dump_sleep, 100,
-                      "Sleep time between background dumps (ms)");
-
 static bool background_dump_running = false;
 
 
@@ -2019,8 +2029,6 @@ void recorder_tweak_activate (recorder_tweak *tweak)
 //
 // ============================================================================
 
-RECORDER_TWEAK_DEFINE(recorder_export_size, 2048,
-                      "Number of samples stored when exporting records");
 static recorder_chans_p chans = NULL;
 
 static const char *recorder_type_name[] =
@@ -2103,8 +2111,6 @@ static void recorder_atexit_cleanup(void)
 }
 
 
-RECORDER_TWEAK_DEFINE(recorder_configuration_sleep, 100,
-                      "Sleep time between configuration checks (ms)");
 static void *background_configuration_check(void *ignored)
 // ----------------------------------------------------------------------------
 //    Check if there is a configuration command and apply it
