@@ -821,6 +821,9 @@ static void recorder_format_entry(recorder_show_fn show,
     char *dst = buffer;
     char *dst_end = buffer + sizeof buffer;
 
+#define rsnprintf(...)                                                  \
+    snprintf(dst, dst_end >= dst ? dst_end - dst : 0,  __VA_ARGS__)
+
     // Look for file:line: in the input message
     const char *end_of_fileline = message;
     for (int colon = 0; colon < 2; colon++)
@@ -834,13 +837,9 @@ static void recorder_format_entry(recorder_show_fn show,
     {
         int fileline_size = (int) (end_of_fileline - message);
         if (size != 1)
-            dst += snprintf(dst, dst_end - dst,
-                            "%*.*s", size, fileline_size, message);
+            dst += rsnprintf("%*.*s", size, fileline_size, message);
         else
-            dst += snprintf(dst, dst_end - dst,
-                            "%.*s", fileline_size, message);
-        if (dst > dst_end)
-            dst = dst_end;
+            dst += rsnprintf("%.*s", fileline_size, message);
     }
     message = end_of_fileline;
 
@@ -848,26 +847,21 @@ static void recorder_format_entry(recorder_show_fn show,
     if (size)
     {
         if (size != 1)
-            dst += snprintf(dst, dst_end - dst, "%*s:", size, function_name);
+            dst += rsnprintf("%*s:", size, function_name);
         else
-            dst += snprintf(dst, dst_end - dst, "%s:", function_name);
-        if (dst > dst_end)
-            dst = dst_end;
+            dst += rsnprintf("%s:", function_name);
     }
 
     // Time stamp in us, show in seconds
-    dst += snprintf(dst, dst_end - dst,
-                    "[%"PRIuPTR" %.*f] %s: %s",
-                    order,
-                    (int) RECORDER_TWEAK(recorder_time_precision),
-                    (double) timestamp / RECORDER_HZ,
-                    label, message);
+    dst += rsnprintf("[%"PRIuPTR" %.*f] %s: %s",
+                     order,
+                     (int) RECORDER_TWEAK(recorder_time_precision),
+                     (double) timestamp / RECORDER_HZ,
+                     label, message);
 
     // In case snprintf overflowed
-    if (dst > dst_end)
-        dst = dst_end;
-
-    show(buffer, dst - buffer, output);
+    show(buffer, (dst > dst_end ? dst_end : dst) - buffer, output);
+#undef rsnprintf
 }
 
 
