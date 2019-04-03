@@ -76,14 +76,31 @@ Here is what a recorder dump can look like (lines omitted for brevity):
     recorder_test.c:169: [198750795 10.003122] MAIN:   Record cost     =         50ns
 
 Lines begin with the source code location in the program where the
-record was taken. The number following the source location is the
-*order* of records, a global sequence number that helps relate records
-made in different recorders or from different threads.
+record was taken. This is optional, and is under control of a recorder
+tweak called `recorder_location`. Another tweak, `recorder_functions`,
+selects whether that location includes the function name.
+
+The number following the source location is the *order* of records, a
+global sequence number that helps relate records made in different
+recorders or from different threads. The display of the order can be
+configured using the `recorder_order` tweak.
+
 The order is followed by a *timestamp*, which counds the number of
-seconds since the start of the program. On 32-bit machines,
-the timestamp is precise to the ms. On 64-bit machines, it is precise to the
-microsecond. Finally, the rest of the record is a printout of what was
-recorded.
+seconds since the start of the program. On 32-bit machines, the
+timestamp is precise to the ms. On 64-bit machines, it is precise to
+the microsecond. The time stamp can be displayed as absolute time
+since midnight using the `recorder_abstime` tweak. The relative
+time can be disabled by setting `recorder_reltime` tweak to 0.
+With `recorder_abstime=1 recorder_reltime=0`, the recorder dump will
+look as follows:
+
+     [11 09:06:16.718056] recorder: Activating tweak 'recorder_abstime' (0x10cba0910)
+     [12 09:06:16.718062] recorder: Activating 'MAIN' (0x10cb84148)
+     [13 09:06:16.718062] recorder: Activating 'Pauses' (0x10cb851b8)
+     [14 09:06:16.718063] recorder: Activating 'Special' (0x10cb89228)
+     [15 09:06:16.718063] recorder: Activating 'SpeedTest' (0x10cb8a298)
+
+Finally, the rest of the record is a printout of what was recorded.
 
 The recorder dump is generally sorted according to order and should
 show time stamps in increasing order. However, as the example above

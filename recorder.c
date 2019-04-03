@@ -52,6 +52,7 @@
 #include <unistd.h>
 #include <errno.h>
 #include <inttypes.h>
+#include <math.h>
 #include <sys/time.h>
 #if HAVE_SYS_MMAN_H
 #include <sys/mman.h>
@@ -128,10 +129,6 @@ RECORDER(recorder_traces,       64, "Recorder traces");
 RECORDER_TWEAK_DEFINE(recorder_signals_mask,
                       RECORDER_SIGNALS_MASK,
                       "Recorder default mask for signals to catch");
-RECORDER_TWEAK_DEFINE(recorder_location, 0,
-                      "Set to show location in recorder dumps");
-RECORDER_TWEAK_DEFINE(recorder_function, 0,
-                      "Set to show function in recorder dumps");
 RECORDER_TWEAK_DEFINE(recorder_dump_sleep, 100,
                       "Sleep time between background dumps (ms)");
 RECORDER_TWEAK_DEFINE(recorder_export_size, 2048,
@@ -147,6 +144,18 @@ RECORDER_TWEAK_DEFINE(recorder_time_precision,
                       : RECORDER_HZ >      1 ?  1
                       :                         0,
                       "Precision for displaying time");
+
+// Display tweaks
+RECORDER_TWEAK_DEFINE(recorder_location, 0,
+                      "Set to show location in recorder dumps");
+RECORDER_TWEAK_DEFINE(recorder_function, 0,
+                      "Set to show function in recorder dumps");
+RECORDER_TWEAK_DEFINE(recorder_order, 1,
+                      "Set to show order number in recorder dumps");
+RECORDER_TWEAK_DEFINE(recorder_abstime, 0,
+                      "Set to show absolute time in recorder dumps");
+RECORDER_TWEAK_DEFINE(recorder_reltime, 1,
+                      "Set to show relative time in recorder dumps");
 
 
 
@@ -205,6 +214,8 @@ static inline void pattern_free(pattern_t *re)
 
 #define array_size(a)   (sizeof(a) / sizeof(a[0]))
 
+
+
 // ============================================================================
 //
 //    Local prototypes (in case -Wmissing-prototypes is enabled)
@@ -218,9 +229,10 @@ ringidx_t recorder_chan_reader(recorder_chan_p chan);
 size_t    recorder_chan_item_size(recorder_chan_p chan);
 
 
+
 // ============================================================================
 //
-//    User-configurable parameters
+//    User-configurable parameters and other static variables
 //
 // ============================================================================
 
@@ -237,6 +249,8 @@ static void * recorder_output = NULL;
 static recorder_show_fn recorder_show = recorder_print;
 static recorder_format_fn recorder_format = recorder_format_entry;
 static recorder_type_fn recorder_types[256];
+
+static uintptr_t recorder_time_at_start = 0;
 
 
 
@@ -852,12 +866,47 @@ static void recorder_format_entry(recorder_show_fn show,
             dst += rsnprintf("%s:", function_name);
     }
 
-    // Time stamp in us, show in seconds
-    dst += rsnprintf("[%"PRIuPTR" %.*f] %s: %s",
-                     order,
-                     (int) RECORDER_TWEAK(recorder_time_precision),
-                     (double) timestamp / RECORDER_HZ,
-                     label, message);
+    bool hasHeader = (RECORDER_TWEAK(recorder_order)   ||
+                      RECORDER_TWEAK(recorder_abstime) ||
+                      RECORDER_TWEAK(recorder_reltime));
+    const char *spacing = "";
+    if (hasHeader)
+        dst += rsnprintf("[");
+
+    if (RECORDER_TWEAK(recorder_order))
+    {
+        dst += rsnprintf("%"PRIdPTR, order);
+        spacing = " ";
+    }
+
+    if (RECORDER_TWEAK(recorder_abstime))
+    {
+        uintptr_t abstime = timestamp + recorder_time_at_start;
+        uintptr_t seconds = abstime / RECORDER_HZ;
+
+        dst += rsnprintf("%s%02"PRIdPTR":%02"PRIdPTR":%s%.*f",
+                         spacing,
+                         seconds / 3600,
+                         seconds / 60 % 60,
+                         seconds % 60 < 10 ? "0" : "",
+                         (int) RECORDER_TWEAK(recorder_time_precision),
+                         fmod((double) abstime / RECORDER_HZ, 60.0));
+        spacing = " ";
+    }
+
+    if (RECORDER_TWEAK(recorder_reltime))
+    {
+        dst += rsnprintf("%s%.*f",
+                         spacing,
+                         (int) RECORDER_TWEAK(recorder_time_precision),
+                         (double) timestamp / RECORDER_HZ);
+        spacing = " ";
+    }
+
+    if (hasHeader)
+        dst += rsnprintf("] ");
+
+    dst += rsnprintf("%s %s", label, message);
 
     // In case snprintf overflowed
     show(buffer, (dst > dst_end ? dst_end : dst) - buffer, output);
@@ -1964,7 +2013,11 @@ uintptr_t recorder_tick(void)
     gettimeofday(&t, NULL);
     uintptr_t tick = t.tv_sec * RECORDER_HZ + t.tv_usec / (1000000/RECORDER_HZ);
     if (!initialTick)
+    {
         initialTick = tick;
+        recorder_time_at_start = tick % ((uintptr_t) 86400 * RECORDER_HZ);
+    }
+
     return tick - initialTick;
 }
 #endif // recorder_tick
