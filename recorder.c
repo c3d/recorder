@@ -866,17 +866,12 @@ static void recorder_format_entry(recorder_show_fn show,
             dst += rsnprintf("%s:", function_name);
     }
 
-    bool hasHeader = (RECORDER_TWEAK(recorder_order)   ||
-                      RECORDER_TWEAK(recorder_abstime) ||
-                      RECORDER_TWEAK(recorder_reltime));
-    const char *spacing = "";
-    if (hasHeader)
-        dst += rsnprintf("[");
+    char spacing = '[';
 
     if (RECORDER_TWEAK(recorder_order))
     {
-        dst += rsnprintf("%"PRIdPTR, order);
-        spacing = " ";
+        dst += rsnprintf("%c%"PRIdPTR, spacing, order);
+        spacing = ' ';
     }
 
     if (RECORDER_TWEAK(recorder_abstime))
@@ -884,26 +879,26 @@ static void recorder_format_entry(recorder_show_fn show,
         uintptr_t abstime = timestamp + recorder_time_at_start;
         uintptr_t seconds = abstime / RECORDER_HZ;
 
-        dst += rsnprintf("%s%02"PRIdPTR":%02"PRIdPTR":%s%.*f",
+        dst += rsnprintf("%c%02"PRIdPTR":%02"PRIdPTR":%s%.*f",
                          spacing,
                          seconds / 3600,
                          seconds / 60 % 60,
                          seconds % 60 < 10 ? "0" : "",
                          (int) RECORDER_TWEAK(recorder_time_precision),
                          fmod((double) abstime / RECORDER_HZ, 60.0));
-        spacing = " ";
+        spacing = ' ';
     }
 
     if (RECORDER_TWEAK(recorder_reltime))
     {
-        dst += rsnprintf("%s%.*f",
+        dst += rsnprintf("%c%.*f",
                          spacing,
                          (int) RECORDER_TWEAK(recorder_time_precision),
                          (double) timestamp / RECORDER_HZ);
-        spacing = " ";
+        spacing = ' ';
     }
 
-    if (hasHeader)
+    if (spacing != '[')
         dst += rsnprintf("] ");
 
     dst += rsnprintf("%s %s", label, message);
