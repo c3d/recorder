@@ -52,7 +52,6 @@
 #include <unistd.h>
 #include <errno.h>
 #include <inttypes.h>
-#include <math.h>
 #include <sys/time.h>
 #if HAVE_SYS_MMAN_H
 #include <sys/mman.h>
@@ -877,15 +876,15 @@ static void recorder_format_entry(recorder_show_fn show,
     if (RECORDER_TWEAK(recorder_abstime))
     {
         uintptr_t abstime = timestamp + recorder_time_at_start;
-        uintptr_t seconds = abstime / RECORDER_HZ;
+        uintptr_t minutes = abstime / ((uintptr_t)60 * RECORDER_HZ);
+        int precision = RECORDER_TWEAK(recorder_time_precision);
 
-        dst += rsnprintf("%c%02"PRIdPTR":%02"PRIdPTR":%s%.*f",
+        dst += rsnprintf("%c%02"PRIdPTR":%02"PRIdPTR":%0*.*f",
                          spacing,
-                         seconds / 3600,
-                         seconds / 60 % 60,
-                         seconds % 60 < 10 ? "0" : "",
-                         (int) RECORDER_TWEAK(recorder_time_precision),
-                         fmod((double) abstime / RECORDER_HZ, 60.0));
+                         minutes / 60,
+                         minutes % 60,
+                         precision + 3, precision,
+                         (abstime % ((uintptr_t)60 * RECORDER_HZ)) * (1.0 / RECORDER_HZ));
         spacing = ' ';
     }
 
