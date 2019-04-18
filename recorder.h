@@ -944,9 +944,20 @@ extern uintptr_t recorder_tick(void);
 //   i.e. float are converted to double on 64-bit platforms, and conversely.
 
 #ifdef __cplusplus
+#include <string>
+
 // In C++, we don't use _Generic but actual overloading
 template <class inttype>
-static inline uintptr_t         _recorder_arg(inttype i)  { return (uintptr_t) i; }
+static inline uintptr_t         _recorder_arg(inttype i)
+{
+    return (uintptr_t) i;
+}
+
+
+static inline uintptr_t         _recorder_arg(const std::string &arg)
+{
+    return (uintptr_t) arg.c_str();
+}
 #define _recorder_float         _recorder_arg
 #define _recorder_double        _recorder_arg
 
