@@ -1,12 +1,12 @@
 Name:		recorder
-Version:	1.0.6
+Version:	1.0.7
 Release:	1%{?dist}
 Summary:	A lock-free, real-time flight recorder for your C or C++ programs
 License:	LGPLv3+
 Url:		https://github.com/c3d/%{name}
 Source:		https://github.com/c3d/%{name}/archive/v%{version}/%{name}-%{version}.tar.gz
 BuildRequires:	make >= 3.82
-BuildRequires:  make-it-quick >= 0.2.1
+BuildRequires:  make-it-quick >= 0.2.5
 BuildRequires:  gcc
 BuildRequires:  gcc-c++
 
@@ -14,12 +14,12 @@ BuildRequires:  gcc-c++
 Flight recorder for C and C++ programs using printf-like 'record' statements
 
 %package devel
-Summary:        Development files for librecorder
+Summary:        Development files for recorder library
 %description devel
 Libraries and include files required to build an application using librecorder
 
 %package scope
-Summary:        A real-time graphing tool for data collected by librecorder
+Summary:        A real-time graphing tool for data collected by recorder library
 BuildRequires:  qt5-devel
 BuildRequires:  qt5-qtcharts-devel
 %description scope
