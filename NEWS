@@ -1,10 +1,28 @@
+v1.0.7 Stabilization and packaging
+
+    - Finalize Fedora .spec file
+    - Add support for std::string in the recorder for C++ programs
+    - Fix rpath for Linux libraries
+    - Make it possible to display absolute time stamps (since midnight)
+    - Fix the time display and recording with custom values of RECORDER_HZ
+    - Add a function to list recorders
+    - Fix printf format warnings in recorder_test.c
+    _ Test: Add a simple output test for the crash case
+    - Doc: Indicate that the recorder output is standard error by default
+    - Offer the ability to disambiguate a command by prefixing it with `@`
+    - Doc: Indicate that `record` or `RECORD` can be undefined
+    - Put all recorder-specific recorders under "recorder_"
+    - Add @output and @output_append options to recorder_trace_set
+    - Fix issue with 64-bit test
+    - Do not allocate a new line series is not used (memory leak)
+
 v1.0.6          Update copyright headers
-    
+
     - Headers are now updated using an automated tool
     - Moved LICENSE to COPYING to conform with GNU recommendations
 
 v1.0.5          Release 1.0.5: Minor packaging improvements
-    
+
     - Do not generate NEWS and AUTHORS, now checked in
     - Explain that the root of trust is recorder_trace_set, not RECORDER_TRACES
     - Add ENVIRONMENT VARIABLES section to recorder_scope.1 man page
@@ -14,7 +32,7 @@ v1.0.5          Release 1.0.5: Minor packaging improvements
 v1.0.4          Add man pages and fix a crash risk when tracing with custom types
 
 v1.0.3          Release 1.0.3
-    
+
     Changes in this release:
     - License clarification (LGPLv3 for the library components)
     - Improved portability on Windows platforms (MinGW, MSYS and Cygwin)

@@ -1,7 +1,7 @@
 Name:		recorder
 Version:	1.0.7
 Release:	1%{?dist}
-Summary:	A lock-free, real-time flight recorder for your C or C++ programs
+Summary:	A lock-free, real-time flight recorder for C or C++ programs
 License:	LGPLv3+
 Url:		https://github.com/c3d/%{name}
 Source:		https://github.com/c3d/%{name}/archive/v%{version}/%{name}-%{version}.tar.gz
@@ -22,9 +22,10 @@ Libraries and include files required to build an application using librecorder
 Summary:        A real-time graphing tool for data collected by recorder library
 BuildRequires:  qt5-devel
 BuildRequires:  qt5-qtcharts-devel
+Requires:       qt5-qtcharts
 %description scope
-The recorder_scope application is a tool to draw real-time charts for
-data collected by librecorder
+The recorder_scope tool draws real-time charts from data collected by
+the recorder library
 
 %prep
 %autosetup -n recorder-%{version}
@@ -37,23 +38,24 @@ data collected by librecorder
 %make_build COLORIZE= TARGET=opt check
 
 %install
-%make_install COLORIZE= TARGET=opt DOC_INSTALL=
+%make_install COLORIZE= TARGET=opt DOC_INSTALL= PREFIX_DLL=%{_libdir}/
 (cd scope && \
      %{__install} -d %{?buildroot}%{_bindir}/ && \
      %{__install} recorder_scope %{?buildroot}%{_bindir}/ )
 
 %files
-%{_libdir}/lib%{name}.so.*
 %license COPYING
 %doc README.md
 %doc AUTHORS
 %doc NEWS
+%{_libdir}/lib%{name}.so.*
 
 %post -p /sbin/ldconfig
 %postun -p /sbin/ldconfig
 
 %files devel
 %{_libdir}/lib%{name}.so
+%dir %{_includedir}/%{name}
 %{_includedir}/%{name}/*
 %{_datadir}/pkgconfig/%{name}.pc
 %{_mandir}/man3/*.3.gz
@@ -63,3 +65,5 @@ data collected by librecorder
 %{_mandir}/man1/*.1.gz
 
 %changelog
+* Fri Apr 26 2019 Christophe de Dinechin <dinechin@redhat.com> - 1.0.7-1
+- Initial Fedora package from upstream release
