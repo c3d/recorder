@@ -17,11 +17,11 @@
 .\"  (C) 2019 Christophe de Dinechin <christophe@dinechin.org>
 .\" %%%LICENSE_START(LGPLv3+_DOC_FULL)
 .\" This is free documentation; you can redistribute it and/or
-.\" modify it under the terms of the GNU General Public License as
+.\" modify it under the terms of the GNU Lesser General Public License as
 .\" published by the Free Software Foundation; either version 2 of
 .\" the License, or (at your option) any later version.
 .\"
-.\" The GNU General Public License's references to "object code"
+.\" The GNU Lesser General Public License's references to "object code"
 .\" and "executables" are to be interpreted as the output of any
 .\" document formatting or typesetting system, including
 .\" intermediate and printed output.
@@ -29,7 +29,7 @@
 .\" This manual is distributed in the hope that it will be useful,
 .\" but WITHOUT ANY WARRANTY; without even the implied warranty of
 .\" MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-.\" GNU General Public License for more details.
+.\" GNU Lesser General Public License for more details.
 .\"
 .\" You should have received a copy of the GNU General Public
 .\" License along with this manual; if not, see
@@ -272,7 +272,7 @@ This program will produce an output similar to the following:
 .PP
 .in +4n
 .EX
-% fib 1 2 3 4 10 20 30 35 10 40 -1 
+% fib 1 2 3 4 10 20 30 35 10 40 -1
 fib(1) = 1
 fib(2) = 1
 fib(3) = 2
@@ -301,7 +301,7 @@ for example:
 .PP
 .in +4n
 .EX
-% FIB_TRACES="recorder_location fib_loops fib_warning=3" /tmp/fib 3 4 
+% FIB_TRACES="recorder_location fib_loops fib_warning=3" /tmp/fib 3 4
 /tmp/fib.c:33:[82 0.000496] fib_warning: Computing for 3 may take a while
 /tmp/fib.c:18:[83 0.000561] fib_loops: Computing fib(3)
 /tmp/fib.c:18:[84 0.000570] fib_loops: Computing fib(2)
