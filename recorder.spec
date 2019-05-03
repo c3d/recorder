@@ -55,7 +55,8 @@ the recorder library.
 %doc README.md
 %doc AUTHORS
 %doc NEWS
-%{_libdir}/lib%{name}.so.*
+%{_libdir}/lib%{name}.so.1
+%{_libdir}/lib%{name}.so.%{version}
 
 %files devel
 %{_libdir}/lib%{name}.so
