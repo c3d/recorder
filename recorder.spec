@@ -62,11 +62,11 @@ the recorder library.
 %dir %{_includedir}/%{name}
 %{_includedir}/%{name}/*
 %{_datadir}/pkgconfig/%{name}.pc
-%{_mandir}/man3/*.3.gz
+%{_mandir}/man3/*.3.*
 
 %files scope
 %{_bindir}/recorder_scope
-%{_mandir}/man1/*.1.gz
+%{_mandir}/man1/*.1.*
 
 %changelog
 * Fri Apr 26 2019 Christophe de Dinechin <dinechin@redhat.com> - 1.0.7-1
