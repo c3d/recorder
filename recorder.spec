@@ -57,9 +57,6 @@ the recorder library.
 %doc NEWS
 %{_libdir}/lib%{name}.so.*
 
-%post -p /sbin/ldconfig
-%postun -p /sbin/ldconfig
-
 %files devel
 %{_libdir}/lib%{name}.so
 %dir %{_includedir}/%{name}
