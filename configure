@@ -1,0 +1,74 @@
+#!/bin/bash
+# *****************************************************************************
+#  configure                                                  Recorder project
+# *****************************************************************************
+#
+#   File Description:
+#
+#      Configure makefile for 'recorder' with the most-common options
+#      Those will be used by the Makefile to generate config.system-setup.mk
+#      This script is mostly to inferface "like autoconf" for Fedora builds
+#
+#
+#
+#
+#
+# *****************************************************************************
+#  (C) 2019 Christophe de Dinechin <christophe@dinechin.org>
+#  This software is licensed under the GNU Lesser General Public License v2+
+#******************************************************************************
+#     This file is part of Recorder
+#
+#     Recorder is free software: you can redistribute it and/or
+#     modify it under the terms of the GNU Lesser General Public
+#     License as published by the Free Software Foundation, either
+#     version 2 of the License, or (at your option) any later version.
+#
+#     Recorder is distributed in the hope that it will be useful,
+#     but WITHOUT ANY WARRANTY; without even the implied warranty of
+#     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#     GNU General Public License for more details.
+#
+#     You should have received a copy of the GNU General Public License
+#     along with Recorder.  If not, see <https://www.gnu.org/licenses/>.
+# *****************************************************************************
+
+SETUP=config.local-setup.mk
+
+output() {
+    echo $1 >> $SETUP
+}
+
+rm -f $SETUP
+
+# DD='$(DESTDIR)'
+while [ $# -ne 0 ]; do
+    case "$1" in
+    --build=*)                          output IGNORED_BUILD=${1/--build=/}/;;
+    --host=*)                           output IGNORED_HOST=${1/--host=/}/;;
+    --program-prefix=*)                 output IGNORED_PROGRAM_PREFIX=${1/--program-prefix=/}/;;
+    --disable-dependency-tracking)      output IGNORED_DEPENDENCY_TRACKING=0;;
+    --prefix=*)                         output PREFIX=$DD${1/--prefix=/}/;;
+    --exec-prefix=*)                    output PREFIX_EXEC=$DD${1/--exec-prefix=/}/;;
+    --bindir=*)                         output PREFIX_BIN=$DD${1/--bindir=/}/;;
+    --sbindir=*)                        output PREFIX_SBIN=$DD${1/--sbindir=/}/;;
+    --sysconfigdir=*)                   output SYSCONFIG=$DD${1/--sysconfigdir=/}/;;
+    --datadir=*)                        output PREFIX_SHR=$DD${1/--datadir=/}/;;
+    --includedir=*)                     output PREFIX_HDR=$DD${1/--includedir=/}/;;
+    --libdir=*)                         output PREFIX_LIB=$DD${1/--libdir=/}/;;
+    --libexecdir=*)                     output PREFIX_LIBEXEC=$DD${1/--libexecdir=/}/;;
+    --localstatedir=*)                  output PREFIX_VAR=$DD${1/--localstatedir=/}/;;
+    --sharedstatedir==*)                output PREFIX_STR=$DD${1/--sharedstatedir=/}/;;
+    --mandir==*)                        output PREFIX_MAN=$DD${1/--mandir=/}/;;
+    --infodir==*)                       output PREFIX_INFO=$DD${1/--infodir=/}/;;
+    esac
+    shift
+done
+
+output 'PREFIX_DLL=$(PREFIX_LIB)'
+output "CFLAGS=$CFLAGS"
+output "CXXFLAGS=$CXXFLAGS"
+output "LDFLAGS=$LDFLAGS"
+
+echo "# Summary of configuration:"
+cat $SETUP

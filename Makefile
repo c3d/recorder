@@ -48,13 +48,13 @@ PACKAGE_URL="http://github.com/c3d/recorder"
 PACKAGE_REQUIRES=
 PACKAGE_BUGS=christophe@dinechin.org
 
-LDFLAGS  = -lpthread -lm
-
 TESTS=  hanoi_test.c recorder_test.c ring_test.c crash_test.c
 TEST_ARGS_hanoi_test=20 2>&1| grep "End fast recording Hanoi with 20 iterations"
 TEST_ARGS_crash_test= | grep "Signal handler for 11 called"
 
 MIQ=make-it-quick/
+-include config.local-setup.mk
+LDFLAGS+= -lm -lpthread
 include $(MIQ)rules.mk
 
 $(MIQ)rules.mk:

@@ -31,19 +31,25 @@ the recorder library.
 
 %prep
 %autosetup -n recorder-%{version}
+%configure
 
 %build
 %make_build COLORIZE= TARGET=opt V=1
-(cd scope && qmake-qt5 && make)
+(cd scope &&                            \
+ %{qmake_qt5}                           \
+        INSTALL_BINDIR=%{_bindir}       \
+        INSTALL_LIBDIR=%{_libdir}       \
+        INSTALL_DATADIR=%{_datadir}     \
+        INSTALL_MANDIR=%{_mandir} &&    \
+ make)
 
 %check
-%make_build COLORIZE= TARGET=opt check
+%make_build COLORIZE= TARGET=opt V=1 check
 
 %install
-%make_install COLORIZE= TARGET=opt DOC_INSTALL= PREFIX_DLL=%{_libdir}/
-(cd scope && \
-     %{__install} -d %{?buildroot}%{_bindir}/ && \
-     %{__install} recorder_scope %{?buildroot}%{_bindir}/ )
+%make_install COLORIZE= TARGET=opt DOC_INSTALL=
+mkdir -p %{buildroot}%{_bindir}
+install -p scope/recorder_scope %{buildroot}%{_bindir}/
 
 %files
 %license COPYING
