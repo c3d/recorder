@@ -70,5 +70,8 @@ collected by the flight_recorder library.
 %{_mandir}/man1/*.1.*
 
 %changelog
+* Fri May 3 2019 Christophe de Dinechin <dinechin@redhat.com> - 1.0.8-1
+- Adjust Fedora package to address review comments
+
 * Fri Apr 26 2019 Christophe de Dinechin <dinechin@redhat.com> - 1.0.7-1
 - Initial Fedora package from upstream release

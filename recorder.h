@@ -52,12 +52,13 @@ extern "C" {
 //
 // ============================================================================
 
-#define RECORDER_CURRENT_VERSION                RECORDER_VERSION(1,0,5)
+#define RECORDER_CURRENT_VERSION                RECORDER_VERSION(1,0,8)
 #define RECORDER_VERSION(majr,minr,ptch)        ((majr)<<16|((minr)<<8|(ptch)))
 #define RECORDER_VERSION_MAJOR(version)         (((version) >> 16) & 0xFF)
 #define RECORDER_VERSION_MINOR(version)         (((version) >>  8)& 0xFF)
 #define RECORDER_VERSION_PATCH(version)         (((version) >>  0)& 0xFF)
 #define RECORDER_64BIT                          (INTPTR_MAX > 0x7fffffff)
+
 
 
 // ============================================================================
@@ -830,7 +831,7 @@ typedef struct recorder_chan  *recorder_chan_p;
 
 // Magic number in export channel is different for 32-bit and 64-bit values
 #define RECORDER_CHAN_MAGIC           (0xC0DABABE ^ RECORDER_64BIT)
-#define RECORDER_CHAN_VERSION         RECORDER_VERSION(1,0,5)
+#define RECORDER_CHAN_VERSION         RECORDER_VERSION(1,0,8)
 #define RECORDER_EXPORT_SIZE          2048
 
 extern const char *recorder_export_file(void);

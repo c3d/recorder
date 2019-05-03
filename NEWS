@@ -1,3 +1,15 @@
+v1.0.8 Address Fedora packaging review comments
+
+    - Switch to LGPLv2+ for library, GPLv3+ for scope (for SPICE use)
+    - Add %configure step to get the "hardened" CFLAGS
+    - Make build verbose (temporarily at least) to make review easier
+    - Minor changes in package descriptions spelling
+    - Use only spaces in .spec file
+    - Add explicit version to library name in .spec file
+    - Avoid hardcoding a specific compression for man pages
+    - Removing useless %postrun ldconfig path
+    - Using `install -p` to preserve time stamps
+
 v1.0.7 Stabilization and packaging
 
     - Finalize Fedora .spec file
