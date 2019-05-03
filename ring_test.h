@@ -16,14 +16,14 @@
 //
 //
 // *****************************************************************************
-// This software is licensed under the GNU Lesser General Public License v3
+// This software is licensed under the GNU Lesser General Public License v2+
 // (C) 2017-2019, Christophe de Dinechin <christophe@dinechin.org>
 // *****************************************************************************
 // This file is part of Recorder
 //
-// Recorder is free software: you can r redistribute it and/or modify
+// Recorder is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Lesser General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
+// the Free Software Foundation, either version 2 of the License, or
 // (at your option) any later version.
 //
 // Recorder is distributed in the hope that it will be useful,
