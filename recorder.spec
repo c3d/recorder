@@ -33,7 +33,7 @@ the recorder library.
 %autosetup -n recorder-%{version}
 
 %build
-%make_build COLORIZE= TARGET=opt
+%make_build COLORIZE= TARGET=opt V=1
 (cd scope && qmake-qt5 && make)
 
 %check
