@@ -48,8 +48,7 @@ the recorder library.
 
 %install
 %make_install COLORIZE= TARGET=opt DOC_INSTALL=
-mkdir -p %{buildroot}%{_bindir}
-install -p scope/recorder_scope %{buildroot}%{_bindir}/
+%make_install -C scope INSTALL_ROOT=%{buildroot}
 
 %files
 %license COPYING

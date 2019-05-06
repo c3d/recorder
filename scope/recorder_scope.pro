@@ -30,3 +30,7 @@ SOURCES += recorder_view.cpp    \
            recorder_slider.cpp
 
 LIBS += -L.. -lrecorder
+
+target.files = recorder_scope
+target.path = $$INSTALL_BINDIR
+INSTALLS += target
