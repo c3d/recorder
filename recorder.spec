@@ -17,7 +17,7 @@ Flight recorder for C and C++ programs using printf-like 'record' statements.
 Summary:        Development files for recorder library
 Requires:       %{name}%{?_isa} = %{version}-%{release}
 %description devel
-Libraries and include files required to build an application using librecorder.
+Development files for the flight recorder library.
 
 %package scope
 Summary:        A real-time graphing tool for data collected by recorder library
@@ -26,8 +26,8 @@ BuildRequires:  qt5-devel
 BuildRequires:  qt5-qtcharts-devel
 Requires:       %{name}%{?_isa} = %{version}-%{release}
 %description scope
-The recorder_scope tool draws real-time charts from data collected by
-the recorder library.
+Instrumentation that draws real-time charts, processes or saves data
+collected by the flight_recorder library.
 
 %prep
 %autosetup -n recorder-%{version}
