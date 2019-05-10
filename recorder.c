@@ -68,6 +68,7 @@
 
 enum
 {
+    // Signals that are handled by default by recorder_dump_on_common_signals
     RECORDER_SIGNALS_MASK = 0
 #ifdef SIGQUIT
     | (1U << SIGQUIT)
@@ -78,6 +79,9 @@ enum
 #ifdef SIGABRT
     | (1U << SIGABRT)
 #endif // SIGABRT
+#ifdef SIGFPE
+    | (1U << SIGFPE)
+#endif // SIGFPE
 #ifdef SIGBUS
     | (1U << SIGBUS)
 #endif // SIGBUS
@@ -87,6 +91,9 @@ enum
 #ifdef SIGSYS
     | (1U << SIGSYS)
 #endif // SIGSYS
+#ifdef SIGPIPE
+    | (1U << SIGPIPE)
+#endif // SIGPIPE
 #ifdef SIGXCPU
     | (1U << SIGXCPU)
 #endif // SIGXCPU
@@ -108,6 +115,29 @@ enum
 #ifdef SIGPWR
     | (1U << SIGPWR)
 #endif // SIGPWR
+    ,
+
+    // Signals that should run multiple times by default
+    RECORDER_SIGNALS_REPEATING = 0
+#ifdef SIGINFO
+    | (1U << SIGINFO)
+#endif // SIGINFO
+#ifdef SIGUSR1
+    | (1U << SIGUSR1)
+#endif // SIGUSR1
+#ifdef SIGUSR2
+    | (1U << SIGUSR2)
+#endif // SIGUSR2
+#ifdef SIGSTKFLT
+    | (1U << SIGSTKFLT)
+#endif // SIGSTKFLT
+#ifdef SIGPWR
+    | (1U << SIGPWR)
+#endif // SIGPWR
+    ,
+
+    // Signals where the signal handler should exit
+    RECORDER_SIGNALS_EXITING = RECORDER_SIGNALS_MASK&~RECORDER_SIGNALS_REPEATING
 };
 
 
@@ -128,6 +158,12 @@ RECORDER(recorder_traces,       64, "Recorder traces");
 RECORDER_TWEAK_DEFINE(recorder_signals_mask,
                       RECORDER_SIGNALS_MASK,
                       "Recorder default mask for signals to catch");
+RECORDER_TWEAK_DEFINE(recorder_signals_repeating,
+                      RECORDER_SIGNALS_REPEATING,
+                      "Recorder default mask for signals that can repeat");
+RECORDER_TWEAK_DEFINE(recorder_signals_exiting,
+                      RECORDER_SIGNALS_EXITING,
+                      "Recorder default mask for signals that will exit");
 RECORDER_TWEAK_DEFINE(recorder_dump_sleep, 100,
                       "Sleep time between background dumps (ms)");
 RECORDER_TWEAK_DEFINE(recorder_export_size, 2048,
@@ -1874,73 +1910,100 @@ void recorder_background_dump_stop(void)
 //
 // ============================================================================
 
-// Saved old actions
 #if HAVE_SIGACTION
-static struct sigaction old_action[NSIG] = { };
 
-static void signal_handler(int sig, siginfo_t *info, void *ucontext)
-// ----------------------------------------------------------------------------
-//    Dump the recorder when receiving a signal
-// ----------------------------------------------------------------------------
-{
-    record(recorder_signals,
-           "Received signal %+s (%d) si_addr=%p, ucontext %p, dumping recorder",
-           strsignal(sig), sig, info->si_addr, ucontext);
-    fprintf(stderr, "Received signal %s (%d), dumping recorder\n",
-            strsignal(sig), sig);
-
-    // Restore previous handler in case we crash during the dump
-    sigaction(sig, &old_action[sig], NULL);
-    recorder_dump();
-}
-
-
-void recorder_dump_on_signal(int sig)
-// ----------------------------------------------------------------------------
-//    C interface for Recorder::DumpOnSignal
-// ----------------------------------------------------------------------------
-{
-    if (sig < 0 || sig >= NSIG)
-        return;
-
-    struct sigaction action;
-
-    // Already set?
-    sigaction(sig, NULL, &action);
-    if ((action.sa_flags & SA_SIGINFO) != 0 && action.sa_sigaction == signal_handler)
-        return;
-    old_action[sig] = action;
-
-    action.sa_sigaction = signal_handler;
-    sigemptyset(&action.sa_mask);
-    action.sa_flags = SA_SIGINFO;
-    sigaction(sig, &action, NULL);
-    record(recorder_signals,
-           "Recorder dump handler %p for signal %u, old action=%p",
-           signal_handler, sig, old_action[sig].sa_sigaction);
-}
+typedef struct sigaction        sig_fn;
+#define SIGNAL_DEFAULT          {}
+#define SIGNAL_INTERFACE        int sig, siginfo_t *info, void *ucontext
+#define SIGNAL_CALL             sig, info, ucontext
 
 #else // !HAVE_SIGACTION
 
 /* For MinGW, there is no struct sigaction */
 typedef void (*sig_fn)(int);
-static sig_fn old_handler[NSIG] = { };
 
-static void signal_handler(int sig)
+#define SIGNAL_DEFAULT          NULL
+#define SIGNAL_INTERFACE        int sig
+#define SIGNAL_CALL             sig
+
+static inline void sigaction(int sig, sig_fn *handler, sig_fn *save)
 // ----------------------------------------------------------------------------
-//   Dump the recorder when receiving the given signal
+//   Quick and dirty replacement for sigaction to avoid too many #ifdefs below
 // ----------------------------------------------------------------------------
 {
-    record(recorder_signals, "Received signal %d, dumping recorder", sig);
-    fprintf(stderr, "Received signal %d, dumping recorder\n", sig);
+    sig_fn old = signal(sig, handler ? *handler : SIG_DFL);
+    if (save)
+        *save = old;
+}
 
-    // Restore previous handler
-    sig_fn next = signal(sig, old_handler[sig]);
+#endif // HAVE_SIGACTION
+
+static sig_fn old_handler[NSIG] = { };
+
+
+static void signal_handler(SIGNAL_INTERFACE)
+// ----------------------------------------------------------------------------
+//    Dump the recorder when receiving a signal
+// ----------------------------------------------------------------------------
+{
+    fprintf(stderr, "Received signal %s (%d), %s\n",
+            strsignal(sig), sig,
+            recorder_dumping ? "already dumping, exiting" : "dumping recorder");
+    if (recorder_dumping)
+        exit('R');
+
+#if HAVE_SIGACTION
+    record(recorder_signals,
+           "Received signal %+s (%d) si_addr=%p, ucontext %p, dumping recorder",
+           strsignal(sig), sig, info->si_addr, ucontext);
+
+#else // No sigaction
+    record(recorder_signals, "Received signal %d, dumping recorder", sig);
+#endif // HAVE_SIGACTION
+
+    // Restore previous handler in case we crash during the dump
+    sig_fn action = SIGNAL_DEFAULT;
+    sigaction(sig, &old_handler[sig], &action);
+
+    // Perform the dump. If we get a signal within, we'll exit('R') right away
     recorder_dump();
 
-    // If there is a 'next' handler, call it
-    if (next != SIG_DFL && next != SIG_IGN)
-        next(sig);
+    // If there is another hanlder installed, invoke it
+#if HAVE_SIGACTION
+    if (old_handler[sig].sa_flags & SA_SIGINFO)
+    {
+        if (old_handler[sig].sa_sigaction)
+        {
+            record(recorder_signals, "Passing signal %s (%d) to action %p\n",
+                   strsignal(sig), sig, old_handler[sig].sa_sigaction);
+            old_handler[sig].sa_sigaction(sig, info, ucontext);
+        }
+    }
+    else
+    {
+        if (old_handler[sig].sa_handler)
+        {
+            record(recorder_signals, "Passing signal %s (%d) to handler %p\n",
+                   strsignal(sig), sig, old_handler[sig].sa_handler);
+            old_handler[sig].sa_handler(sig);
+        }
+    }
+#else // !HAVE_SIGACTION
+    if (old_handler[sig])
+    {
+        record(recorder_signals, "Passing signal %s (%d) to previous %p\n",
+               strsignal(sig), sig, old_handler[sig]);
+        old_handler[sig](sig);
+    }
+#endif // HAVE_SIGACTION
+
+    uintptr_t mask = (uintptr_t) 1 << sig;
+    if (RECORDER_TWEAK(recorder_signals_exiting) & mask)
+        exit('r');
+
+    // Restore the previous action
+    if (RECORDER_TWEAK(recorder_signals_repeating) & mask)
+        sigaction(sig, &action, NULL);
 }
 
 
@@ -1951,15 +2014,43 @@ void recorder_dump_on_signal(int sig)
 {
     if (sig < 0 || sig >= NSIG)
         return;
-    old_handler[sig] = signal(sig, signal_handler);
-    record(recorder_signals,
-           "Recorder dump handler %p for signal %u, old handler=%p",
-           signal_handler, sig, old_handler[sig]);
-    if (old_handler[sig] == signal_handler)
-        old_handler[sig] = (sig_fn) SIG_DFL;
-}
 
+    // Already set?
+    sig_fn action = SIGNAL_DEFAULT;
+    sigaction(sig, NULL, &action);
+#if HAVE_SIGACTION
+    if ((action.sa_flags & SA_SIGINFO) != 0 &&
+        action.sa_sigaction == signal_handler)
+    {
+        record(recorder_signals, "No change for %s (%d) flag 0x%X address %p\n",
+               strsignal(sig), sig, action.sa_flags, action.sa_sigaction);
+        return;
+    }
+    old_handler[sig] = action;
+
+    action.sa_sigaction = signal_handler;
+    sigemptyset(&action.sa_mask);
+    action.sa_flags = SA_SIGINFO;
+    sigaction(sig, &action, NULL);
+
+#else // HAVE_SIGACTION
+    if (action != signal_handler)
+        old_handler[sig] = action;
+
+    signal(sig, signal_handler);
 #endif // HAVE_SIGACTION
+
+#if HAVE_SIGACTION
+    record(recorder_signals,
+           "Recorder dump handler %p for signal %u, old flags=0x%X action=%p",
+           signal_handler, sig,
+           old_handler[sig].sa_flags, old_handler[sig].sa_sigaction);
+#else
+    record(recorder_signals,
+           "Recorder dump handler %p for signal %u, old %p",
+           signal_handler, sig, old_handler[sig]);
+#endif // HAVE_SIGACTION
+}
 
 
 void recorder_dump_on_common_signals(unsigned add, unsigned remove)
