@@ -1004,7 +1004,7 @@ unsigned recorder_sort(const char *what,
     unsigned        dumped = 0;
 
     pattern_t re;
-    int status = pattern_comp(&re, what);
+    int status = what ? pattern_comp(&re, what) : 0;
 
     recorder_ring_fetch_add(recorder_dumping, 1);
     while (status == 0)
@@ -1017,7 +1017,7 @@ unsigned recorder_sort(const char *what,
         for (rec = recorders; rec; rec = rec->next)
         {
             // Skip recorders that don't match the pattern
-            if (!pattern_match(&re, rec->name))
+            if (what && !pattern_match(&re, rec->name))
                 continue;
 
             // Loop while this recorder is readable and we can find next order
@@ -1043,7 +1043,8 @@ unsigned recorder_sort(const char *what,
     }
     recorder_ring_fetch_add(recorder_dumping, -1);
 
-    pattern_free(&re);
+    if (what)
+        pattern_free(&re);
 
     return dumped;
 }
@@ -1055,7 +1056,7 @@ unsigned recorder_dump(void)
 // ----------------------------------------------------------------------------
 {
     record(recorder, "Recorder dump");
-    return recorder_sort(".*", recorder_format,recorder_show,recorder_output);
+    return recorder_sort(NULL, recorder_format,recorder_show,recorder_output);
 }
 
 
