@@ -738,9 +738,9 @@ static void recorder_tweak_activate_##Name(void)                        \
 //
 // ============================================================================
 
-RECORDER_DECLARE(signals);
 RECORDER_DECLARE(recorders);
 RECORDER_DECLARE(recorder_traces);
+RECORDER_DECLARE(recorder_signals);
 
 
 
