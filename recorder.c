@@ -938,7 +938,7 @@ static void recorder_format_entry(recorder_show_fn show,
     if (spacing != '[')
         dst += rsnprintf("] ");
 
-    dst += rsnprintf("%s %s", label, message);
+    dst += rsnprintf("%s: %s", label, message);
 
     // In case snprintf overflowed
     show(buffer, (dst > dst_end ? dst_end : dst) - buffer, output);
