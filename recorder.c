@@ -2042,12 +2042,12 @@ void recorder_dump_on_signal(int sig)
 
 #if HAVE_SIGACTION
     record(recorder_signals,
-           "Recorder dump handler %p for signal %u, old flags=0x%X action=%p",
+           "Recorder dump handler %p for signal %d, old flags=0x%X action=%p",
            signal_handler, sig,
            old_handler[sig].sa_flags, old_handler[sig].sa_sigaction);
 #else
     record(recorder_signals,
-           "Recorder dump handler %p for signal %u, old %p",
+           "Recorder dump handler %p for signal %d, old %p",
            signal_handler, sig, old_handler[sig]);
 #endif // HAVE_SIGACTION
 }
