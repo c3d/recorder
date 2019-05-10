@@ -282,13 +282,12 @@ static void recorder_format_entry(recorder_show_fn show,
                                   uintptr_t timestamp,
                                   const char *message);
 
-static void * recorder_output = NULL;
-static recorder_show_fn recorder_show = recorder_print;
-static recorder_format_fn recorder_format = recorder_format_entry;
-static recorder_type_fn recorder_types[256];
-static void *recorder_alt_stack = NULL;
-
-static uintptr_t recorder_time_at_start = 0;
+static void *              recorder_output        = NULL;
+static recorder_show_fn    recorder_show          = recorder_print;
+static recorder_format_fn  recorder_format        = recorder_format_entry;
+static recorder_type_fn    recorder_types[256]    = { };
+static uint8_t            *recorder_alt_stack     = NULL;
+static uintptr_t           recorder_time_at_start = 0;
 
 
 
@@ -2011,6 +2010,44 @@ static void signal_handler(SIGNAL_INTERFACE)
 }
 
 
+static void recorder_allocate_alt_stack(void)
+// ----------------------------------------------------------------------------
+//    Allocate an alternate stack for the crash handler
+// ----------------------------------------------------------------------------
+{
+    // Setup alt stack for recorder_dump
+    if (!recorder_alt_stack)
+    {
+        size_t size = RECORDER_TWEAK(recorder_alt_stack_size);
+        if (size)
+        {
+            size_t page = getpagesize();
+            recorder_alt_stack = mmap(NULL, size + 2 * page,
+                                      PROT_READ | PROT_WRITE,
+                                      MAP_PRIVATE | MAP_ANON,
+                                      -1, 0);
+            record(recorder, "Set alt stack to %p size %llu",
+                   recorder_alt_stack, size);
+            if (recorder_alt_stack)
+            {
+                mprotect(recorder_alt_stack, page, PROT_NONE);
+                mprotect(recorder_alt_stack + page + size, page, PROT_NONE);
+
+                stack_t sigstk;
+                sigstk.ss_size = size;
+                sigstk.ss_flags = 0;
+                sigstk.ss_sp = recorder_alt_stack + page;
+                int rc = sigaltstack(&sigstk, NULL);
+                if (rc < 0)
+                    record(recorder_error, "Alt stack %p size %u result %d",
+                           recorder_alt_stack, size, rc);
+            }
+        }
+    }
+
+}
+
+
 void recorder_dump_on_signal(int sig)
 // ----------------------------------------------------------------------------
 //    C interface for Recorder::DumpOnSignal
@@ -2019,28 +2056,9 @@ void recorder_dump_on_signal(int sig)
     if (sig < 0 || sig >= NSIG)
         return;
 
-    // Setup alt stack for recorder_dump
+    // Alocate alternative stack if necessary
     if (!recorder_alt_stack)
-    {
-        size_t size = RECORDER_TWEAK(recorder_alt_stack_size);
-        if (size)
-        {
-            recorder_alt_stack = malloc(size);
-            record(recorder,
-                   "Set alt stack to %p size %llu", recorder_alt_stack, size);
-            if (recorder_alt_stack)
-            {
-                stack_t sigstk;
-                sigstk.ss_size = size;
-                sigstk.ss_flags = 0;
-                sigstk.ss_sp = recorder_alt_stack;
-                int rc = sigaltstack(&sigstk, NULL);
-                if (rc < 0)
-                    record(recorder_error, "Alt stack %p size %u result %d",
-                           recorder_alt_stack, size, rc);
-            }
-        }
-    }
+        recorder_allocate_alt_stack();
 
     // Already set?
     sig_fn action = SIGNAL_DEFAULT;
