@@ -179,6 +179,8 @@ RECORDER_TWEAK_DEFINE(recorder_time_precision,
                       : RECORDER_HZ >      1 ?  1
                       :                         0,
                       "Precision for displaying time");
+RECORDER_TWEAK_DEFINE(recorder_alt_stack_size, SIGSTKSZ,
+                      "Size of alternate stack for recorder (0 to disable)");
 
 // Display tweaks
 RECORDER_TWEAK_DEFINE(recorder_location, 0,
@@ -284,6 +286,7 @@ static void * recorder_output = NULL;
 static recorder_show_fn recorder_show = recorder_print;
 static recorder_format_fn recorder_format = recorder_format_entry;
 static recorder_type_fn recorder_types[256];
+static void *recorder_alt_stack = NULL;
 
 static uintptr_t recorder_time_at_start = 0;
 
@@ -2016,6 +2019,29 @@ void recorder_dump_on_signal(int sig)
     if (sig < 0 || sig >= NSIG)
         return;
 
+    // Setup alt stack for recorder_dump
+    if (!recorder_alt_stack)
+    {
+        size_t size = RECORDER_TWEAK(recorder_alt_stack_size);
+        if (size)
+        {
+            recorder_alt_stack = malloc(size);
+            record(recorder,
+                   "Set alt stack to %p size %llu", recorder_alt_stack, size);
+            if (recorder_alt_stack)
+            {
+                stack_t sigstk;
+                sigstk.ss_size = size;
+                sigstk.ss_flags = 0;
+                sigstk.ss_sp = recorder_alt_stack;
+                int rc = sigaltstack(&sigstk, NULL);
+                if (rc < 0)
+                    record(recorder_error, "Alt stack %p size %u result %d",
+                           recorder_alt_stack, size, rc);
+            }
+        }
+    }
+
     // Already set?
     sig_fn action = SIGNAL_DEFAULT;
     sigaction(sig, NULL, &action);
@@ -2031,7 +2057,7 @@ void recorder_dump_on_signal(int sig)
 
     action.sa_sigaction = signal_handler;
     sigemptyset(&action.sa_mask);
-    action.sa_flags = SA_SIGINFO;
+    action.sa_flags = SA_SIGINFO | SA_ONSTACK;
     sigaction(sig, &action, NULL);
 
 #else // HAVE_SIGACTION
