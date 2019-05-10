@@ -821,11 +821,17 @@ void *recorder_configure_output(void *output)
 
 static unsigned recorder_print(const char *ptr, size_t len, void *file_arg)
 // ----------------------------------------------------------------------------
-//   The default printing function - prints to stderr
+//   The default printing function - prints to standard error
 // ----------------------------------------------------------------------------
+//   This uses 'write' in order to avoid buffered output, which proves
+//   unreliable on the alternate stack (sigaltstack) because it uses malloc
 {
-    FILE *file = file_arg ? file_arg : stderr;
-    return (unsigned) fprintf(file, "%.*s\n", (int) len, ptr);
+    int fd = file_arg >= (void *) 0x100
+        ? fileno((FILE *) file_arg)
+        : file_arg
+        ? (int) (intptr_t) file_arg
+        : 2;
+    return (unsigned) write(fd, ptr, len) + write(fd, "\n", 1);
 }
 
 
@@ -1949,8 +1955,8 @@ static void signal_handler(SIGNAL_INTERFACE)
 //    Dump the recorder when receiving a signal
 // ----------------------------------------------------------------------------
 {
-    fprintf(stderr, "Received signal %s (%d), %s\n",
-            strsignal(sig), sig,
+    record(recorder_signals, "Received signal %s, %+s\n",
+            strsignal(sig),
             recorder_dumping ? "already dumping, exiting" : "dumping recorder");
     if (recorder_dumping)
         exit('R');
