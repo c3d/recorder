@@ -2016,6 +2016,7 @@ static void signal_handler(SIGNAL_INTERFACE)
 }
 
 
+#if HAVE_SYS_MMAN_H
 static void recorder_allocate_alt_stack(void)
 // ----------------------------------------------------------------------------
 //    Allocate an alternate stack for the crash handler
@@ -2052,6 +2053,7 @@ static void recorder_allocate_alt_stack(void)
     }
 
 }
+#endif // HAVE_SYS_MMAN_H
 
 
 void recorder_dump_on_signal(int sig)
@@ -2062,9 +2064,11 @@ void recorder_dump_on_signal(int sig)
     if (sig < 0 || sig >= NSIG)
         return;
 
+#if HAVE_SYS_MMAN_H
     // Alocate alternative stack if necessary
     if (!recorder_alt_stack)
         recorder_allocate_alt_stack();
+#endif // HAVE_SYS_MMAN_H
 
     // Already set?
     sig_fn action = SIGNAL_DEFAULT;
