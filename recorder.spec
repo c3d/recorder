@@ -30,7 +30,7 @@ Instrumentation that draws real-time charts, processes or saves data
 collected by the flight_recorder library.
 
 %prep
-%autosetup -n recorder-%{version}
+%autosetup -n %{name}-%{version}
 %configure
 
 %build
