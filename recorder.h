@@ -392,16 +392,16 @@ static void recorder_tweak_activate_##Name(void)                        \
 //
 // ============================================================================
 
-#define record(Name, ...)               RECORD_MACRO(Name, __VA_ARGS__)
-#define RECORD(Name,...)                RECORD_MACRO(Name, __VA_ARGS__)
-#define RECORD_MACRO(Name, Format,...)                                  \
-    RECORD_(RECORD,RECORD_COUNT_(__VA_ARGS__),Name,Format,##__VA_ARGS__)
-#define RECORD_(RECORD,RCOUNT,Name,Format,...)                          \
-    RECORD__(RECORD,RCOUNT,Name,Format,## __VA_ARGS__)
-#define RECORD__(RECORD,RCOUNT,Name,Format,...)                         \
-    RECORD##RCOUNT(Name,Format,##__VA_ARGS__)
-#define RECORD_COUNT_(...)      RECORD_COUNT__(Dummy,##__VA_ARGS__,_X,_X,_12,_11,_10,_9,_8,_7,_6,_5,_4,_3,_2,_1,_0)
-#define RECORD_COUNT__(Dummy,_0,_1,_2,_3,_4,_5,_6,_7,_8,_9,_10,_11,_12,_13,_N,...)      _N
+#define record(Name, ...)       RECORD_MACRO(Name, __VA_ARGS__)
+#define RECORD(Name, ...)       RECORD_MACRO(Name, __VA_ARGS__)
+#define RECORD_MACRO(Name, ...)                                         \
+    RECORD_(RECORD,RECORD_COUNT_(Name,__VA_ARGS__),Name,##__VA_ARGS__)
+#define RECORD_(RECORD,RCOUNT,Name,...)                                 \
+    RECORD__(RECORD,RCOUNT,Name,## __VA_ARGS__)
+#define RECORD__(RECORD,RCOUNT,Name,...)                                \
+    RECORD##RCOUNT(Name,##__VA_ARGS__)
+#define RECORD_COUNT_(...)      RECORD_COUNT__(Name,##__VA_ARGS__,_12,_11,_10,_9,_8,_7,_6,_5,_4,_3,_2,_1,_0,_X)
+#define RECORD_COUNT__(Name,_0,_1,_2,_3,_4,_5,_6,_7,_8,_9,_10,_11,_12,_13,_N,...)      _N
 
 #define RECORD_0(Name, Format)                          \
     recorder_append(RECORDER_INFO(Name),                \
@@ -550,8 +550,8 @@ static void recorder_tweak_activate_##Name(void)                        \
 
 // Faster version that does not record time, about 2x faster on x86
 #define record_fast(Name, ...)     RECORD_FAST(Name, __VA_ARGS__)
-#define RECORD_FAST(Name,Format,...)                                    \
-    RECORD_(RECORD_FAST,RECORD_COUNT_(__VA_ARGS__),Name,Format,##__VA_ARGS__)
+#define RECORD_FAST(Name,...)                                           \
+    RECORD_(RECORD_FAST,RECORD_COUNT_(Name,__VA_ARGS__),Name,##__VA_ARGS__)
 #define RECORD_FAST_0(Name, Format)                             \
     recorder_append_fast(RECORDER_INFO(Name),                   \
                          RECORDER_SOURCE_FUNCTION,              \
