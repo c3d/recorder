@@ -18,3 +18,108 @@ make_only:
 statistics:
   script:
   - make opt-test | grep "Duration per record"
+
+install:fedora:
+  image: fedora:latest
+  script:
+  - make PREFIX=/tmp/recorder/ install
+
+install-opt:fedora:
+  image: fedora:latest
+  script:
+  - make PREFIX=/tmp/recorder-opt/ install-opt
+
+install-debug:fedora:
+  image: fedora:latest
+  script:
+  - make PREFIX=/tmp/recorder-debug/ install-debug
+
+install-release:fedora:
+  image: fedora:latest
+  script:
+  - make PREFIX=/tmp/recorder-release/ install-release
+
+test:fedora:
+  image: fedora:latest
+  script:
+  - make test
+
+test-opt:fedora:
+  image: fedora:latest
+  script:
+  - make test-opt
+
+test-release:fedora:
+  image: fedora:latest
+  script:
+  - make test-release
+
+test-debug:fedora:
+  image: fedora:latest
+  script:
+  - make test-debug
+
+build:fedora:
+  image: fedora:latest
+  script:
+  - make
+
+build-opt:fedora:
+  image: fedora:latest
+  script:
+  - make opt
+
+build-debug:fedora:
+  image: fedora:latest
+  script:
+  - make opt-debug
+
+build-release:fedora:
+  image: fedora:latest
+  script:
+  - make opt-release
+
+test:fedora28:
+  image: fedora:28
+  script:
+   - make test
+
+test:fedora29:
+  image: fedora:29
+  script:
+   - make test
+
+test:fedora30:
+  image: fedora:30
+  script:
+   - make test
+
+test:fedora31:
+  image: fedora:31
+  script:
+   - make test
+
+test:fedora32:
+  image: fedora:32
+  script:
+   - make test
+
+test:ubuntu:
+  image: ubuntu:latest
+  script:
+  - make test
+
+test-opt:ubuntu:
+  image: ubuntu:latest
+  script:
+  - make test-opt
+
+test-release:ubuntu:
+  image: ubuntu:latest
+  script:
+  - make test-release
+
+test-debug:ubuntu:
+  image: ubuntu:latest
+  script:
+  - make test-debug
