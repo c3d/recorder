@@ -1,4 +1,5 @@
 before_script:
+  - dnf install -y git gcc gcc-c++ make findutils diffutils gawk || (apt-get update && apt-get install -y git gcc g++ make findutils gawk)
   - git submodule update --init --recursive
 
 test:
