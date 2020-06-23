@@ -22,7 +22,7 @@ Development files for the flight recorder library.
 %package scope
 Summary:        A real-time graphing tool for data collected by recorder library
 License:        GPLv3+
-%if 0%{?fedora} > 32
+%if 0%{?fedora} >= 32
 BuildRequires:  qt-devel
 %else
 BuildRequires:  qt5-devel
