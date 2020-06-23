@@ -14,7 +14,7 @@
 #
 # ******************************************************************************
 # This software is licensed under the GNU Lesser General Public License v2+
-# (C) 2017-2019, Christophe de Dinechin <christophe@dinechin.org>
+# (C) 2017-2020, Christophe de Dinechin <christophe@dinechin.org>
 # ******************************************************************************
 # This file is part of Recorder
 #
@@ -42,7 +42,7 @@ MANPAGES=$(wildcard man/man3/*.3 man/man1/*.1)
 
 # For pkg-config generation
 PACKAGE_NAME=recorder
-PACKAGE_VERSION=1.0.8
+PACKAGE_VERSION=1.0.9
 PACKAGE_DESCRIPTION=Lock-free, real-time flight recorder for C or C++ programs
 PACKAGE_URL="http://github.com/c3d/recorder"
 PACKAGE_REQUIRES=

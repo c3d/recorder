@@ -17,7 +17,7 @@
 //
 // *****************************************************************************
 // This software is licensed under the GNU Lesser General Public License v2+
-// (C) 2017-2019, Christophe de Dinechin <christophe@dinechin.org>
+// (C) 2017-2020, Christophe de Dinechin <christophe@dinechin.org>
 // *****************************************************************************
 // This file is part of Recorder
 //
@@ -52,7 +52,7 @@ extern "C" {
 //
 // ============================================================================
 
-#define RECORDER_CURRENT_VERSION                RECORDER_VERSION(1,0,8)
+#define RECORDER_CURRENT_VERSION                RECORDER_VERSION(1,0,9)
 #define RECORDER_VERSION(majr,minr,ptch)        ((majr)<<16|((minr)<<8|(ptch)))
 #define RECORDER_VERSION_MAJOR(version)         (((version) >> 16) & 0xFF)
 #define RECORDER_VERSION_MINOR(version)         (((version) >>  8)& 0xFF)
@@ -831,6 +831,8 @@ typedef struct recorder_chan  *recorder_chan_p;
 
 // Magic number in export channel is different for 32-bit and 64-bit values
 #define RECORDER_CHAN_MAGIC           (0xC0DABABE ^ RECORDER_64BIT)
+
+// The recorder channel version (update only when channel format changes)
 #define RECORDER_CHAN_VERSION         RECORDER_VERSION(1,0,8)
 #define RECORDER_EXPORT_SIZE          2048
 

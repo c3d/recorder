@@ -17,7 +17,7 @@
 //
 // *****************************************************************************
 // This software is licensed under the GNU Lesser General Public License v2+
-// (C) 2017-2019, Christophe de Dinechin <christophe@dinechin.org>
+// (C) 2017-2020, Christophe de Dinechin <christophe@dinechin.org>
 // *****************************************************************************
 // This file is part of Recorder
 //

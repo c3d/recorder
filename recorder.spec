@@ -1,5 +1,5 @@
 Name:           recorder
-Version:        1.0.8
+Version:        1.0.9
 Release:        1%{?dist}
 Summary:        Lock-free, real-time flight recorder for C or C++ programs
 License:        LGPLv2+
@@ -22,7 +22,11 @@ Development files for the flight recorder library.
 %package scope
 Summary:        A real-time graphing tool for data collected by recorder library
 License:        GPLv3+
+%if 0%{?fedora} > 32
+BuildRequires:  qt-devel
+%else
 BuildRequires:  qt5-devel
+%endif
 BuildRequires:  qt5-qtcharts-devel
 Requires:       %{name}%{?_isa} = %{version}-%{release}
 %description scope
@@ -70,6 +74,9 @@ collected by the flight_recorder library.
 %{_mandir}/man1/*.1.*
 
 %changelog
+* Tue Jun 23 2020 Christophe de Dinechin <dinechin@redhat.com> - 1.0.9-1
+- Release 1.0.9, compatibility with Fedora 33
+
 * Fri May 3 2019 Christophe de Dinechin <dinechin@redhat.com> - 1.0.8-1
 - Adjust Fedora package to address review comments
 

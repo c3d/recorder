@@ -1,3 +1,20 @@
+v1.0.9 Minor fixes
+     - Update copyright header for recorder_scope.pro
+     - Change the license for recorder_test.c from LGPL to GPL
+     - Robustify the recorder signal handler
+     - Add missing colon after recorder label
+     - Fix name of 'recorder_signals' recorder
+     - Fix format for signal (from %u to %d)
+     - Small optimization for the common recorder_dump case
+     - Setup alternate stack for signal handling
+     - Use mmap() to create the alternate stack
+     - Avoid calls to fprintf() from recorder_dump(), in order to avoid malloc() calls
+     - Do not switch to alt stack if no mmap() - MinGW case
+     - One more use of the %{name} macro
+     - (gitlab/master) Fix errors or warnings in strict Ansi mode
+     - ci: Add tests for variants such as fedora 28-31
+     - ci: Add missing install
+
 v1.0.8 Address Fedora packaging review comments
 
     - Switch to LGPLv2+ for library, GPLv3+ for scope (for SPICE use)

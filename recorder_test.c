@@ -15,7 +15,7 @@
 //
 // *****************************************************************************
 // This software is licensed under the GNU General Public License v3+
-// (C) 2017-2019, Christophe de Dinechin <christophe@dinechin.org>
+// (C) 2017-2020, Christophe de Dinechin <christophe@dinechin.org>
 // (C) 2018, Frediano Ziglio <fziglio@redhat.com>
 // *****************************************************************************
 // This file is part of Recorder
@@ -174,7 +174,7 @@ void flight_recorder_test(int argc, char **argv)
          RECORDER_VERSION_MAJOR(RECORDER_CURRENT_VERSION),
          RECORDER_VERSION_MINOR(RECORDER_CURRENT_VERSION),
          RECORDER_VERSION_PATCH(RECORDER_CURRENT_VERSION));
-    if (RECORDER_CURRENT_VERSION != RECORDER_VERSION(1,0,8))
+    if (RECORDER_CURRENT_VERSION != RECORDER_VERSION(1,0,9))
         FAIL("Testing an unexpected version of the recorder, "
              "update RECORDER_CURRENT_VERSION");
 
