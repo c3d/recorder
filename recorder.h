@@ -724,6 +724,7 @@ static void recorder_tweak_activate_##Name(void)                        \
              signed:            _recorder_signed,       \
              signed long:       _recorder_signed,       \
              signed long long:  _recorder_signed,       \
+             _Bool:             _recorder_signed,       \
              float:             _recorder_float,        \
              double:            _recorder_double,       \
              default:           _recorder_pointer)(arg)
