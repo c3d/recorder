@@ -1,5 +1,5 @@
 Name:           recorder
-Version:        1.0.9
+Version:        1.0.10
 Release:        1%{?dist}
 Summary:        Lock-free, real-time flight recorder for C or C++ programs
 License:        LGPLv2+
@@ -74,8 +74,17 @@ collected by the flight_recorder library.
 %{_mandir}/man1/*.1.*
 
 %changelog
+* Fri Jun 26  2020 Christophe de Dinechin <dinechin@redhat.com> - 1.0.10-1
+- Release 1.0.10, Add _Bool support
+
 * Tue Jun 23 2020 Christophe de Dinechin <dinechin@redhat.com> - 1.0.9-1
 - Release 1.0.9, compatibility with Fedora 33
+
+* Thu Jan 30 2020 Fedora Release Engineering <releng@fedoraproject.org> - 1.0.8-3
+- Rebuilt for https://fedoraproject.org/wiki/Fedora_32_Mass_Rebuild
+
+* Fri Jul 26 2019 Fedora Release Engineering <releng@fedoraproject.org> - 1.0.8-2
+- Rebuilt for https://fedoraproject.org/wiki/Fedora_31_Mass_Rebuild
 
 * Fri May 3 2019 Christophe de Dinechin <dinechin@redhat.com> - 1.0.8-1
 - Adjust Fedora package to address review comments

@@ -1,3 +1,6 @@
+v1.0.10 Add _Bool support
+     - _Bool support was broken. Detected adding recorder support to qemu
+
 v1.0.9 Minor fixes
      - Update copyright header for recorder_scope.pro
      - Change the license for recorder_test.c from LGPL to GPL
