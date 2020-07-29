@@ -271,13 +271,14 @@ takes a string specifying which traces to activate. The specification
 is a colon or space separated list of trace settings, each of them
 specifying a regular expression to match recorder names, optionally
 followed by an `=` sign and a numerical value. If no numerical value
-is given, then the value `1` is assumed.
+is given, then the value `1` is assumed by default, unless the trace name is
+prefixed by the minus sign `-`, in which case the numerical value is set to `0`.
 
-For example, the trace specification `foo:bar=0:b[a-z]z.*=3` sets the
-recorder trace for `foo` to value `1` (enabling tracing for that
-recorder), sets the recorder trace for `bar` to `0`, and sets all
-recorders with a name matching regular expression `b[a-z]z.*` to
-value `3`, for example `boz` and `bbz`.
+For example, the trace specification `foo:bar=0:b[a-z]z.*=3:-glop` sets the
+recorder trace for `foo` to value `1` (enabling tracing for that recorder), sets
+the recorder trace for `bar` and `glop` to `0`, and sets all recorders with a
+name matching regular expression `b[a-z]z.*` to value `3`, for example `boz` and
+`bbz`.
 
 The following names in a trace specification denote *command* which
 perform specific actions.

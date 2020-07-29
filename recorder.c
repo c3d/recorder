@@ -2456,6 +2456,13 @@ int recorder_trace_set(const char *param_spec)
             len = strlen(param);
         }
 
+        // If we have "-foo", consider that the same as "foo=0"
+        if (*param == '-')
+        {
+            value = 0;
+            param++;
+        }
+
         // Check if we have an explicit value (foo=1), otherwise use default
         value_ptr = strchr(param, '=');
         if (value_ptr)
