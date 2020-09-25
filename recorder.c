@@ -2463,6 +2463,13 @@ int recorder_trace_set(const char *param_spec)
             param++;
         }
 
+        // If we have "/foo", consider that the same as "foo=-1"
+        if (*param == '/')
+        {
+            value = -1;
+            param++;
+        }
+
         // Check if we have an explicit value (foo=1), otherwise use default
         value_ptr = strchr(param, '=');
         if (value_ptr)

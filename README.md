@@ -270,9 +270,13 @@ Tracing can be activated by the `recorder_trace_set` function, which
 takes a string specifying which traces to activate. The specification
 is a colon or space separated list of trace settings, each of them
 specifying a regular expression to match recorder names, optionally
-followed by an `=` sign and a numerical value. If no numerical value
-is given, then the value `1` is assumed by default, unless the trace name is
-prefixed by the minus sign `-`, in which case the numerical value is set to `0`.
+followed by an `=` sign and a numerical value.
+
+If no numerical value is given, then the value `1` is assumed by default, which
+enables tracing. If the trace name begins with `-`, then the value `0` is
+assumed by default, which disables tracing, but preserves recording.
+If the trace name begins wiht `/`, then the value `-1` is assumed by default,
+which disables even recording.
 
 For example, the trace specification `foo:bar=0:b[a-z]z.*=3:-glop` sets the
 recorder trace for `foo` to value `1` (enabling tracing for that recorder), sets
@@ -560,6 +564,11 @@ The platforms that were tested are:
 
 * Pi-2: Second generation Raspberry Pi, 4-way ARMv7 CPU, running
   Raspbian Linux with kernel 4.4.50, GCC 4.9.2
+
+It is possible to disable even recording entirely by setting the trace value to
+`-1`, or using the `/` prefix in a trace specification. When recording is
+disable, the cost of the associated `record` entries has been measured to be
+about 3ns on the Mac test platform.
 
 
 ## Multithreading considerations

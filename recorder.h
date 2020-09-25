@@ -383,6 +383,7 @@ static void recorder_tweak_activate_##Name(void)                        \
 #define RECORDER_INFO(Name)     (recorder_info_ptr_for_##Name)
 #define RECORDER_TRACE(Name)    (RECORDER_INFO(Name)->trace)
 #define RECORDER_TWEAK(Name)    RECORDER_TRACE(Name)
+#define RECORDER_ENABLED(Name)  (RECORDER_TRACE(Name) != -1)
 
 
 
@@ -395,7 +396,11 @@ static void recorder_tweak_activate_##Name(void)                        \
 #define record(Name, ...)       RECORD_MACRO(Name, __VA_ARGS__)
 #define RECORD(Name, ...)       RECORD_MACRO(Name, __VA_ARGS__)
 #define RECORD_MACRO(Name, ...)                                         \
-    RECORD_(RECORD,RECORD_COUNT_(Name,__VA_ARGS__),Name,##__VA_ARGS__)
+    (RECORDER_ENABLED(Name)                                             \
+     ? RECORD_ALWAYS(Name, __VA_ARGS__)                                 \
+     : (ringidx_t) -1)
+#define RECORD_ALWAYS(Name, ...)                                        \
+    RECORD_(RECORD, RECORD_COUNT_(Name,__VA_ARGS__),Name,##__VA_ARGS__)
 #define RECORD_(RECORD,RCOUNT,Name,...)                                 \
     RECORD__(RECORD,RCOUNT,Name,## __VA_ARGS__)
 #define RECORD__(RECORD,RCOUNT,Name,...)                                \
@@ -550,7 +555,11 @@ static void recorder_tweak_activate_##Name(void)                        \
 
 // Faster version that does not record time, about 2x faster on x86
 #define record_fast(Name, ...)     RECORD_FAST(Name, __VA_ARGS__)
-#define RECORD_FAST(Name,...)                                           \
+#define RECORD_FAST(Name, ...)                  \
+    (RECORDER_ENABLED(Name)                                             \
+     ? RECORD_FAST_ALWAYS(Name, __VA_ARGS__)                            \
+     : (ringidx_t) -1)
+#define RECORD_FAST_ALWAYS(Name,...)                                    \
     RECORD_(RECORD_FAST,RECORD_COUNT_(Name,__VA_ARGS__),Name,##__VA_ARGS__)
 #define RECORD_FAST_0(Name, Format)                             \
     recorder_append_fast(RECORDER_INFO(Name),                   \
