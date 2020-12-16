@@ -1,3 +1,9 @@
+v1.0.12 Add support for /trace in trace specifications
+     - Add ability to disable all recording with /trace and trace=-1
+
+v1.0.11 Add support for -trace in trace specifications
+     - Add ability to disable a trace with -trace in addition to trace=0
+
 v1.0.10 Add _Bool support
      - _Bool support was broken. Detected adding recorder support to qemu
 
