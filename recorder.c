@@ -604,6 +604,7 @@ static void recorder_dump_entry(recorder_info      *rec,
     unsigned        arg_index     = 0;
     const unsigned  max_arg_index = array_size(entry->args);
     unsigned        colons        = 0;
+    unsigned        nextindent    = indent;
 
     // Exit if we get there for a long-format second entry
     if (!fmt)
@@ -636,9 +637,9 @@ static void recorder_dump_entry(recorder_info      *rec,
                 // Check if first character marks indentation
                 switch(c)
                 {
-                case '>': indent++;   dst--; break;
-                case '<': indent--;   dst--; break;
-                case '=': indent = 0; dst--; break;
+                case '>': nextindent = indent + 1; dst--; break;
+                case '<': nextindent = --indent;   dst--; break;
+                case '=': nextindent = indent = 0; dst--; break;
                 }
                 colons++;
             }
@@ -819,6 +820,7 @@ static void recorder_dump_entry(recorder_info      *rec,
 
     format(show, output, label,
            entry->where, entry->order, entry->timestamp, buffer);
+    indent = nextindent;
 }
 
 
@@ -922,15 +924,6 @@ static void recorder_format_entry(recorder_show_fn show,
     }
     message = end_of_fileline;
 
-    // Check if first character is '>', '<' or '='. If so, alter identation
-    const char *fmt = end_of_fileline;
-    switch(*fmt)
-    {
-    case '>': indent++;   fmt++; break;
-    case '<': indent--;   fmt++; break;
-    case '=': indent = 0; fmt++; break;
-    }
-
     size = (int) RECORDER_TWEAK(recorder_function);
     if (size)
     {
@@ -979,8 +972,11 @@ static void recorder_format_entry(recorder_show_fn show,
 
     if (RECORDER_TWEAK(recorder_indent))
     {
-        unsigned i = 0;
-        for (i = 0; i < indent % RECORDER_TWEAK(recorder_indent); i++)
+        unsigned i = indent % RECORDER_TWEAK(recorder_indent);
+        unsigned n = indent / RECORDER_TWEAK(recorder_indent);
+        if (n)
+            dst += rsnprintf("(%u)", n);
+        while (i--)
             dst += rsnprintf(" ");
     }
     dst += rsnprintf("%s: %s", label, message);
