@@ -193,6 +193,8 @@ RECORDER_TWEAK_DEFINE(recorder_abstime, 0,
                       "Set to show absolute time in recorder dumps");
 RECORDER_TWEAK_DEFINE(recorder_reltime, 1,
                       "Set to show relative time in recorder dumps");
+RECORDER_TWEAK_DEFINE(recorder_indent, 20,
+                      "Set to show max indentation in recorder dumps");
 
 
 
@@ -569,16 +571,19 @@ ringidx_t recorder_append_fast3(recorder_info *rec,
 // ============================================================================
 
 /// Global counter indicating the order of entries across recorders.
-uintptr_t       recorder_order   = 0;
+uintptr_t recorder_order = 0;
 
-unsigned        recorder_dumping = 0;
+// Check if we are currently dumping the recorder
+static unsigned recorder_dumping = 0;
 
 /// List of the currently active flight recorders (ring buffers)
-static recorder_info * recorders        = NULL;
+static recorder_info * recorders = NULL;
 
 /// List of the currently active tweaks
-recorder_tweak *tweaks           = NULL;
+static recorder_tweak *tweaks = NULL;
 
+// The current indent for output
+static unsigned indent = 0;
 
 static void recorder_dump_entry(recorder_info      *rec,
                                 recorder_entry     *entry,
@@ -598,6 +603,7 @@ static void recorder_dump_entry(recorder_info      *rec,
     const char     *fmt           = entry->format;
     unsigned        arg_index     = 0;
     const unsigned  max_arg_index = array_size(entry->args);
+    unsigned        colons        = 0;
 
     // Exit if we get there for a long-format second entry
     if (!fmt)
@@ -620,6 +626,22 @@ static void recorder_dump_entry(recorder_info      *rec,
             if (!c)
                 break;
             dst++;
+            if (c == ':')
+            {
+                // Skip file:line:
+                colons++;
+            }
+            else if (colons == 2)
+            {
+                // Check if first character marks indentation
+                switch(c)
+                {
+                case '>': indent++;   dst--; break;
+                case '<': indent--;   dst--; break;
+                case '=': indent = 0; dst--; break;
+                }
+                colons++;
+            }
         }
         else
         {
@@ -900,6 +922,15 @@ static void recorder_format_entry(recorder_show_fn show,
     }
     message = end_of_fileline;
 
+    // Check if first character is '>', '<' or '='. If so, alter identation
+    const char *fmt = end_of_fileline;
+    switch(*fmt)
+    {
+    case '>': indent++;   fmt++; break;
+    case '<': indent--;   fmt++; break;
+    case '=': indent = 0; fmt++; break;
+    }
+
     size = (int) RECORDER_TWEAK(recorder_function);
     if (size)
     {
@@ -946,6 +977,12 @@ static void recorder_format_entry(recorder_show_fn show,
     if (spacing != '[')
         dst += rsnprintf("] ");
 
+    if (RECORDER_TWEAK(recorder_indent))
+    {
+        unsigned i = 0;
+        for (i = 0; i < indent % RECORDER_TWEAK(recorder_indent); i++)
+            dst += rsnprintf(" ");
+    }
     dst += rsnprintf("%s: %s", label, message);
 
     // In case snprintf overflowed
@@ -1085,6 +1122,15 @@ recorder_info *recorder_list(void)
 {
     return recorders;
 }
+
+
+unsigned recorder_indent(void)
+// ----------------------------------------------------------------------------
+//   Return the current recorder indent level
+// ----------------------------------------------------------------------------
+{
+    return indent;
+};
 
 
 

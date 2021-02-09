@@ -169,7 +169,17 @@ The trailing `\n` in the format string is optional. At recorder dump
 time, separate records will always be printed on separate lines.
 
 While a `RECORD` behaves mostly like `printf`, there are important
-caveats and limitations to be aware of, see below.
+caveats and limitations to be aware of, as well as interesting format string
+extensions relative to `printf`. Notably:
+
+* The `%+s` format indicates a string that is safe to print even at dump
+  time, for example a static string constant.
+
+* You can [define custom formats](#custom-recorder-data-types) such as `%t`.
+
+* Putting a `>`, `<` or `=` sign as the first character of the format string
+  will indent, unindent or reset the indent. The character is not printed. This
+  is useful to keep track of nested algorithms.
 
 
 ## Caveats and limitations
@@ -207,6 +217,10 @@ during tracing.
 
 The `RECORD` macro automatically converts floating point values
 to `uintptr_t` based on their type, i.e. 32-bit or 64-bit floating-point.
+
+The value of the current indent can be read using `recorder_indent()`, but only
+during tracing or dumping. This can be useful if you want to indent the output
+of your own extended tracing.
 
 
 ## Dumping recorder events
@@ -254,6 +268,16 @@ is possible to redirect the output using one of the following methods:
   in which case this function is free to interpret the recorder output
   pointer in any way you wish. Note that doing so disables the
   `@output` command.
+
+The recorder output can be configured with a number of tweaks, including:
+
+* Set `recorder_location` to show the location in the source code (file, line)
+* Set `recorder_function` to show the name of the function
+* Set `recorder_order` to show the order of each recorder entry
+* Set `recorder_abstime` to show the absolute time since start of program
+* Set `recorder_reltime` to show the relative time between two entries
+* Set `recorder_indent` to the maximum indent to use when dumping the recorder
+
 
 ## Recorder tracing
 

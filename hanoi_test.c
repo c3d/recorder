@@ -39,8 +39,9 @@
 #include <stdlib.h>
 
 
-RECORDER(MOVE, 1024, "Moving pieces around");
-RECORDER(TIMING, 32, "Timing information");
+RECORDER(MOVE,    1024, "Moving pieces around");
+RECORDER(RECURSE, 1024, "Recursing");
+RECORDER(TIMING,    32, "Timing information");
 
 typedef enum post { LEFT, MIDDLE, RIGHT } post;
 const char *postName[] = { "LEFT", "MIDDLE", "RIGHT" };
@@ -53,9 +54,11 @@ void hanoi_print(int n, post left, post right, post middle)
     }
     else
     {
+        printf("Recursing at level %d\n", n);
         hanoi_print(n-1, left, middle, right);
         hanoi_print(1, left, right, middle);
         hanoi_print(n-1, middle, right, left);
+        printf("Exit recursion at level %d\n", n);
     }
 }
 
@@ -67,9 +70,11 @@ void hanoi_record(int n, post left, post right, post middle)
     }
     else
     {
+        record(RECURSE, ">Recursing at level %d", n);
         hanoi_record(n-1, left, middle, right);
         hanoi_record(1, left, right, middle);
         hanoi_record(n-1, middle, right, left);
+        record(RECURSE, "<Exit recursiong at level %d", n);
     }
 }
 
@@ -82,9 +87,11 @@ void hanoi_record_fast(int n, post left, post right, post middle)
     }
     else
     {
+        record_fast(RECURSE, ">Recursing at level %d", n);
         hanoi_record_fast(n-1, left, middle, right);
         hanoi_record_fast(1, left, right, middle);
         hanoi_record_fast(n-1, middle, right, left);
+        record_fast(RECURSE, "<Exit recursiong at level %d", n);
     }
 }
 
@@ -111,6 +118,7 @@ int main(int argc, char **argv)
 
         TEST("printing Hanoi",
              hanoi_print(count, LEFT, MIDDLE, RIGHT));
+        fflush(stdout);
         TEST("recording Hanoi",
              hanoi_record(count, LEFT, MIDDLE, RIGHT));
         TEST("fast recording Hanoi",

@@ -52,7 +52,7 @@ extern "C" {
 //
 // ============================================================================
 
-#define RECORDER_CURRENT_VERSION                RECORDER_VERSION(1,0,12)
+#define RECORDER_CURRENT_VERSION                RECORDER_VERSION(1,1,0)
 #define RECORDER_VERSION(majr,minr,ptch)        ((majr)<<16|((minr)<<8|(ptch)))
 #define RECORDER_VERSION_MAJOR(version)         (((version) >> 16) & 0xFF)
 #define RECORDER_VERSION_MINOR(version)         (((version) >>  8)& 0xFF)
@@ -119,6 +119,9 @@ extern recorder_type_fn   recorder_configure_type(uint8_t id,
 extern unsigned recorder_sort(const char *what,
                               recorder_format_fn format,
                               recorder_show_fn show, void *show_arg);
+
+// Return the current indent for the recorder
+extern unsigned recorder_indent(void);
 
 // Background recorder dump thread
 extern void recorder_background_dump(const char *what);
