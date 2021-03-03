@@ -52,7 +52,7 @@ extern "C" {
 //
 // ============================================================================
 
-#define RECORDER_CURRENT_VERSION                RECORDER_VERSION(1,1,0)
+#define RECORDER_CURRENT_VERSION                RECORDER_VERSION(1,2,0)
 #define RECORDER_VERSION(majr,minr,ptch)        ((majr)<<16|((minr)<<8|(ptch)))
 #define RECORDER_VERSION_MAJOR(version)         (((version) >> 16) & 0xFF)
 #define RECORDER_VERSION_MINOR(version)         (((version) >>  8)& 0xFF)
@@ -164,12 +164,13 @@ typedef struct recorder_info
 ///----------------------------------------------------------------------------
 ///   A linked list of the activated recorders
 ///----------------------------------------------------------------------------
+//    We allow up to 12 exported values because that's what RECORD supports
 {
     intptr_t                trace;      ///< Trace this recorder
     const char *            name;       ///< Name of this parameter / recorder
     const char *            description;///< Description of what is recorded
     struct recorder_info *  next;       ///< Pointer to next in list
-    struct recorder_chan *  exported[4];///< Shared-memory ring export
+    struct recorder_chan *  exported[12];///< Shared-memory ring export
     recorder_ring_t         ring;       ///< Pointer to ring for this recorder
     recorder_entry          data[0];    ///< Data for this recorder
 } recorder_info;
@@ -846,7 +847,7 @@ typedef struct recorder_chan  *recorder_chan_p;
 #define RECORDER_CHAN_MAGIC           (0xC0DABABE ^ RECORDER_64BIT)
 
 // The recorder channel version (update only when channel format changes)
-#define RECORDER_CHAN_VERSION         RECORDER_VERSION(1,0,8)
+#define RECORDER_CHAN_VERSION         RECORDER_VERSION(1,2,0)
 #define RECORDER_EXPORT_SIZE          2048
 
 extern const char *recorder_export_file(void);

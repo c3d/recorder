@@ -2307,9 +2307,19 @@ void recorder_trace_entry(recorder_info *info, recorder_entry *entry)
                                                RECORDER_INVALID))
                 shan->type = recorder_type_from_format(entry->format, i);
 
+            recorder_ring_p recRing = &info->ring;
+            recorder_entry *base = (recorder_entry *) (recRing + 1);
+            ringidx_t idx = entry - base;
+            const unsigned  max = array_size(entry->args);
+            recorder_entry *source = &base[(idx + i/max) % ring->size];
+            unsigned sourceIdx = i % max;
+
             data += 2 * (writer % size);
             data[0].unsigned_value = entry->timestamp;
-            data[1].unsigned_value = entry->args[i];
+            data[1].unsigned_value = source->args[sourceIdx];
+            record(recorder, "  source %p offset %u idx %u value %llu",
+                   source, source - base, sourceIdx, data[1].unsigned_value);
+
             recorder_ring_fetch_add(ring->commit, 1);
         }
     }
