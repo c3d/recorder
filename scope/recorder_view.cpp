@@ -39,13 +39,10 @@
 
 #include <QtCore/QtMath>
 #include <QMutex>
-#include <QRegExp>
+#include <QRegularExpression>
 #include <QFileInfo>
 #include <QGraphicsLayout>
 #include <errno.h>
-
-QT_CHARTS_USE_NAMESPACE
-
 
 static const double timeUnit = 1e-6;
 static const double timeScale = 1.0 / timeUnit;
@@ -531,7 +528,7 @@ void RecorderView::keyPressEvent(QKeyEvent *event)
         // for example through timing() or average() functions
         QVector<Points> data;
         for (auto s : seriesList)
-            data.append(s->pointsVector());
+            data.append(s->points());
 
         QByteArray cname = (name + ".csv").toUtf8();
         FILE *f = fopen(cname.data(), "w");

@@ -49,8 +49,6 @@
 #include <QtCore/QTimer>
 #include <QtWidgets/QLabel>
 
-QT_CHARTS_USE_NAMESPACE
-
 class RecorderView : public QChartView
 // ----------------------------------------------------------------------------
 //   View for recorder data
