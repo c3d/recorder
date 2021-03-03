@@ -101,10 +101,10 @@ RecorderView::~RecorderView()
 // ----------------------------------------------------------------------------
 {
     dataUpdater.stop();
-    delete chart;
     delete xAxis;
     delete yAxis;
     delete tAxis;
+    delete chart;
 }
 
 
