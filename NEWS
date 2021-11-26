@@ -1,3 +1,10 @@
+v1.2.0 Adjust for QT6
+
+    - Adjust the recorder_scope for changes in QT6
+    - Make it possible to export more than 4 channels
+    - Fix a crash on recorder_scope exit
+    - Various installation fixes in make-it-quick
+
 v1.1.0 Add support for recorder indentation
      - This adds the recorder_indent() function, hence a bump in minor number
      - Adding > at beginning of the format string indents
