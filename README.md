@@ -130,11 +130,11 @@ In order to add recorders to your own C project, you need to integrate
 four source files:
 
 * The `recorder.h` file is the header, which is designed to work for
-  either C programs. That header relies on a supporting `ring.h`
+  either C programs. That header relies on a supporting `recorder_ring.h`
   header to implement ring buffers.
 
 * The `recorder.c` file is the implementation file, which provides
-  support for C programs. The `ring.c` file implements functions
+  support for C programs. The `recorder_ring.c` file implements functions
   implementing dynamic ring buffers.
 
 To define recorders, you use `RECORDER` statements, which takes
