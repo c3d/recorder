@@ -1,3 +1,7 @@
+v1.2.1          Release 1.2.1 - Fix configuration script
+    
+    Fix the configuration script for Fedora
+
 v1.2.0          Release 1.2.0 - Packaging updates and switch to Qt6
     
     - Add support for Qt6 in the recorder scope
