@@ -38,7 +38,7 @@ HEADERS=recorder_ring.h recorder.h
 PRODUCTS=recorder.dll
 PRODUCTS_VERSION=$(PACKAGE_VERSION)
 CONFIG=sigaction <regex.h> <sys/mman.h> drand48 libregex setlinebuf
-MANPAGES=$(wildcard man/man3/*.3 man/man1/*.1)
+MANPAGES=man/man1 man/man3
 
 # For pkg-config generation
 PACKAGE_NAME=recorder
@@ -56,6 +56,9 @@ MIQ=make-it-quick/
 -include config.local-setup.mk
 LDFLAGS+= -lm -lpthread
 include $(MIQ)rules.mk
+
+# Override copy for man directories
+INSTALL.man=cp -r
 
 $(MIQ)rules.mk:
 	git submodule update --init --recursive
