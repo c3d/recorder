@@ -42,7 +42,7 @@ MANPAGES=man/man1 man/man3
 
 # For pkg-config generation
 PACKAGE_NAME=recorder
-PACKAGE_VERSION=1.2.0
+PACKAGE_VERSION=1.2.1
 PACKAGE_DESCRIPTION=Lock-free, real-time flight recorder for C or C++ programs
 PACKAGE_URL="http://github.com/c3d/recorder"
 PACKAGE_REQUIRES=

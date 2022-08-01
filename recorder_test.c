@@ -174,7 +174,7 @@ void flight_recorder_test(int argc, char **argv)
          RECORDER_VERSION_MAJOR(RECORDER_CURRENT_VERSION),
          RECORDER_VERSION_MINOR(RECORDER_CURRENT_VERSION),
          RECORDER_VERSION_PATCH(RECORDER_CURRENT_VERSION));
-    if (RECORDER_CURRENT_VERSION != RECORDER_VERSION(1,2,0))
+    if (RECORDER_CURRENT_VERSION != RECORDER_VERSION(1,2,1))
         FAIL("Testing an unexpected version of the recorder, "
              "update RECORDER_CURRENT_VERSION");
 
