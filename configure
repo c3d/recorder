@@ -55,7 +55,8 @@ while [ $# -ne 0 ]; do
     --sysconfigdir=*)                   output SYSCONFIG=$DD${1/--sysconfigdir=/}/;;
     --datadir=*)                        output PREFIX.share=$DD${1/--datadir=/}/;;
     --includedir=*)                     output PREFIX.h=$DD${1/--includedir=/}/;;
-    --libdir=*)                         output PREFIX.lib=$DD${1/--libdir=/}/;;
+    --libdir=*)                         output PREFIX.lib=$DD${1/--libdir=/}/
+                                        output PREFIX.dll=$DD${1/--libdir=/}/;;
     --libexecdir=*)                     output PREFIX.libexec=$DD${1/--libexecdir=/}/;;
     --localstatedir=*)                  output PREFIX.var=$DD${1/--localstatedir=/}/;;
     --sharedstatedir==*)                output PREFIX.str=$DD${1/--sharedstatedir=/}/;;
