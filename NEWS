@@ -1,3 +1,8 @@
+v1.2.2          Release 1.2.2 - Fix configure scripts to be more resilient
+    
+    - Ensure PREFIX.dll in the configuration script gets updated even if
+      the environment sets it to some static value, e.g. /usr/lib
+
 v1.2.1          Release 1.2.1 - Fix configuration script
     
     Fix the configuration script for Fedora
