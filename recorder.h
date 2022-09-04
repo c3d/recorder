@@ -1060,5 +1060,10 @@ static inline uintptr_t _recorder_double(double d)
     }
 }
 
+#ifdef RECORDER_STANDALONE_PRINTF
+// Hack to re-route printf to the recorder
+#define printf(...)     record(printf, __VA_ARGS__)
+RECORDER_DECLARE(printf);
+#endif // RECORDER_STANDALONE
 
 #endif // RECORDER_H

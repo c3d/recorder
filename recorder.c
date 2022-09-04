@@ -47,20 +47,22 @@
 #include <regex.h>
 #endif // HAVE_REGEX_H
 #include <signal.h>
-#include <unistd.h>
 #include <errno.h>
 #include <sys/time.h>
 #if HAVE_SYS_MMAN_H
 #include <sys/mman.h>
 #endif // HAVE_SYS_MMAN_H
 #include <sys/stat.h>
+#else
+#undef printf
 #endif // RECORDER_STANDALONE
 
-#include <stdbool.h>
 #include <stdio.h>
+#include <stdbool.h>
 #include <stdlib.h>
 #include <string.h>
 #include <inttypes.h>
+#include <unistd.h>
 
 
 // ============================================================================
@@ -187,6 +189,9 @@ RECORDER_TWEAK_DEFINE(recorder_time_precision,
 RECORDER_TWEAK_DEFINE(recorder_alt_stack_size, SIGSTKSZ,
                       "Size of alternate stack for recorder (0 to disable)");
 #endif // RECORDER_STANDALONE
+#ifdef RECORDER_STANDALONE_PRINTF
+RECORDER_DEFINE(printf, 32, "Recorder for non-transformed printf statements");
+#endif // RECORDER_STANDALONE_PRINTF
 
 // Display tweaks
 RECORDER_TWEAK_DEFINE(recorder_location, 0,
@@ -1142,6 +1147,7 @@ unsigned recorder_indent(void)
 //
 // ============================================================================
 
+#ifndef RECORDER_STANDALONE
 #define RECORDER_CMD_LEN  1024
 
 typedef struct recorder_shans
@@ -1902,6 +1908,7 @@ static recorder_type recorder_type_from_format(const char *format,
            start_index, start_format);
     return RECORDER_INVALID;
 }
+#endif // RECORDER_STANDALONE
 
 
 
@@ -2267,7 +2274,6 @@ void recorder_tweak_activate (recorder_tweak *tweak)
 //
 // ============================================================================
 
-#ifndef RECORDER_STANDALONE
 static recorder_chans_p chans = NULL;
 
 static const char *recorder_type_name[] =
@@ -2295,6 +2301,7 @@ void recorder_trace_entry(recorder_info *info, recorder_entry *entry)
         recorder_dump_entry(info, entry,
                             recorder_format, recorder_show, recorder_output);
 
+#ifndef RECORDER_STANDALONE
     // Export channels to shared memory
     for (i = 0; i < array_size(info->exported); i++)
     {
@@ -2336,9 +2343,11 @@ void recorder_trace_entry(recorder_info *info, recorder_entry *entry)
             recorder_ring_fetch_add(ring->commit, 1);
         }
     }
+#endif // RECORDER_STANDALONE
 }
 
 
+#ifndef RECORDER_STANDALONE
 const char *recorder_export_file(void)
 // ----------------------------------------------------------------------------
 //    Return the name of the file used for sharing data across processes
