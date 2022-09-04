@@ -103,9 +103,33 @@ extern "C" {
 
 // ============================================================================
 //
+//   Compiler dependencies
+//
+// ============================================================================
+
+#ifdef __GNUC__
+#define RECORDER_RING_MAYBE_UNUSED   __attribute__((unused))
+#else // !__GNUC__
+#define RECORDER_RING_MAYBE_UNUSED
+#endif // __GNUC__
+
+
+
+// ============================================================================
+//
 //    Atomic built-ins
 //
 // ============================================================================
+
+
+
+#ifdef RECORDER_NO_ATOMICS
+
+#define recorder_ring_fetch_add(Value, Offset)   (Value += Offset)
+#define recorder_ring_add_fetch(Value, Offset)   ((Value += Offset), Value)
+#define recorder_ring_compare_exchange(Val, Exp, New) ((Val = New), true)
+
+#else
 
 #ifdef __GNUC__
 
@@ -120,8 +144,6 @@ extern "C" {
     __atomic_compare_exchange_n(&Value, &Expected, New,                 \
                                 0, __ATOMIC_RELEASE, __ATOMIC_RELAXED)
 
-#define RECORDER_RING_MAYBE_UNUSED   __attribute__((unused))
-
 #else // ! __GNUC__
 
 #warning "Compiler not supported yet"
@@ -129,10 +151,9 @@ extern "C" {
 #define recorder_ring_add_fetch(Value, Offset)   ((Value += Offset), Value)
 #define recorder_ring_compare_exchange(Val, Exp, New) ((Val = New), true)
 
-#define RECORDER_RING_MAYBE_UNUSED
-
 #endif
 
+#endif // RECORDER_NO_ATOMICS
 
 
 // ============================================================================
