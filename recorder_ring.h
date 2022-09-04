@@ -168,8 +168,10 @@ typedef bool (*recorder_ring_block_fn)(recorder_ring_p,
 
 extern recorder_ring_p  recorder_ring_init(recorder_ring_p ring,
                                            size_t size, size_t item_size);
+#ifndef RECORDER_STANDALONE
 extern recorder_ring_p  recorder_ring_new(size_t size, size_t item_size);
 extern void             recorder_ring_delete(recorder_ring_p ring);
+#endif // RECORDER_STANDALONE
 extern size_t           recorder_ring_readable(recorder_ring_p ring, ringidx_t *reader);
 extern size_t           recorder_ring_writable(recorder_ring_p ring);
 extern size_t           recorder_ring_read(recorder_ring_p ring,

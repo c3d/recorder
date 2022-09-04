@@ -37,7 +37,7 @@ SOURCES=recorder_ring.c recorder.c
 HEADERS=recorder_ring.h recorder.h
 PRODUCTS=recorder.dll
 PRODUCTS_VERSION=$(PACKAGE_VERSION)
-CONFIG=sigaction <regex.h> <sys/mman.h> drand48 libregex setlinebuf
+CONFIG=sigaction <regex.h> <sys/mman.h> <signal.h> drand48 libregex setlinebuf
 MANPAGES=man/man1 man/man3
 
 # For pkg-config generation

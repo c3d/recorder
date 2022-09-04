@@ -36,6 +36,8 @@
 // *****************************************************************************
 
 #include "recorder.h"
+
+#ifndef RECORDER_STANDALONE
 #include "config.h"
 
 #include <ctype.h>
@@ -43,21 +45,22 @@
 #include <pthread.h>
 #if HAVE_REGEX_H
 #include <regex.h>
-#endif
+#endif // HAVE_REGEX_H
 #include <signal.h>
-#include <stdbool.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
 #include <unistd.h>
 #include <errno.h>
-#include <inttypes.h>
 #include <sys/time.h>
 #if HAVE_SYS_MMAN_H
 #include <sys/mman.h>
 #endif // HAVE_SYS_MMAN_H
 #include <sys/stat.h>
+#endif // RECORDER_STANDALONE
 
+#include <stdbool.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <inttypes.h>
 
 
 // ============================================================================
@@ -179,8 +182,11 @@ RECORDER_TWEAK_DEFINE(recorder_time_precision,
                       : RECORDER_HZ >      1 ?  1
                       :                         0,
                       "Precision for displaying time");
+
+#ifndef RECORDER_STANDALONE
 RECORDER_TWEAK_DEFINE(recorder_alt_stack_size, SIGSTKSZ,
                       "Size of alternate stack for recorder (0 to disable)");
+#endif // RECORDER_STANDALONE
 
 // Display tweaks
 RECORDER_TWEAK_DEFINE(recorder_location, 0,
@@ -1905,6 +1911,7 @@ static recorder_type recorder_type_from_format(const char *format,
 //
 // ============================================================================
 
+#ifndef RECORDER_STANDALONE
 static bool background_dump_running = false;
 
 
@@ -1953,6 +1960,8 @@ void recorder_background_dump_stop(void)
     background_dump_running = false;
 }
 
+#endif // RECORDER_STANDALONE
+
 
 
 // ============================================================================
@@ -1961,6 +1970,7 @@ void recorder_background_dump_stop(void)
 //
 // ============================================================================
 
+#ifndef RECORDER_STANDALONE
 #if HAVE_SIGACTION
 
 typedef struct sigaction        sig_fn;
@@ -2178,6 +2188,8 @@ void recorder_dump_on_common_signals(unsigned add, unsigned remove)
     }
 }
 
+#endif // RECORDER_STANDALONE
+
 
 
 // ============================================================================
@@ -2186,7 +2198,7 @@ void recorder_dump_on_common_signals(unsigned add, unsigned remove)
 //
 // ============================================================================
 
-#ifndef recorder_tick
+#if !defined(recorder_tick) && !defined(RECORDER_STANDALONE)
 uintptr_t recorder_tick(void)
 // ----------------------------------------------------------------------------
 //   Return the "ticks" as stored in the recorder
@@ -2255,6 +2267,7 @@ void recorder_tweak_activate (recorder_tweak *tweak)
 //
 // ============================================================================
 
+#ifndef RECORDER_STANDALONE
 static recorder_chans_p chans = NULL;
 
 static const char *recorder_type_name[] =
@@ -2726,3 +2739,4 @@ int recorder_trace_set(const char *param_spec)
 
     return rc;
 }
+#endif // RECORDER_STANDALONE

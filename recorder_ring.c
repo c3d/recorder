@@ -57,6 +57,7 @@ recorder_ring_p recorder_ring_init(recorder_ring_p ring,
 }
 
 
+#ifndef RECORDER_STANDALONE
 recorder_ring_p recorder_ring_new(size_t size, size_t item_size)
 // ----------------------------------------------------------------------------
 //   Create a new ring with the given name
@@ -75,6 +76,7 @@ void recorder_ring_delete(recorder_ring_p ring)
 {
     free(ring);
 }
+#endif
 
 
 extern size_t recorder_ring_readable(recorder_ring_p ring, ringidx_t *reader)

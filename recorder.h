@@ -83,6 +83,7 @@ extern unsigned recorder_dump(void);
 // Dump all recorder entries with a name matching regular expression 'what'
 extern unsigned recorder_dump_for(const char *what);
 
+#ifndef RECORDER_STANDALONE
 // Dump recorder entries on signal
 extern void recorder_dump_on_signal(int signal);
 
@@ -92,7 +93,7 @@ extern void recorder_dump_on_signal(int signal);
 //    SIGXCPU, SIGXFSZ, SIGINFO, SIGUSR1, SIGUSR2, SIGSTKFLT, SIGPWR
 // You can add add or remove signals by setting the bitmasks 'add' and 'remove'
 extern void recorder_dump_on_common_signals(unsigned add, unsigned remove);
-
+#endif // RECORDER_STANDALONE
 
 // Configuration of the function used to dump the recorder
 typedef unsigned (*recorder_show_fn) (const char *text,size_t len,void *output);
@@ -123,10 +124,11 @@ extern unsigned recorder_sort(const char *what,
 // Return the current indent for the recorder
 extern unsigned recorder_indent(void);
 
+#ifndef RECORDER_STANDALONE
 // Background recorder dump thread
 extern void recorder_background_dump(const char *what);
 extern void recorder_background_dump_stop(void);
-
+#endif //RECORDER_STANDALONE
 
 
 // ============================================================================
