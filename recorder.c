@@ -649,7 +649,7 @@ static void recorder_dump_entry(recorder_info      *rec,
                 switch(c)
                 {
                 case '>': nextindent = indent + 1; dst--; break;
-                case '<': nextindent = --indent;   dst--; break;
+                case '<': if (indent) nextindent = --indent;   dst--; break;
                 case '=': nextindent = indent = 0; dst--; break;
                 }
                 colons++;
