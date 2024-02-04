@@ -340,6 +340,7 @@ recorder_info_for_##Name =                                              \
     },                                                                  \
     {}                                                                  \
 };                                                                      \
+extern recorder_info * const recorder_info_ptr_for_##Name;              \
 recorder_info * const recorder_info_ptr_for_##Name =                    \
     &recorder_info_for_##Name.info;                                     \
                                                                         \
