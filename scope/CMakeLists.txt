@@ -1,3 +1,5 @@
+set(CMAKE_INCLUDE_CURRENT_DIR ON)
+
 # Link Qt6 libraries
 find_package(Qt6 REQUIRED COMPONENTS Charts)
 
@@ -13,7 +15,7 @@ qt_add_executable(recorder_scope
 set_target_properties(recorder_scope PROPERTIES AUTOMOC TRUE)
 
 # Include directories
-target_include_directories(recorder_scope PRIVATE ${CMAKE_SOURCE_DIR})
+target_include_directories(recorder_scope PRIVATE ${PROJECT_SOURCE_DIR})
 
 # Link the recorder library
 target_link_libraries(recorder_scope PRIVATE recorder)

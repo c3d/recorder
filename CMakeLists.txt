@@ -10,7 +10,7 @@ set(PACKAGE_URL "http://github.com/c3d/recorder")
 set(PACKAGE_BUGS "christophe@dinechin.org")
 
 # Include directories
-include_directories(${CMAKE_SOURCE_DIR})
+include_directories(${PROJECT_SOURCE_DIR})
 
 # Define sources and headers
 set(SOURCES
