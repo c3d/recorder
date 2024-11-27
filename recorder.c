@@ -38,7 +38,6 @@
 #include "recorder.h"
 
 #ifndef RECORDER_STANDALONE
-#include "config.h"
 
 #include <ctype.h>
 #include <fcntl.h>

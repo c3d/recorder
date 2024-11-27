@@ -60,7 +60,7 @@ public:
                           recorder_chans_p &chans,
                           const char *pattern,
                           QWidget *parent = 0);
-    ~RecorderView();
+    virtual ~RecorderView();
     void setup();
     void updateSetup();
 
