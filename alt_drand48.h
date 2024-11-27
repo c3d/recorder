@@ -37,8 +37,6 @@
 // If not, see <https://www.gnu.org/licenses/>.
 // *****************************************************************************
 
-#include "config.h"
-
 #ifndef HAVE_DRAND48
 // Missing functions on MinGW
 // see http://pubs.opengroup.org/onlinepubs/7908799/xsh/drand48.html

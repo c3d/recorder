@@ -23,6 +23,26 @@ set(HEADERS
     recorder.h
 )
 
+include(CheckSymbolExists)
+include(CheckIncludeFile)
+
+check_symbol_exists(sigaction signal.h HAVE_SIGACTION)
+check_include_file(regex.h HAVE_REGEX_H)
+check_include_file(sys/mman.h HAVE_SYS_MMAN_H)
+check_include_file(signal.h HAVE_SIGNAL_H)
+check_symbol_exists(drand48 stdlib.h HAVE_DRAND48)
+check_symbol_exists(setlinebuf stdio.h HAVE_SETLINEBUF)
+
+# add flags depending on check results
+add_compile_definitions(
+    $<$<BOOL:${HAVE_SIGACTION}>:HAVE_SIGACTION>
+    $<$<BOOL:${HAVE_REGEX_H}>:HAVE_REGEX_H>
+    $<$<BOOL:${HAVE_SYS_MMAN_H}>:HAVE_SYS_MMAN_H>
+    $<$<BOOL:${HAVE_SIGNAL_H}>:HAVE_SIGNAL_H>
+    $<$<BOOL:${HAVE_DRAND48}>:HAVE_DRAND48>
+    $<$<BOOL:${HAVE_SETLINEBUF}>:HAVE_SETLINEBUF>
+)
+
 # Define the library
 add_library(${PACKAGE_NAME} SHARED ${SOURCES} ${HEADERS})
 
@@ -32,6 +52,7 @@ set_target_properties(${PACKAGE_NAME} PROPERTIES VERSION ${PACKAGE_VERSION})
 # Link Qt6 libraries
 find_package(Qt6 REQUIRED COMPONENTS Core Gui Charts)
 target_link_libraries(${PACKAGE_NAME} PRIVATE Qt6::Core Qt6::Gui Qt6::Charts)
+
 
 # Platform-specific libraries and flags
 if(WIN32)
