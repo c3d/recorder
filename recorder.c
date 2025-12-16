@@ -64,6 +64,23 @@
 #include <inttypes.h>
 #include <unistd.h>
 
+// Fallback for platforms without SIGSTKSZ (e.g., MinGW)
+#ifndef RECORDER_STANDALONE
+#if !HAVE_SIGSTKSZ
+#define SIGSTKSZ 16384
+#endif
+
+// Fallback for platforms without strsignal (e.g., MinGW)
+#if !HAVE_STRSIGNAL
+static char strsignal_buf[32];
+static inline const char *strsignal(int sig)
+{
+    snprintf(strsignal_buf, sizeof(strsignal_buf), "Signal %d", sig);
+    return strsignal_buf;
+}
+#endif
+#endif // !RECORDER_STANDALONE
+
 
 // ============================================================================
 //
