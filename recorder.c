@@ -344,14 +344,13 @@ ringidx_t recorder_append(recorder_info *rec,
     size_t          size   = ring->size;
     recorder_entry *entry  = &data[writer % size];
     entry->format = format;
-    entry->order = recorder_ring_fetch_add(recorder_order, 1);
     entry->timestamp = recorder_tick();
     entry->where = where;
     entry->args[0] = a0;
     entry->args[1] = a1;
     entry->args[2] = a2;
     entry->args[3] = a3;
-    recorder_ring_fetch_add(ring->commit, 1);
+    entry->order = recorder_ring_fetch_add(recorder_order, 1);
     if (rec->trace)
         recorder_trace_entry(rec, entry);
     return writer;
@@ -379,7 +378,6 @@ ringidx_t recorder_append2(recorder_info *rec,
     size_t          size   = ring->size;
     recorder_entry *entry  = &data[writer % size];
     entry->format = format;
-    entry->order = recorder_ring_fetch_add(recorder_order, 1);
     entry->timestamp = recorder_tick();
     entry->where = where;
     entry->args[0] = a0;
@@ -388,14 +386,14 @@ ringidx_t recorder_append2(recorder_info *rec,
     entry->args[3] = a3;
     recorder_entry *entry2 = &data[(writer+1) % size];
     entry2->format = NULL;
-    entry2->order = entry->order;
     entry2->timestamp = entry->timestamp;
     entry2->where = where;
     entry2->args[0] = a4;
     entry2->args[1] = a5;
     entry2->args[2] = a6;
     entry2->args[3] = a7;
-    recorder_ring_fetch_add(ring->commit, 2);
+    entry->order = recorder_ring_fetch_add(recorder_order, 1);
+    entry2->order = entry->order;
     if (rec->trace)
         recorder_trace_entry(rec, entry);
     return writer;
@@ -427,7 +425,6 @@ ringidx_t recorder_append3(recorder_info *rec,
     size_t          size   = ring->size;
     recorder_entry *entry  = &data[writer % size];
     entry->format = format;
-    entry->order = recorder_ring_fetch_add(recorder_order, 1);
     entry->timestamp = recorder_tick();
     entry->where = where;
     entry->args[0] = a0;
@@ -436,7 +433,6 @@ ringidx_t recorder_append3(recorder_info *rec,
     entry->args[3] = a3;
     recorder_entry *entry2 = &data[(writer+1) % size];
     entry2->format = NULL;
-    entry2->order = entry->order;
     entry2->timestamp = entry->timestamp;
     entry2->where = where;
     entry2->args[0] = a4;
@@ -445,14 +441,15 @@ ringidx_t recorder_append3(recorder_info *rec,
     entry2->args[3] = a7;
     recorder_entry *entry3 = &data[(writer+2) % size];
     entry3->format = NULL;
-    entry3->order = entry->order;
     entry3->timestamp = entry->timestamp;
     entry3->where = where;
     entry3->args[0] = a8;
     entry3->args[1] = a9;
     entry3->args[2] = a10;
     entry3->args[3] = a11;
-    recorder_ring_fetch_add(ring->commit, 3);
+    entry->order = recorder_ring_fetch_add(recorder_order, 1);
+    entry2->order = entry->order;
+    entry3->order = entry->order;
     if (rec->trace)
         recorder_trace_entry(rec, entry);
     return writer;
@@ -476,14 +473,13 @@ ringidx_t recorder_append_fast(recorder_info *rec,
     size_t          size   = ring->size;
     recorder_entry *entry  = &data[writer % size];
     entry->format = format;
-    entry->order = recorder_ring_fetch_add(recorder_order, 1);
     entry->timestamp = data[(writer - 1) % size].timestamp;
     entry->where = where;
     entry->args[0] = a0;
     entry->args[1] = a1;
     entry->args[2] = a2;
     entry->args[3] = a3;
-    recorder_ring_fetch_add(ring->commit, 1);
+    entry->order = recorder_ring_fetch_add(recorder_order, 1);
     if (rec->trace)
         recorder_trace_entry(rec, entry);
     return writer;
@@ -511,7 +507,6 @@ ringidx_t recorder_append_fast2(recorder_info *rec,
     size_t          size   = ring->size;
     recorder_entry *entry  = &data[writer % size];
     entry->format = format;
-    entry->order = recorder_ring_fetch_add(recorder_order, 1);
     entry->timestamp = data[(writer - 1) % size].timestamp;
     entry->where = where;
     entry->args[0] = a0;
@@ -527,7 +522,8 @@ ringidx_t recorder_append_fast2(recorder_info *rec,
     entry2->args[1] = a5;
     entry2->args[2] = a6;
     entry2->args[3] = a7;
-    recorder_ring_fetch_add(ring->commit, 2);
+    entry->order = recorder_ring_fetch_add(recorder_order, 1);
+    entry2->order = entry->order;
     if (rec->trace)
         recorder_trace_entry(rec, entry);
     return writer;
@@ -559,7 +555,6 @@ ringidx_t recorder_append_fast3(recorder_info *rec,
     size_t          size   = ring->size;
     recorder_entry *entry  = &data[writer % size];
     entry->format = format;
-    entry->order = recorder_ring_fetch_add(recorder_order, 1);
     entry->timestamp = data[(writer - 1) % size].timestamp;
     entry->where = where;
     entry->args[0] = a0;
@@ -568,7 +563,6 @@ ringidx_t recorder_append_fast3(recorder_info *rec,
     entry->args[3] = a3;
     recorder_entry *entry2 = &data[(writer+1) % size];
     entry2->format = NULL;
-    entry2->order = entry->order;
     entry2->timestamp = entry->timestamp;
     entry2->where = where;
     entry2->args[0] = a4;
@@ -577,14 +571,15 @@ ringidx_t recorder_append_fast3(recorder_info *rec,
     entry2->args[3] = a7;
     recorder_entry *entry3 = &data[(writer+2) % size];
     entry3->format = NULL;
-    entry3->order = entry->order;
     entry3->timestamp = entry->timestamp;
     entry3->where = where;
     entry3->args[0] = a8;
     entry3->args[1] = a9;
     entry3->args[2] = a10;
     entry3->args[3] = a11;
-    recorder_ring_fetch_add(ring->commit, 3);
+    entry->order = recorder_ring_fetch_add(recorder_order, 1);
+    entry2->order = entry->order;
+    entry3->order = entry->order;
     if (rec->trace)
         recorder_trace_entry(rec, entry);
     return writer;
@@ -1048,15 +1043,15 @@ static recorder_entry *recorder_peek(recorder_ring_p ring)
     recorder_entry *data      = (recorder_entry *) (ring + 1);
     const size_t    size      = ring->size;
     ringidx_t       reader    = ring->reader;
-    ringidx_t       commit    = ring->commit;
-    size_t          written   = commit - reader;
+    ringidx_t       writer    = ring->writer;
+    size_t          written   = writer - reader;
     if (written >= size)
     {
-        ringidx_t minR = commit - size + 1;
+        ringidx_t minR = writer - size + 1;
         ringidx_t skip = minR - reader;
         recorder_ring_add_fetch(ring->overflow, skip);
         reader = recorder_ring_add_fetch(ring->reader, skip);
-        written = commit - reader;
+        written = writer - reader;
     }
     return written ? data + reader % size : NULL;
 }
