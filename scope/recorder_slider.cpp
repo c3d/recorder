@@ -174,7 +174,8 @@ void RecorderSlider::valueChanged(int value)
     QString config;
     QTextStream ts(&config);
     ts << name << "=" << value;
-    const char *constData = config.toUtf8().data();
+    auto utf8 = config.toUtf8();
+    const char *constData = utf8.data();
     if (!recorder_chans_configure(chans, constData))
         fprintf(stderr, "Configuration %s failed\n", constData);
 }
