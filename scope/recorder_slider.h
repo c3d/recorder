@@ -48,8 +48,7 @@ class RecorderSlider : public QSlider
 // ----------------------------------------------------------------------------
 {
 public:
-    explicit RecorderSlider(const char       *filename,
-                            recorder_chans_p &chans,
+    explicit RecorderSlider(recorder_chans_p &chans,
                             const char       *specification,
                             QGroupBox        *group,
                             QLabel           *minLabel,
@@ -59,18 +58,14 @@ public:
     ~RecorderSlider();
 
 public:
-    static QGroupBox *make(const char *filename,
-                           recorder_chans_p &chans,
+    static QGroupBox *make(recorder_chans_p &chans,
                            const char       *specification);
     void setup(const char *specification);
     void updateSetup();
     void valueChanged(int value);
 
 private:
-    const char *      filename;
     recorder_chans_p &chans;
-    const char *      specification;
-    bool              sourceChanged;
     QString           name;
     int               min;
     int               max;

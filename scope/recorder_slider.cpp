@@ -38,8 +38,7 @@
 #include <QtCore/QTextStream>
 #include <QtWidgets/QGridLayout>
 
-RecorderSlider::RecorderSlider(const char       *filename,
-                               recorder_chans_p &chans,
+RecorderSlider::RecorderSlider(recorder_chans_p &chans,
                                const char       *specification,
                                QGroupBox        *group,
                                QLabel           *minLabel,
@@ -50,10 +49,7 @@ RecorderSlider::RecorderSlider(const char       *filename,
 //   Define a slider according to the input spec
 // ----------------------------------------------------------------------------
     : QSlider(Qt::Horizontal, parent),
-      filename(filename),
       chans(chans),
-      specification(specification),
-      sourceChanged(false),
       name(specification),
       min(0),
       max(100),
@@ -76,8 +72,7 @@ RecorderSlider::~RecorderSlider()
 }
 
 
-QGroupBox *RecorderSlider::make(const char       *filename,
-                                recorder_chans_p &chans,
+QGroupBox *RecorderSlider::make(recorder_chans_p &chans,
                                 const char       *spec)
 // ----------------------------------------------------------------------------
 //   Build a control group holding the slider and associated labels
@@ -88,7 +83,7 @@ QGroupBox *RecorderSlider::make(const char       *filename,
     QLabel         *minLabel   = new QLabel;
     QLabel         *maxLabel   = new QLabel;
     QLabel         *valueLabel = new QLabel;
-    RecorderSlider *slider     = new RecorderSlider(filename, chans, spec,
+    RecorderSlider *slider     = new RecorderSlider(chans, spec,
                                                     group,
                                                     minLabel, maxLabel,
                                                     valueLabel);

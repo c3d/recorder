@@ -138,7 +138,7 @@ int main(int argc, char *argv[])
         }
         else if (arg == "-s" && a+1 < argc)
         {
-            QGroupBox *slider = RecorderSlider::make(path, chans, argv[++a]);
+            QGroupBox *slider = RecorderSlider::make(chans, argv[++a]);
             layout->addWidget(slider);
         }
         else if (arg == "-d" && a+1 < argc)
