@@ -76,6 +76,16 @@ to pass a recorder configuration string to the
 .BR recorder_trace_set(3)
 function.
 
+.\" ----------------------------------------------------------------------------
+.SH NOTES
+.\" ----------------------------------------------------------------------------
+.PP
+Channel metadata strings (name, description, unit) are stored in the
+shared-memory mapping. Any pointers returned by the channel access
+APIs become invalid if the mapping is resized or recreated (for example
+when new channels are added), so callers should copy them if they need
+to retain them.
+
 
 .\" ----------------------------------------------------------------------------
 .SH OPTIONS

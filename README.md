@@ -353,6 +353,11 @@ If the specification of the trace is non-numerical, then it defines a
 comma-separated list of names of *exported channels*. Data from
 exported channels is made available to an external application,
 e.g. for real-time display using the `recorder_scope` application.
+Note that functions returning channel metadata strings (name,
+description, unit) return pointers into the shared-memory mapping.
+Those pointers become invalid if the mapping is resized or recreated
+(for example when new channels are added), so copy them if you need
+to retain them.
 
 For example, consider the following `RECORD` statement, taken from the
 `recorder_test.c` example:

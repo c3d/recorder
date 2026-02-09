@@ -894,6 +894,8 @@ extern bool             recorder_chans_valid(recorder_chans_p chans);
 extern recorder_chan_p  recorder_chan_find(recorder_chans_p chans,
                                            const char *pattern,
                                            recorder_chan_p after);
+// Returned pointers refer to the shared mmap and become invalid if the
+// channels mapping is recreated or resized (e.g., when new channels are added).
 extern const char *     recorder_chan_name(recorder_chan_p chan);
 extern const char *     recorder_chan_description(recorder_chan_p chan);
 extern const char *     recorder_chan_unit(recorder_chan_p chan);
