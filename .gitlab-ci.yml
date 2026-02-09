@@ -80,47 +80,52 @@ build-release:fedora:
   script:
   - make opt-release
 
-test:fedora28:
-  image: fedora:28
+test:fedora42:
+  image: fedora:42
   script:
    - make test
 
-test:fedora29:
-  image: fedora:29
-  script:
-   - make test
-
-test:fedora30:
-  image: fedora:30
-  script:
-   - make test
-
-test:fedora31:
-  image: fedora:31
-  script:
-   - make test
-
-test:fedora32:
-  image: fedora:32
+test:fedora43:
+  image: fedora:43
   script:
    - make test
 
 test:ubuntu:
-  image: ubuntu:latest
+  image: ubuntu:24.04
   script:
   - make test
 
 test-opt:ubuntu:
-  image: ubuntu:latest
+  image: ubuntu:24.04
   script:
   - make test-opt
 
 test-release:ubuntu:
-  image: ubuntu:latest
+  image: ubuntu:24.04
   script:
   - make test-release
 
 test-debug:ubuntu:
-  image: ubuntu:latest
+  image: ubuntu:24.04
+  script:
+  - make test-debug
+
+test:ubuntu25:
+  image: ubuntu:25.04
+  script:
+  - make test
+
+test-opt:ubuntu25:
+  image: ubuntu:25.04
+  script:
+  - make test-opt
+
+test-release:ubuntu25:
+  image: ubuntu:25.04
+  script:
+  - make test-release
+
+test-debug:ubuntu25:
+  image: ubuntu:25.04
   script:
   - make test-debug
