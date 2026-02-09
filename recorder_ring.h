@@ -129,6 +129,7 @@ extern "C" {
 #define recorder_ring_add_fetch(Value, Offset)   ((Value += Offset), Value)
 #define recorder_ring_compare_exchange(Val, Exp, New) ((Val = New), true)
 #define recorder_ring_load(Value) (Value)
+#define recorder_ring_store(Value, New) ((Value) = (New))
 
 #else
 
@@ -148,6 +149,9 @@ extern "C" {
 #define recorder_ring_load(Value)                              \
     __atomic_load_n(&Value, __ATOMIC_ACQUIRE)
 
+#define recorder_ring_store(Value, New)                        \
+    __atomic_store_n(&Value, New, __ATOMIC_RELEASE)
+
 #else // ! __GNUC__
 
 #warning "Compiler not supported yet"
@@ -155,6 +159,7 @@ extern "C" {
 #define recorder_ring_add_fetch(Value, Offset)   ((Value += Offset), Value)
 #define recorder_ring_compare_exchange(Val, Exp, New) ((Val = New), true)
 #define recorder_ring_load(Value) (Value)
+#define recorder_ring_store(Value, New) ((Value) = (New))
 
 #endif
 

@@ -1933,6 +1933,9 @@ static recorder_type recorder_type_from_format(const char *format,
 
 #ifndef RECORDER_STANDALONE
 static bool background_dump_running = false;
+static bool background_dump_started = false;
+static pthread_t background_dump_tid;
+static pthread_mutex_t background_dump_mutex = PTHREAD_MUTEX_INITIALIZER;
 
 
 static void *background_dump(void *pattern)
@@ -1941,7 +1944,7 @@ static void *background_dump(void *pattern)
 // ----------------------------------------------------------------------------
 {
     const char *what = pattern;
-    while (background_dump_running)
+    while (recorder_ring_load(background_dump_running))
     {
         unsigned dumped = recorder_sort(what, recorder_format,
                                         recorder_show, recorder_output);
@@ -1962,13 +1965,33 @@ void recorder_background_dump(const char *what)
 //   Dump the selected recorders, sleeping sleep_ms if nothing to dump
 // ----------------------------------------------------------------------------
 {
-    pthread_t tid;
-    background_dump_running = true;
+    pthread_mutex_lock(&background_dump_mutex);
+    if (background_dump_started &&
+        recorder_ring_load(background_dump_running))
+    {
+        pthread_mutex_unlock(&background_dump_mutex);
+        return;
+    }
+    recorder_ring_store(background_dump_running, true);
     if (strcmp(what, "all") == 0)
         what = ".*";
-    pthread_create(&tid, NULL, background_dump, (void *) what);
-    record(recorder, "Started background dump thread for %s, thread %p",
-           what, (void *) tid);
+    int rc = pthread_create(&background_dump_tid, NULL,
+                            background_dump, (void *) what);
+    if (rc != 0)
+    {
+        recorder_ring_store(background_dump_running, false);
+        background_dump_started = false;
+        record(recorder_error,
+               "Failed to start background dump thread for %s, errno=%d (%s)",
+               what, rc, strerror(rc));
+    }
+    else
+    {
+        background_dump_started = true;
+        record(recorder, "Started background dump thread for %s, thread %p",
+               what, (void *) background_dump_tid);
+    }
+    pthread_mutex_unlock(&background_dump_mutex);
 }
 
 
@@ -1977,7 +2000,15 @@ void recorder_background_dump_stop(void)
 //   Stop the background dump task
 // ----------------------------------------------------------------------------
 {
-    background_dump_running = false;
+    pthread_mutex_lock(&background_dump_mutex);
+    recorder_ring_store(background_dump_running, false);
+    if (background_dump_started)
+    {
+        if (!pthread_equal(pthread_self(), background_dump_tid))
+            pthread_join(background_dump_tid, NULL);
+        background_dump_started = false;
+    }
+    pthread_mutex_unlock(&background_dump_mutex);
 }
 
 #endif // RECORDER_STANDALONE
