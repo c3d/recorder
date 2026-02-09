@@ -86,7 +86,8 @@ extern size_t recorder_ring_readable(recorder_ring_p ring, ringidx_t *reader)
 {
     if (!reader)
         reader = &ring->reader;
-    size_t readable = ring->commit - *reader;
+    size_t readable = recorder_ring_load(ring->commit) -
+                      recorder_ring_load(*reader);
     if (readable > ring->size)
         readable = ring->size;
     return readable;
@@ -99,8 +100,8 @@ extern size_t recorder_ring_writable(recorder_ring_p ring)
 // ----------------------------------------------------------------------------
 {
     const ringidx_t size     = ring->size;
-    ringidx_t       reader   = ring->reader;
-    ringidx_t       writer   = ring->writer;
+    ringidx_t       reader   = recorder_ring_load(ring->reader);
+    ringidx_t       writer   = recorder_ring_load(ring->writer);
     ringidx_t       written  = writer - reader;
     ringidx_t       writable = size - written - 1;
 
@@ -120,8 +121,8 @@ void *recorder_ring_peek(recorder_ring_p ring)
     char         *data      = (char *) (ring + 1);
     const size_t  size      = ring->size;
     const size_t  item_size = ring->item_size;
-    ringidx_t     reader    = ring->reader;
-    ringidx_t     commit    = ring->commit;
+    ringidx_t     reader    = recorder_ring_load(ring->reader);
+    ringidx_t     commit    = recorder_ring_load(ring->commit);
     size_t        written   = commit - reader;
     if (written >= size)
     {
@@ -162,9 +163,9 @@ ringidx_t recorder_ring_read(recorder_ring_p         ring,
     // First commit to reading a given amount of contiguous data
     do
     {
-        reader = *reader_ptr;
-        commit = ring->commit;
-        writer = ring->writer;
+        reader = recorder_ring_load(*reader_ptr);
+        commit = recorder_ring_load(ring->commit);
+        writer = recorder_ring_load(ring->writer);
         available = commit - reader;
         to_copy = count;
 
@@ -235,8 +236,8 @@ ringidx_t recorder_ring_write(recorder_ring_p         ring,
     // First commit to writing a given amount of contiguous data
     do
     {
-        reader = ring->reader;
-        writer = ring->writer;
+        reader = recorder_ring_load(ring->reader);
+        writer = recorder_ring_load(ring->writer);
         available = size + reader - writer;
         to_copy = count;
 
@@ -274,7 +275,8 @@ ringidx_t recorder_ring_write(recorder_ring_p         ring,
     ringidx_t expected = first_writer;
     while (!recorder_ring_compare_exchange(ring->commit, expected, writer))
     {
-        if (!commit_block || !commit_block(ring, ring->commit, first_writer))
+        if (!commit_block ||
+            !commit_block(ring, recorder_ring_load(ring->commit), first_writer))
         {
             // Skip forward
             recorder_ring_fetch_add(ring->commit, writer - first_writer);
