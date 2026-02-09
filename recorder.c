@@ -1424,6 +1424,7 @@ recorder_chan_p recorder_chan_new(recorder_chans_p chans,
 
         // Note that if the new mapping address is different,
         // all recorder_chan_p become invalid
+        shans = map_addr;
         chans->map_size = map_size;
         chans->map_addr = map_addr;
     }
