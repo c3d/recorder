@@ -2495,8 +2495,9 @@ static void recorder_export(recorder_info *rec, const char *value, bool multi)
         char *chan_name = name;
         if (multi)
         {
-            chan_name = malloc(strlen(rec->name) + strlen(name) + 2);
-            sprintf(chan_name, "%s/%s", rec->name, name);
+            size_t chan_name_len = strlen(rec->name) + strlen(name) + 2;
+            chan_name = malloc(chan_name_len);
+            snprintf(chan_name, chan_name_len, "%s/%s", rec->name, name);
         }
 
         record(recorder, "Exporting channel %+s for index %u in %+s\n",
