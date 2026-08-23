@@ -1073,7 +1073,7 @@ unsigned recorder_sort(const char *what,
     recorder_ring_fetch_add(recorder_dumping, 1);
     while (status == 0)
     {
-        uintptr_t       lowest_order = ~0UL;
+        uintptr_t       lowest_order = (uintptr_t) ~0ULL;
         recorder_entry *lowest_entry = NULL;
         recorder_info  *lowest_rec   = NULL;
         recorder_info  *rec;
